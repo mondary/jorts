@@ -17,14 +17,14 @@
 
 Please make sure you have these dependencies first before building Jorts.
 
-`libgranite-7-dev`
-`gtk+-4.0`
-`libjson-glib-dev`
-`libgee-0.8-dev`
-`libjson-glib`
-`libportal-gtk4-dev`
-`meson`
-`valac`
+* libgranite-7-dev
+* gtk+-4.0
+* libjson-glib-dev
+* libgee-0.8-dev
+* libjson-glib
+* libportal-gtk4-dev
+* meson
+* valac
 
 As of the current date (4th May 2026), here is the command to install on...
 
