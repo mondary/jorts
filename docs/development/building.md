@@ -6,9 +6,9 @@
    - [elementary OS](#elementary-os)
    - [Ubuntu](#ubuntu)
 2. [Setup Meson](#setup-meson)
-   -[Configure](#configure)
-   -[Compile](#compile)
-   -[Update translations](#update-translations)
+   - [Configure](#configure)
+   - [Compile](#compile)
+   - [Update translations](#update-translations)
 3. [Installing](#installing)
 4. [Tools](#tools)
 
