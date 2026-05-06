@@ -2,12 +2,9 @@ name: CI
 
 on:
   pull_request:
-    branches-ignore:
-      - legacy-rdnn
     types:
-      - opened
-      - reopened
-      - synchronize
+      - review_requested
+      - ready_for_review
 
 jobs:
   flatpak:
