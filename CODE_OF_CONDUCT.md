@@ -18,9 +18,7 @@ Inclusivity is a social contract. Be nice or be kicked.
 
 ## **1. No fucking AI contribution**
 
-None. Not a hint. Not a "but". If we even get a whiff of AI by checking your other code, we'll consider it an attempt of hiding it from us in your PR.
-
-AI is a direct contradiction with the first item. If you want to fund monsters, then you broke the contract.
+None. Not a hint. Not a "but". If we even get a whiff of AI by checking your other code, we'll consider it an attempt of hiding it from us in your PR. AI is a direct contradiction with the first item. If you want to fund monsters, then you broke the contract.
 
   **a)** Is included: If you openly use AI generated pictures, like those piss-tinted pantomimes of Ghibli, then you are out, i dont want anything to do with you.
 
