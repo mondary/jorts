@@ -1,118 +1,110 @@
-
 <div align="center">
   <img alt="An icon representing a stack of little squared blue sticky notes. The first one, and the second one hinted below, have scribbles over them" src="data/icons/default/hicolor/128.png" />
   <h1>Jorts</h1>
-  <h3>Neither jeans nor shorts, just like jorts. A sticky notes app for elementary OS</h3>
+  <h3>Neither jeans nor shorts, just like jorts. A sticky notes app for macOS</h3>
 
-  <a href="https://elementary.io">
-    <img src="https://ellie-commons.github.io/community-badge.svg" alt="Made for elementary OS">
-  </a>
-  
-<span align="center"> <img class="center" src="https://github.com/elly-code/jorts/blob/main/data/screenshots/spread.png" alt="Several colourful sticky notes in a spread. Most are covered in scribbles. One in forefront is blue and has the text 'Lovely little colourful squares for all of your notes! 🥰'"></span>
+  <p>
+    <strong>This is a native macOS fork of</strong>
+    <a href="https://github.com/elly-code/jorts">elly-code/jorts</a>
+  </p>
+
+  <p>
+    <em>Looking for Linux or Windows? See the <a href="#other-platforms">original project</a>.</em>
+  </p>
 </div>
 
-<br/>
+---
+
+## macOS Port
+
+This is a **native Swift + AppKit implementation** of Jorts, rewritten from the original GTK-based version. It provides a true macOS experience with native menus, keyboard shortcuts, and system integration.
+
+**Minimum requirement:** macOS 13.0 (Ventura) or later
 
 
+## Installation on macOS
 
-## 🦺 Installation
+### Building from source
 
-You can download and install Jorts from various sources:
-
-[![Get it on AppCenter](https://appcenter.elementary.io/badge.svg?new)](https://appcenter.elementary.io/io.github.elly_code.jorts) 
-[<img src="https://flathub.org/assets/badges/flathub-badge-en.svg" width="160" alt="Download on Flathub">](https://flathub.org/apps/io.github.ellie_commons.jorts)
-
-
-On Windows: Grab the Exe installer in Release
-Not all releases have an exe, because bundling for Windows and testing it works is a HASSLE.
-
-
-
-
-## ❓ Questions, building, etc
-
-
-You may want to check the [documentation](https://github.com/elly-code/jorts/tree/main/docs)
-
-Issues are all filed [here in the Issues tab](https://github.com/elly-code/jorts/issues)
-
-You can also [come over in matrix](https://matrix.to/#/#elly-code:matrix.org) to talk to me directly
-
-
-
-
-## 🛣️ The Future
-
-The app is destined to stay simple. If anything there is already too much in the UI for my comfort, so do not expect /more/
-
-Roadmap:
- - Document stuff
- - Fix an annoying memory leak where deleted notes linger in memory
- - Use Gtk 4.24 save-state new thing if it ever lands
- - More icon variants
- - Better list/bullets
- - Co-maintainers would be nice
- - More translations would be nice
-
-
-
-## 💝 Donations
-
-On the right you can donate to various contributors:
- - teamcons, the main devs and maintainers behind jorts
- - wpkelso, the author of the modern icon and its Pride variant
- - lains, the initial creator of the app (It was Notejot, now something very different)
-
-
-
-
-## 💾 Notes Storage
-
-"saved_state.json" contains all notes in JSON format. The structure is quite simple, it is an array of objects, each representing the data of a sticky note
-
-The app reads from it only during startup (rest of the time it writes in) so you could quite easily swap it up to swap between sets of notes.
-
-The app writes to it everytime there is a sticky note change
-
-
-
-### If installed from flathub (if you are not on elementary OS)
-
-You can get it all by entering in the search bar of your file explorer:
-
-~/.var/app/io.github.ellie_commons.jorts/data/io.github.ellie_commons.jorts/
-
-Or typing the below in a terminal, to move it to your Home folder:
+You'll need [Xcode](https://developer.apple.com/xcode/) or the Swift toolchain.
 
 ```bash
-cp ~/.var/app/io.github.ellie_commons.jorts/data/io.github.ellie_commons.jorts/saved_data.json ~/
+# Clone the repository
+git clone https://github.com/clm-tmp/JORTS_macos.git
+cd JORTS_macos
+
+# Build using Swift Package Manager
+swift build
+
+# Run the app
+swift run
 ```
 
-
-### If installed from elementary OS appcenter
-
-The app id is slightly different
-
-Enter the path:
-
-~/.var/app/io.github.elly_code.jorts/data/io.github.elly_code.jorts/
-
-Or the command:
+### Development build
 
 ```bash
-cp ~/.var/app/io.github.elly_code.jorts/data/io.github.elly_code.jorts/saved_data.json ~/
+# Build in release mode
+swift build -c release
+
+# The binary will be at:
+# .build/arm64-apple-macosx/release/JortsMac
 ```
 
-
-### WINDOWS
-
-Paste in the explorer window:
-
-%localappdata%\io.github.elly_code.jorts\
+**Note:** A distributable app bundle (`.app`) and proper installer are planned for future releases. For now, use the built executable or Xcode to run the app.
 
 
-### UNSUPPORTED PACKAGINGS
+## Storage
 
-Check out in ~/.local/share
+Notes are stored in `saved_state.json` in the app's data directory.
 
-It likely is there
+**Location on macOS:**
+```bash
+~/Library/Application Support/io.github.elly_code.jorts/
+```
+
+You can manually backup or transfer notes by copying this file. The JSON format is simple and human-readable.
+
+
+## Other Platforms
+
+Looking for Jorts on **Linux** or **Windows**? The original project supports those platforms:
+
+- [elly-code/jorts](https://github.com/elly-code/jorts) — GTK-based version
+- Available on [Flathub](https://flathub.org/apps/io.github.ellie_commons.jorts) for Linux
+- Windows installer available in [releases](https://github.com/elly-code/jorts/releases)
+
+
+## Keyboard Shortcuts (macOS)
+
+| Shortcut | Action |
+|----------|--------|
+| `Cmd + N` | New sticky note |
+| `Cmd + S` | Save all notes |
+| `Cmd + W` | Close note window |
+| `Cmd + ,` | Preferences |
+| `Cmd + Delete` | Delete sticky note |
+| `Cmd + Shift + L` | Toggle list |
+| `Cmd + M` | Toggle monospace |
+| `Cmd + Plus` | Zoom in |
+| `Cmd + Minus` | Zoom out |
+| `Cmd + 0` | Reset zoom |
+
+
+## Contributing
+
+This is a personal macOS port. For issues related to the original Jorts application, please report them to [elly-code/jorts](https://github.com/elly-code/jorts/issues).
+
+macOS-specific issues can be reported here.
+
+
+## Credits
+
+- **teamcons** — Original developer and maintainer of Jorts
+- **lains** — Original creator (Notejot)
+- **wpkelso** — Icon designer
+- **This fork** — Native macOS port by clm-tmp
+
+
+## License
+
+This project shares the same license as the original Jorts. See [LICENSE](LICENSE) for details.

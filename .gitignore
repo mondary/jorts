@@ -1,11 +1,15 @@
 
 .*
 !.gitignore
+!.codex/
+!.codex/environments/
+!.codex/environments/environment.toml
 .editorconfig
 ~*
 *~
 build
 builddir
+dist
 .flatpak-builder
 .potrans
 repo
