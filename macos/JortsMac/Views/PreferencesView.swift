@@ -48,7 +48,6 @@ struct PreferencesView: View {
             Spacer()
 
             HStack {
-                Link("Support us", destination: URL(string: "https://ko-fi.com/teamcons/tip")!)
                 Spacer()
                 Button("Close", action: onClose)
                     .keyboardShortcut(.defaultAction)

@@ -27,10 +27,60 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func showAbout(_ sender: Any?) {
+        let credits = NSMutableAttributedString()
+
+        let header = "Jorts_MacOS\n\n"
+        let headerAttr: [NSAttributedString.Key: Any] = [.font: NSFont.boldSystemFont(ofSize: 13)]
+        credits.append(NSAttributedString(string: header, attributes: headerAttr))
+
+        let description = "Native macOS Swift port\n\n"
+        credits.append(NSAttributedString(string: description))
+
+        let originalText = "Original project: "
+        credits.append(NSAttributedString(string: originalText))
+
+        let originalLink = "elly-code/jorts\n"
+        if let originalURL = URL(string: "https://github.com/elly-code/jorts") {
+            let originalLinkAttr: [NSAttributedString.Key: Any] = [
+                .link: originalURL,
+                .foregroundColor: NSColor.systemBlue,
+                .font: NSFont.systemFont(ofSize: 11)
+            ]
+            credits.append(NSAttributedString(string: originalLink, attributes: originalLinkAttr))
+        }
+
+        let forkText = "macOS fork: "
+        credits.append(NSAttributedString(string: forkText))
+
+        let forkLink = "clm-tmp/JORTS_macos"
+        if let forkURL = URL(string: "https://github.com/clm-tmp/JORTS_macos") {
+            let forkLinkAttr: [NSAttributedString.Key: Any] = [
+                .link: forkURL,
+                .foregroundColor: NSColor.systemBlue,
+                .font: NSFont.systemFont(ofSize: 11)
+            ]
+            credits.append(NSAttributedString(string: forkLink, attributes: forkLinkAttr))
+        }
+
+        credits.append(NSAttributedString(string: "\n"))
+
+        let supportText = "☕ Support the original developer: "
+        credits.append(NSAttributedString(string: supportText))
+
+        let supportLink = "ko-fi.com/teamcons"
+        if let supportURL = URL(string: "https://ko-fi.com/teamcons/tip") {
+            let supportLinkAttr: [NSAttributedString.Key: Any] = [
+                .link: supportURL,
+                .foregroundColor: NSColor.systemBlue,
+                .font: NSFont.systemFont(ofSize: 11)
+            ]
+            credits.append(NSAttributedString(string: supportLink, attributes: supportLinkAttr))
+        }
+
         NSApp.orderFrontStandardAboutPanel(options: [
-            .applicationName: "Jorts",
+            .applicationName: "Jorts_MacOS",
             .applicationVersion: "4.2.0 macOS port",
-            .credits: NSAttributedString(string: "Native macOS Swift port of elly-code/jorts.")
+            .credits: credits
         ])
     }
 

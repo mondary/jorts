@@ -1,11 +1,18 @@
 <div align="center">
   <img alt="An icon representing a stack of little squared blue sticky notes. The first one, and the second one hinted below, have scribbles over them" src="data/icons/default/hicolor/128.png" />
-  <h1>Jorts</h1>
+  <h1>Jorts_MacOS</h1>
   <h3>Neither jeans nor shorts, just like jorts. A sticky notes app for macOS</h3>
 
   <p>
     <strong>This is a native macOS fork of</strong>
     <a href="https://github.com/elly-code/jorts">elly-code/jorts</a>
+  </p>
+
+  <p>
+    <a href="https://github.com/clm-tmp/JORTS_macos">
+      <img src="https://img.shields.io/badge/macOS-fork-blue" alt="macOS fork">
+    </a>
+    <em> — macOS port by <a href="https://github.com/clm-tmp">clm-tmp</a></em>
   </p>
 
   <p>
@@ -105,10 +112,14 @@ macOS-specific issues can be reported here.
 
 ## Credits
 
-- **teamcons** — Original developer and maintainer of Jorts
-- **lains** — Original creator (Notejot)
-- **wpkelso** — Icon designer
-- **This fork** — Native macOS port by clm-tmp
+- **[teamcons](https://github.com/teamcons)** — Original developer and maintainer of Jorts
+- **[lains](https://github.com/lains)** — Original creator (Notejot)
+- **[wpkelso](https://github.com/wpkelso)** — Icon designer
+- **[clm-tmp](https://github.com/clm-tmp)** — Native macOS port developer
+
+**Links:**
+- Original project: [elly-code/jorts](https://github.com/elly-code/jorts)
+- This macOS fork: [clm-tmp/JORTS_macos](https://github.com/clm-tmp/JORTS_macos)
 
 
 ## License

@@ -83,7 +83,7 @@ final class NoteDocument: ObservableObject, Identifiable {
     }
 
     var windowTitle: String {
-        "\(title.isEmpty ? "Untitled" : title) - Jorts"
+        "\(title.isEmpty ? "Untitled" : title) - Jorts_MacOS"
     }
 
     var textScale: CGFloat {
