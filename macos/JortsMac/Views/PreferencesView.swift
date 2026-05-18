@@ -5,18 +5,19 @@ struct PreferencesView: View {
 
     let storageURL: URL
     let onClose: () -> Void
+    let onLanguageChanged: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text("Preferences for your Jorts")
+            Text(localizedString("preferences_title"))
                 .font(.title2.weight(.semibold))
 
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("List item prefix")
+                        Text(localizedString("list_item_prefix"))
                             .font(.headline)
-                        Text("If left empty, the list button is hidden.")
+                        Text(localizedString("list_item_prefix_hint"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -27,17 +28,31 @@ struct PreferencesView: View {
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 86)
 
-                    Button("Reset") {
+                    Button(localizedString("reset")) {
                         settings.resetListPrefix()
                     }
                 }
 
-                Toggle("Scribble text of unfocused notes", isOn: $settings.scribblyModeActive)
-                Toggle("Hide bottom action bar", isOn: $settings.hideActionBar)
+                HStack {
+                    Text(localizedString("language"))
+                        .font(.headline)
+
+                    Spacer()
+
+                    Picker("", selection: $settings.selectedLanguage) {
+                        ForEach(AppLanguage.allCases) { language in
+                            Text(language.displayName).tag(language)
+                        }
+                    }
+                    .frame(width: 150)
+                }
+
+                Toggle(localizedString("scribble_mode"), isOn: $settings.scribblyModeActive)
+                Toggle(localizedString("hide_action_bar"), isOn: $settings.hideActionBar)
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Storage")
+                Text(localizedString("storage"))
                     .font(.headline)
                 Text(storageURL.path)
                     .font(.caption.monospaced())
@@ -49,12 +64,15 @@ struct PreferencesView: View {
 
             HStack {
                 Spacer()
-                Button("Close", action: onClose)
+                Button(localizedString("close"), action: onClose)
                     .keyboardShortcut(.defaultAction)
                     .frame(width: 96)
             }
         }
         .padding(20)
-        .frame(width: 520, height: 300)
+        .frame(width: 520, height: 360)
+        .onChange(of: settings.selectedLanguage) { _ in
+            onLanguageChanged()
+        }
     }
 }

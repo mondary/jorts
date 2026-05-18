@@ -2,22 +2,27 @@ import AppKit
 import SwiftUI
 
 final class PreferencesWindowController: NSWindowController, NSWindowDelegate {
-    init(settings: AppSettings, storageURL: URL) {
+    private let onLanguageChanged: () -> Void
+
+    init(settings: AppSettings, storageURL: URL, onLanguageChanged: @escaping () -> Void) {
+        self.onLanguageChanged = onLanguageChanged
+
         let rootView = PreferencesView(
             settings: settings,
             storageURL: storageURL,
-            onClose: {}
+            onClose: {},
+            onLanguageChanged: onLanguageChanged
         )
 
         let hostingController = NSHostingController(rootView: rootView)
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 520, height: 300),
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 360),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
         )
 
-        window.title = "Preferences - Jorts"
+        window.title = "Preferences - Jorts_MacOS"
         window.contentViewController = hostingController
         window.isReleasedWhenClosed = false
         window.center()
@@ -28,7 +33,8 @@ final class PreferencesWindowController: NSWindowController, NSWindowDelegate {
         hostingController.rootView = PreferencesView(
             settings: settings,
             storageURL: storageURL,
-            onClose: { [weak window] in window?.orderOut(nil) }
+            onClose: { [weak window] in window?.orderOut(nil) },
+            onLanguageChanged: onLanguageChanged
         )
     }
 

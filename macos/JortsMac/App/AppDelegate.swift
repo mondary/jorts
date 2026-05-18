@@ -97,13 +97,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if preferencesWindowController == nil {
             preferencesWindowController = PreferencesWindowController(
                 settings: settings,
-                storageURL: manager.storageURL
+                storageURL: manager.storageURL,
+                onLanguageChanged: { [weak self] in
+                    self?.restartForLanguageChange()
+                }
             )
         }
 
         preferencesWindowController?.showWindow(nil)
         preferencesWindowController?.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func restartForLanguageChange() {
+        manager.saveNow()
+
+        let alert = NSAlert()
+        alert.messageText = "Language Changed"
+        alert.informativeText = "Jorts_MacOS needs to restart to apply the language change."
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Restart Now")
+        alert.addButton(withTitle: "Later")
+
+        let response = alert.runModal()
+
+        if response == .alertFirstButtonReturn {
+            restartApp(nil)
+        }
     }
 
     @objc private func closeCurrentNoteWindow(_ sender: Any?) {

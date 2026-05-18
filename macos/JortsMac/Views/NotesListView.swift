@@ -22,7 +22,7 @@ struct NotesListView: View {
 
     private var header: some View {
         HStack {
-            Text("All Notes")
+            Text(NSLocalizedString("show_all_notes", bundle: .main, comment: ""))
                 .font(.title2.weight(.semibold))
 
             Spacer()
@@ -52,7 +52,7 @@ struct NotesListView: View {
                 .font(.system(size: 48))
                 .foregroundColor(.secondary)
 
-            Text("No notes yet")
+            Text(NSLocalizedString("no_notes", bundle: .main, comment: ""))
                 .font(.title3)
                 .foregroundColor(.secondary)
 

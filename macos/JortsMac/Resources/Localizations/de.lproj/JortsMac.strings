@@ -1,0 +1,72 @@
+/*
+  JortsMac - German localization
+*/
+
+/* Preferences */
+"preferences_title" = "Einstellungen für Ihre Jorts";
+"list_item_prefix" = "Listenelementpräfix";
+"list_item_prefix_hint" = "Wenn leer, wird der Listenbutton ausgeblendet.";
+"reset" = "Zurücksetzen";
+"scribble_mode" = "Gekritzeltext unfokussierter Notizen";
+"hide_action_bar" = "Untere Aktionsleiste ausblenden";
+"storage" = "Speicher";
+"close" = "Schließen";
+"language" = "Sprache";
+
+/* About */
+"app_name" = "Jorts_MacOS";
+"app_version" = "4.2.0 macOS-Port";
+"about_header" = "Jorts_MacOS";
+"about_description" = "Native macOS-Swift-Portierung";
+"original_project" = "Originalprojekt: ";
+"macos_fork" = "macOS-Fork: ";
+"support_developer" = "☕ Unterstützen Sie den ursprünglichen Entwickler: ";
+
+/* Menu Bar */
+"no_notes" = "Keine Notizen";
+"new_note" = "Neue Notiz";
+"show_all_notes" = "Alle Notizen anzeigen";
+"save_all_notes" = "Alle Notizen speichern";
+"settings" = "Einstellungen…";
+"about" = "Über Jorts";
+"restart" = "Jorts neu starten";
+"quit" = "Jorts beenden";
+
+/* Note Window */
+"untitled" = "Unbenannt";
+"title_placeholder" = "Titel";
+"save" = "Alle Notizen speichern";
+"new_sticky_note" = "Neue Haftnotiz";
+"delete_sticky_note" = "Haftnotiz löschen";
+"close_note_window" = "Notizfenster schließen";
+"toggle_list" = "Liste umschalten";
+"toggle_monospace" = "Monospace umschalten";
+"zoom_in" = "Vergrößern";
+"zoom_out" = "Verkleinern";
+"actual_size" = "Tatsächliche Größe";
+"emoji_symbols" = "Emoji & Symbole";
+"preferences_note" = "Einstellungen für diese Haftnotiz";
+
+/* Theme colors */
+"color" = "Farbe";
+"blueberry" = "Heidelbeere";
+"mint" = "Minze";
+"lime" = "Limette";
+"banana" = "Banane";
+"orange" = "Orange";
+"strawberry" = "Erdbeere";
+"bubblegum" = "Kaugummi";
+"grape" = "Traube";
+"cocoa" = "Kakao";
+"slate" = "Schiefer";
+"latte" = "Latte";
+"hot_pink" = "Hellrosa";
+"electric_blue" = "Elektrischblau";
+"neon_green" = "Neongrün";
+"crimson" = "Karmesinrot";
+"sunshine" = "Sonnenchein";
+"violet" = "Violett";
+"tangerine" = "Mandarine";
+
+/* Status Menu */
+"jorts_tooltip" = "Jorts";
