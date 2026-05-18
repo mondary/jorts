@@ -18,70 +18,124 @@ struct AboutPreferencesView: View {
         }
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            HStack(alignment: .center, spacing: 20) {
-                Image(nsImage: NSApp.applicationIconImage)
-                    .resizable()
-                    .interpolation(.high)
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 128, height: 128)
-                    .cornerRadius(28)
+    private struct LinkButton: View {
+        let title: String
+        let subtitle: String
+        let systemImage: String
+        let url: URL
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(appName)
-                        .font(.system(size: 44, weight: .semibold, design: .default))
-                        .lineLimit(1)
+        var body: some View {
+            Link(destination: url) {
+                HStack(spacing: 12) {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.tint)
+                        .frame(width: 28, height: 28)
+                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 
-                    Text(versionString)
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-
-                    if let copyright = Bundle.main.object(forInfoDictionaryKey: "NSHumanReadableCopyright") as? String,
-                       !copyright.isEmpty
-                    {
-                        Text(copyright)
-                            .font(.callout)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        Text(subtitle)
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
                     }
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.secondary)
                 }
-
-                Spacer()
+                .padding(12)
+                .background(Color(NSColor.controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Links")
-                    .font(.headline)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 18) {
-                        if let url = URL(string: "https://github.com/elly-code/jorts") {
-                            Link("Original GitHub", destination: url)
-                        }
-                        if let url = URL(string: "https://github.com/clm-tmp/JORTS_macos") {
-                            Link("macOS Fork GitHub", destination: url)
-                        }
-                    }
-                    .foregroundStyle(.tint)
-
-                    HStack(spacing: 18) {
-                        if let url = URL(string: "https://ko-fi.com/teamcons/tip") {
-                            Link("Support Original (Ko-fi)", destination: url)
-                        }
-                        if let url = URL(string: "https://ko-fi.com/pouark") {
-                            Link("Support Fork (Ko-fi)", destination: url)
-                        }
-                    }
-                    .foregroundStyle(.tint)
-                }
-            }
-
-            Spacer()
+            .buttonStyle(.plain)
         }
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                HStack(alignment: .center, spacing: 20) {
+                    Image(nsImage: NSApp.applicationIconImage)
+                        .resizable()
+                        .interpolation(.high)
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 140, height: 140)
+                        .cornerRadius(32)
+                        .shadow(color: .black.opacity(0.12), radius: 18, x: 0, y: 10)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(appName)
+                            .font(.system(size: 48, weight: .semibold, design: .default))
+                            .lineLimit(1)
+
+                        Text(versionString)
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+
+                        if let copyright = Bundle.main.object(forInfoDictionaryKey: "NSHumanReadableCopyright") as? String,
+                           !copyright.isEmpty
+                        {
+                            Text(copyright)
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                        }
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .padding(16)
+                .background(Color(NSColor.windowBackgroundColor), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Links")
+                        .font(.headline)
+
+                    if let url = URL(string: "https://github.com/elly-code/jorts") {
+                        LinkButton(
+                            title: "GitHub (Original)",
+                            subtitle: "Source code and upstream project",
+                            systemImage: "chevron.left.slash.chevron.right",
+                            url: url
+                        )
+                    }
+
+                    if let url = URL(string: "https://github.com/clm-tmp/JORTS_macos") {
+                        LinkButton(
+                            title: "GitHub (macOS Fork)",
+                            subtitle: "This fork’s source code",
+                            systemImage: "macwindow",
+                            url: url
+                        )
+                    }
+
+                    if let url = URL(string: "https://ko-fi.com/teamcons/tip") {
+                        LinkButton(
+                            title: "Ko-fi (Original)",
+                            subtitle: "Support the original developer",
+                            systemImage: "cup.and.saucer.fill",
+                            url: url
+                        )
+                    }
+
+                    if let url = URL(string: "https://ko-fi.com/pouark") {
+                        LinkButton(
+                            title: "Ko-fi (Fork)",
+                            subtitle: "Support this macOS port",
+                            systemImage: "cup.and.saucer",
+                            url: url
+                        )
+                    }
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(24)
+        }
     }
 }

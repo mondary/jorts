@@ -33,6 +33,13 @@ final class NoteDocument: ObservableObject, Identifiable {
         }
     }
 
+    @Published var fontFamily: FontFamily {
+        didSet {
+            guard fontFamily != oldValue else { return }
+            markChanged()
+        }
+    }
+
     @Published var zoom: Int {
         didSet {
             let clampedZoom = zoom.clamped(to: NoteData.minimumZoom...NoteData.maximumZoom)
@@ -77,6 +84,7 @@ final class NoteDocument: ObservableObject, Identifiable {
         content = data.content
         theme = data.theme
         monospace = data.monospace
+        fontFamily = data.fontFamily
         zoom = data.zoom
         size = CGSize(width: data.width, height: data.height)
         position = data.x != nil && data.y != nil ? CGPoint(x: data.x!, y: data.y!) : nil
@@ -104,6 +112,7 @@ final class NoteDocument: ObservableObject, Identifiable {
             theme: theme,
             content: content,
             monospace: monospace,
+            fontFamily: fontFamily,
             zoom: zoom,
             width: Int(size.width.rounded()),
             height: Int(size.height.rounded()),

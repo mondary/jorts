@@ -446,28 +446,6 @@ extension NoteTheme {
         Color(hex: accentHex)
     }
 
-    // Calcule automatiquement la couleur du texte (blanc sur fond sombre, noir sur fond clair)
-    var autoTextColor: NSColor {
-        let luminance = calculateLuminance(hex: backgroundHex)
-        return luminance > 0.5 ? NSColor(hex: 0x000000) : NSColor(hex: 0xFFFFFF)
-    }
-
-    var autoTextColorColor: Color {
-        Color(autoTextColor)
-    }
-
-    private func calculateLuminance(hex: Int) -> Double {
-        let r = Double((hex >> 16) & 0xFF) / 255.0
-        let g = Double((hex >> 8) & 0xFF) / 255.0
-        let b = Double(hex & 0xFF) / 255.0
-
-        let rLinear = r <= 0.03928 ? r / 12.92 : pow((r + 0.055) / 1.055, 2.4)
-        let gLinear = g <= 0.03928 ? g / 12.92 : pow((g + 0.055) / 1.055, 2.4)
-        let bLinear = b <= 0.03928 ? b / 12.92 : pow((b + 0.055) / 1.055, 2.4)
-
-        return 0.2126 * rLinear + 0.7152 * gLinear + 0.0722 * bLinear
-    }
-
     var backgroundNSColor: NSColor {
         NSColor(hex: backgroundHex)
     }

@@ -32,7 +32,7 @@ struct ColorGridView: View {
             .padding(.horizontal, 8)
 
         }
-        .frame(width: 270, height: 300)
+        .frame(width: 270, height: 360)
         .background(Color(NSColor.windowBackgroundColor))
     }
 

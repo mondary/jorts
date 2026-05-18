@@ -13,6 +13,7 @@ struct NoteData: Codable, Identifiable {
     var theme: NoteTheme
     var content: String
     var monospace: Bool
+    var fontFamily: FontFamily
     var zoom: Int
     var width: Int
     var height: Int
@@ -25,6 +26,7 @@ struct NoteData: Codable, Identifiable {
         case color
         case content
         case monospace
+        case fontFamily
         case zoom
         case width
         case height
@@ -38,6 +40,7 @@ struct NoteData: Codable, Identifiable {
         theme: NoteTheme = .blueberry,
         content: String = "",
         monospace: Bool = false,
+        fontFamily: FontFamily = .system,
         zoom: Int = NoteData.defaultZoom,
         width: Int = NoteData.defaultWidth,
         height: Int = NoteData.defaultHeight,
@@ -49,6 +52,7 @@ struct NoteData: Codable, Identifiable {
         self.theme = theme
         self.content = content
         self.monospace = monospace
+        self.fontFamily = fontFamily
         self.zoom = zoom.clamped(to: NoteData.minimumZoom...NoteData.maximumZoom)
         self.width = max(240, width)
         self.height = max(240, height)
@@ -64,6 +68,7 @@ struct NoteData: Codable, Identifiable {
         theme = NoteTheme(rawValue: colorValue) ?? .blueberry
         content = try container.decodeIfPresent(String.self, forKey: .content) ?? ""
         monospace = try container.decodeIfPresent(Bool.self, forKey: .monospace) ?? false
+        fontFamily = try container.decodeIfPresent(FontFamily.self, forKey: .fontFamily) ?? .system
         let decodedZoom = try container.decodeIfPresent(Int.self, forKey: .zoom) ?? NoteData.defaultZoom
         zoom = decodedZoom.clamped(to: NoteData.minimumZoom...NoteData.maximumZoom)
         let decodedWidth = try container.decodeIfPresent(Int.self, forKey: .width) ?? NoteData.defaultWidth
@@ -88,6 +93,7 @@ struct NoteData: Codable, Identifiable {
         try container.encode(theme.rawValue, forKey: .color)
         try container.encode(content, forKey: .content)
         try container.encode(monospace, forKey: .monospace)
+        try container.encode(fontFamily, forKey: .fontFamily)
         try container.encode(zoom, forKey: .zoom)
         try container.encode(width, forKey: .width)
         try container.encode(height, forKey: .height)
