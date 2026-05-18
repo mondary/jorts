@@ -42,8 +42,10 @@ chmod +x "$APP_BINARY"
 find "$BUILD_DIR" -maxdepth 1 -name '*.bundle' -exec cp -R {} "$APP_RESOURCES/" \;
 
 ICON_SOURCE="$ROOT_DIR/data/icons/default/hicolor/512.png"
+STATUS_ICON_SOURCE="$ROOT_DIR/data/icons/default/hicolor/24.png"
 ICONSET="$DIST_DIR/Jorts.iconset"
 ICON_FILE="$APP_RESOURCES/Jorts.icns"
+STATUS_ICON_FILE="$APP_RESOURCES/JortsStatus.png"
 if [[ -f "$ICON_SOURCE" ]] && command -v sips >/dev/null 2>&1 && command -v iconutil >/dev/null 2>&1; then
   rm -rf "$ICONSET"
   mkdir -p "$ICONSET"
@@ -59,6 +61,10 @@ if [[ -f "$ICON_SOURCE" ]] && command -v sips >/dev/null 2>&1 && command -v icon
   cp "$ICON_SOURCE" "$ICONSET/icon_512x512@2x.png"
   iconutil -c icns "$ICONSET" -o "$ICON_FILE"
   rm -rf "$ICONSET"
+fi
+
+if [[ -f "$STATUS_ICON_SOURCE" ]]; then
+  cp "$STATUS_ICON_SOURCE" "$STATUS_ICON_FILE"
 fi
 
 cat >"$INFO_PLIST" <<PLIST

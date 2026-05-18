@@ -25,7 +25,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         onShowList: @escaping () -> Void,
         onQuit: @escaping () -> Void
     ) {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        statusItem = NSStatusBar.system.statusItem(withLength: 26)
         self.manager = manager
         self.onNewNote = onNewNote
         self.onShowAllNotes = onShowAllNotes
@@ -41,6 +41,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         if let button = statusItem.button {
             button.image = Self.statusIcon()
             button.imagePosition = .imageOnly
+            button.imageScaling = .scaleProportionallyUpOrDown
             button.toolTip = "Jorts"
         }
 
@@ -140,26 +141,39 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     }
 
     private static func statusIcon() -> NSImage {
+        let configuration = NSImage.SymbolConfiguration(pointSize: 16, weight: .semibold)
+        let symbol = NSImage(systemSymbolName: "note.text", accessibilityDescription: "Jorts")?
+            .withSymbolConfiguration(configuration)
+
+        if let appIcon = Bundle.main.url(forResource: "JortsStatus", withExtension: "png")
+            .flatMap(NSImage.init(contentsOf:)) {
+            let image = resizedStatusIcon(from: appIcon)
+            image.isTemplate = false
+            return image
+        }
+
+        if let appIcon = NSApp.applicationIconImage, appIcon.size.width > 0, appIcon.size.height > 0 {
+            let image = resizedStatusIcon(from: appIcon)
+            image.isTemplate = false
+            return image
+        }
+
+        let fallback = symbol ?? NSImage(size: NSSize(width: 18, height: 18))
+        fallback.isTemplate = true
+        return fallback
+    }
+
+    private static func resizedStatusIcon(from source: NSImage) -> NSImage {
         let targetSize = NSSize(width: 18, height: 18)
         let image = NSImage(size: targetSize)
-        let appIcon = NSApp.applicationIconImage
-            ?? NSImage(systemSymbolName: "note.text", accessibilityDescription: "Jorts")
-
         image.lockFocus()
-        if let appIcon {
-            appIcon.draw(
-                in: NSRect(origin: .zero, size: targetSize),
-                from: NSRect(origin: .zero, size: appIcon.size),
-                operation: .sourceOver,
-                fraction: 1.0
-            )
-        } else {
-            NSColor.controlAccentColor.setFill()
-            NSBezierPath(roundedRect: NSRect(origin: .zero, size: targetSize), xRadius: 4, yRadius: 4).fill()
-        }
+        source.draw(
+            in: NSRect(origin: .zero, size: targetSize),
+            from: NSRect(origin: .zero, size: source.size),
+            operation: .sourceOver,
+            fraction: 1.0
+        )
         image.unlockFocus()
-        image.isTemplate = false
-
         return image
     }
 }

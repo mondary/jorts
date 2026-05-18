@@ -3,6 +3,8 @@ import SwiftUI
 struct NoteView: View {
     @ObservedObject var document: NoteDocument
     @ObservedObject var settings: AppSettings
+    @State private var isPreferencesPopoverPresented = false
+    @State private var fontSearchText = ""
 
     let onNew: () -> Void
     let onDelete: () -> Void
@@ -83,59 +85,134 @@ struct NoteView: View {
             .foregroundStyle(document.theme.autoTextColorColor.opacity(0.78))
             .help("Change color")
 
-            // Settings menu with font/size options
-            Menu {
-                // Standard Fonts Section
-                Menu("Standard Fonts") {
-                    ForEach(FontFamily.standardFonts.filter { $0.isAvailable }, id: \.self) { font in
-                        Button {
-                            document.fontFamily = font
-                        } label: {
-                            HStack {
-                                Text(font.displayName)
-                                if document.fontFamily == font {
-                                    Image(systemName: "checkmark")
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Nerds Fonts Section
-                if !FontFamily.nerdFonts.isEmpty {
-                    Menu("Nerds Fonts") {
-                        ForEach(FontFamily.nerdFonts, id: \.self) { font in
-                            Button {
-                                document.fontFamily = font
-                            } label: {
-                                HStack {
-                                    Text(font.displayName)
-                                    if document.fontFamily == font {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Divider()
-                Toggle("Monospaced", isOn: $document.monospace)
-                Divider()
-                Button("Zoom In") { document.zoomIn() }
-                Button("Zoom Out") { document.zoomOut() }
-                Button("Actual Size") { document.resetZoom() }
+            Button {
+                isPreferencesPopoverPresented.toggle()
             } label: {
                 Image(systemName: "slider.horizontal.3")
-                    .foregroundStyle(document.theme.autoTextColorColor)
+                    .renderingMode(.template)
                     .frame(width: 26, height: 26)
             }
-            .menuStyle(.borderlessButton)
+            .buttonStyle(.plain)
+            .foregroundStyle(document.theme.autoTextColorColor.opacity(0.78))
+            .popover(isPresented: $isPreferencesPopoverPresented, arrowEdge: .bottom) {
+                notePreferencesPopover
+            }
             .help("Preferences for this sticky note")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(document.theme.backgroundColor.opacity(0.98))
+    }
+
+    private var notePreferencesPopover: some View {
+        NavigationStack {
+            List {
+                Section("Font") {
+                    ForEach(filteredStandardFonts, id: \.self) { font in
+                        Button {
+                            document.fontFamily = font
+                        } label: {
+                            HStack {
+                                Text(font.displayName)
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                if document.fontFamily == font {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    if !filteredNerdFonts.isEmpty {
+                        Divider()
+                        ForEach(filteredNerdFonts, id: \.self) { font in
+                            Button {
+                                document.fontFamily = font
+                            } label: {
+                                HStack {
+                                    Text(font.displayName)
+                                        .foregroundStyle(.primary)
+                                    Spacer()
+                                    if document.fontFamily == font {
+                                        Image(systemName: "checkmark")
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+
+                Section("Options") {
+                    Toggle("Monospaced", isOn: $document.monospace)
+                }
+
+                Section("Zoom") {
+                    HStack(spacing: 8) {
+                        Button {
+                            document.zoomOut()
+                        } label: {
+                            Image(systemName: "minus.magnifyingglass")
+                        }
+                        .help("Zoom Out")
+
+                        Button {
+                            document.resetZoom()
+                        } label: {
+                            Image(systemName: "1.magnifyingglass")
+                        }
+                        .help("Actual Size")
+
+                        Button {
+                            document.zoomIn()
+                        } label: {
+                            Image(systemName: "plus.magnifyingglass")
+                        }
+                        .help("Zoom In")
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+            .navigationTitle("Preferences")
+            .searchable(text: $fontSearchText, placement: .toolbar, prompt: "Search fonts")
+            .modifier(SystemListBackgroundModifier())
+        }
+        // Prevent inheriting note colors; keep popover system-readable.
+        .foregroundStyle(.primary)
+        .tint(Color(NSColor.controlAccentColor))
+        .background(Color(NSColor.windowBackgroundColor))
+        .frame(width: 320, height: 420)
+    }
+
+    private struct SystemListBackgroundModifier: ViewModifier {
+        func body(content: Content) -> some View {
+            if #available(macOS 13.0, *) {
+                content.scrollContentBackground(.hidden)
+            } else {
+                content
+            }
+        }
+    }
+
+    private var filteredStandardFonts: [FontFamily] {
+        let fonts = FontFamily.standardFonts.filter { $0.isAvailable }
+        return filterFonts(fonts)
+    }
+
+    private var filteredNerdFonts: [FontFamily] {
+        filterFonts(FontFamily.nerdFonts)
+    }
+
+    private func filterFonts(_ fonts: [FontFamily]) -> [FontFamily] {
+        let query = fontSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else {
+            return fonts
+        }
+
+        return fonts.filter { $0.displayName.localizedCaseInsensitiveContains(query) }
     }
 
     private var editorFont: NSFont {

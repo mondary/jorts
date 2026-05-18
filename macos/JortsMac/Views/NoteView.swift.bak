@@ -127,6 +127,7 @@ struct NoteView: View {
                 Button("Actual Size") { document.resetZoom() }
             } label: {
                 Image(systemName: "slider.horizontal.3")
+                    .foregroundStyle(document.theme.autoTextColorColor)
                     .frame(width: 26, height: 26)
             }
             .menuStyle(.borderlessButton)
