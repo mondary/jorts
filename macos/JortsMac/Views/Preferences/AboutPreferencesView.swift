@@ -2,7 +2,13 @@ import AppKit
 import SwiftUI
 
 struct AboutPreferencesView: View {
-    private var appName: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Jorts_MacOS" }
+    private var appName: String {
+        let bundleName = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String
+        if bundleName == "Jorts" {
+            return "JortsMacOS"
+        }
+        return bundleName ?? "JortsMacOS"
+    }
     private var versionString: String {
         let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String

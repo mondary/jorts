@@ -2,16 +2,23 @@ import SwiftUI
 
 struct NotesListView: View {
     let documents: [NoteDocument]
+    let trash: [TrashedNote]
     let onCreateNote: () -> Void
-    let onClose: () -> Void
+    let onShowPreferences: () -> Void
     let onNoteSelected: (UUID) -> Void
+    let onRestoreTrashed: (UUID) -> Void
+    let onDeleteTrashed: (UUID) -> Void
+
+    @State private var selection: ListSelection = .notes
 
     var body: some View {
         VStack(spacing: 0) {
             header
 
-            if documents.isEmpty {
+            if selection == .notes && documents.isEmpty {
                 emptyState
+            } else if selection == .trash && trash.isEmpty {
+                trashEmptyState
             } else {
                 list
             }
@@ -21,21 +28,38 @@ struct NotesListView: View {
     }
 
     private var header: some View {
-        HStack {
-            Text("Toutes mes notes")
-                .font(.title2.weight(.semibold))
+        VStack(spacing: 0) {
+            HStack {
+                Text("Toutes mes notes")
+                    .font(.title2.weight(.semibold))
 
-            Spacer()
+                Spacer()
 
-            Button(action: onCreateNote) {
-                Image(systemName: "plus")
-                    .frame(width: 28, height: 28)
+                Button(action: onCreateNote) {
+                    Image(systemName: "plus")
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
+                .help("New note")
+
+                Button(action: onShowPreferences) {
+                    Image(systemName: "gearshape")
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
+                .help("Preferences")
             }
-            .buttonStyle(.plain)
-            .help("New note")
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+
+            Picker("", selection: $selection) {
+                Text("Notes").tag(ListSelection.notes)
+                Text("Poubelle").tag(ListSelection.trash)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
         .background(Color(NSColor.controlBackgroundColor))
     }
 
@@ -56,19 +80,45 @@ struct NotesListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    private var trashEmptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "trash")
+                .font(.system(size: 48))
+                .foregroundColor(.secondary)
+
+            Text("Poubelle vide")
+                .font(.title3)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     private var list: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
-                ForEach(documents) { document in
-                    NoteRow(document: document)
-                        .onTapGesture {
-                            onNoteSelected(document.id)
-                        }
-                    Divider()
+                switch selection {
+                case .notes:
+                    ForEach(documents) { document in
+                        NoteRow(document: document)
+                            .onTapGesture {
+                                onNoteSelected(document.id)
+                            }
+                        Divider()
+                    }
+                case .trash:
+                    ForEach(trash) { item in
+                        TrashedNoteRow(item: item, onRestore: { onRestoreTrashed(item.id) }, onDelete: { onDeleteTrashed(item.id) })
+                        Divider()
+                    }
                 }
             }
         }
     }
+}
+
+private enum ListSelection: Hashable {
+    case notes
+    case trash
 }
 
 struct NoteRow: View {
@@ -109,5 +159,50 @@ struct NoteRow: View {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short
         return formatter.localizedString(for: Date(), relativeTo: Date())
+    }
+}
+
+struct TrashedNoteRow: View {
+    let item: TrashedNote
+    let onRestore: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            item.note.theme.backgroundColor.frame(width: 4).cornerRadius(2)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.note.title.isEmpty ? "Untitled" : item.note.title)
+                    .font(.headline)
+                    .foregroundColor(item.note.theme.foregroundColor)
+
+                Text(item.note.content.isEmpty ? "No content" : String(item.note.content.prefix(100)))
+                    .font(.body)
+                    .foregroundColor(item.note.theme.foregroundColor.opacity(0.7))
+                    .lineLimit(2)
+            }
+
+            Spacer()
+
+            Text(deletedAt)
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            Button("Restore", action: onRestore)
+                .buttonStyle(.borderless)
+
+            Button("Delete", role: .destructive, action: onDelete)
+                .buttonStyle(.borderless)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(item.note.theme.backgroundColor.opacity(0.15))
+        .contentShape(Rectangle())
+    }
+
+    private var deletedAt: String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: item.deletedAt, relativeTo: Date())
     }
 }

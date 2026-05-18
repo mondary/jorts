@@ -198,6 +198,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if notesListWindowController == nil {
             notesListWindowController = NotesListWindowController(
                 manager: manager,
+                onShowPreferences: { [weak self] in self?.showPreferences(nil) },
                 onNoteSelected: { [weak self] noteID in
                     self?.manager.focusNote(documentID: noteID)
                 }

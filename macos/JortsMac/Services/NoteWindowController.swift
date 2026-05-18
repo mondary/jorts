@@ -69,7 +69,11 @@ final class NoteWindowController: NSWindowController, NSWindowDelegate {
             window.setFrame(Self.constrainedFrame(savedFrame), display: false)
         } else {
             window.setContentSize(requestedSize)
-            window.center()
+            if settings.randomizeNewNotePosition {
+                Self.positionWindowRandomly(window, requestedSize: requestedSize)
+            } else {
+                window.center()
+            }
         }
 
         super.init(window: window)
@@ -152,5 +156,32 @@ final class NoteWindowController: NSWindowController, NSWindowDelegate {
         let y = (visibleFrame.midY - height / 2).clamped(to: visibleFrame.minY...(visibleFrame.maxY - height))
 
         return NSRect(x: x, y: y, width: width, height: height)
+    }
+
+    private static func positionWindowRandomly(_ window: NSWindow, requestedSize: NSSize) {
+        let visibleFrame = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame
+        guard let visibleFrame else {
+            window.center()
+            return
+        }
+
+        let padding: CGFloat = 18
+        let minX = visibleFrame.minX + padding
+        let maxX = max(minX, visibleFrame.maxX - requestedSize.width - padding)
+        let minY = visibleFrame.minY + padding
+        let maxY = max(minY, visibleFrame.maxY - requestedSize.height - padding)
+
+        // Bias towards the center, but allow wider spread like overlapping post-its.
+        let centerX = (minX + maxX) / 2
+        let centerY = (minY + maxY) / 2
+        let rangeX = (maxX - minX) / 2
+        let rangeY = (maxY - minY) / 2
+
+        let dx = CGFloat.random(in: -rangeX...rangeX)
+        let dy = CGFloat.random(in: -rangeY...rangeY)
+        let x = (centerX + dx).clamped(to: minX...maxX)
+        let y = (centerY + dy).clamped(to: minY...maxY)
+
+        window.setFrameOrigin(NSPoint(x: x, y: y))
     }
 }

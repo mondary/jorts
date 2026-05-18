@@ -4,6 +4,7 @@ import Foundation
 final class NoteDocument: ObservableObject, Identifiable {
     let id: UUID
     var onChange: (() -> Void)?
+    var onVersionSuggested: (() -> Void)?
 
     @Published var title: String {
         didSet {
@@ -77,6 +78,9 @@ final class NoteDocument: ObservableObject, Identifiable {
 
     @Published var isFocused = true
     @Published var listToggleRequestToken = 0
+    @Published var versions: [NoteVersion]
+
+    private var lastVersionedAt: Date = .distantPast
 
     init(data: NoteData) {
         id = data.id
@@ -88,6 +92,7 @@ final class NoteDocument: ObservableObject, Identifiable {
         zoom = data.zoom
         size = CGSize(width: data.width, height: data.height)
         position = data.x != nil && data.y != nil ? CGPoint(x: data.x!, y: data.y!) : nil
+        versions = data.versions
     }
 
     var windowTitle: String {
@@ -118,6 +123,8 @@ final class NoteDocument: ObservableObject, Identifiable {
             height: Int(size.height.rounded()),
             x: position.map { Double($0.x) },
             y: position.map { Double($0.y) }
+            ,
+            versions: versions
         )
     }
 
@@ -144,5 +151,14 @@ final class NoteDocument: ObservableObject, Identifiable {
 
     private func markChanged() {
         onChange?()
+        suggestVersionIfNeeded()
+    }
+
+    private func suggestVersionIfNeeded() {
+        // Only suggest snapshots for meaningful content/title changes and not too frequently.
+        let now = Date()
+        guard now.timeIntervalSince(lastVersionedAt) > 45 else { return }
+        lastVersionedAt = now
+        onVersionSuggested?()
     }
 }

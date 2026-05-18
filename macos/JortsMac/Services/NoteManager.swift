@@ -5,8 +5,10 @@ final class NoteManager {
     private let storage: NoteStorage
     private var controllers: [UUID: NoteWindowController] = [:]
     private var orderedNoteIDs: [UUID] = []
+    private var trash: [TrashedNote] = []
     private var saveWorkItem: DispatchWorkItem?
     private var latestTheme: NoteTheme = .blueberry
+    private let maxVersionsPerNote = 25
 
     var onShowList: (() -> Void)?
 
@@ -14,13 +16,15 @@ final class NoteManager {
         storage.storageURL
     }
 
-    init(settings: AppSettings, storage: NoteStorage = NoteStorage()) {
+    init(settings: AppSettings, storage: NoteStorage? = nil) {
         self.settings = settings
-        self.storage = storage
+        self.storage = storage ?? NoteStorage(storageDirectoryOverride: settings.storageDirectoryURL)
     }
 
     func launch() {
-        let loadedNotes = storage.load()
+        let state = storage.loadState()
+        trash = state.trash
+        let loadedNotes = state.notes
 
         if loadedNotes.isEmpty {
             createNote(NoteData(theme: .blueberry), activate: true, scheduleSave: true)
@@ -55,6 +59,11 @@ final class NoteManager {
                 self?.scheduleSave()
             }
         )
+
+        document.onVersionSuggested = { [weak self, weak document] in
+            guard let document else { return }
+            self?.appendVersion(for: document)
+        }
 
         controllers[document.id] = controller
         orderedNoteIDs.append(document.id)
@@ -99,6 +108,8 @@ final class NoteManager {
         }
 
         orderedNoteIDs.removeAll { $0 == documentID }
+        let data = controller.noteDocument.package()
+        trash.insert(TrashedNote(note: data), at: 0)
         controller.closeForDelete()
         saveNow()
     }
@@ -170,7 +181,57 @@ final class NoteManager {
     func saveNow() {
         saveWorkItem?.cancel()
         saveWorkItem = nil
-        storage.save(orderedControllers().map { $0.noteDocument.package() })
+        let state = SavedState(
+            notes: orderedControllers().map { $0.noteDocument.package() },
+            trash: trash
+        )
+        storage.saveState(state)
+    }
+
+    var trashedNotes: [TrashedNote] {
+        trash
+    }
+
+    func restoreFromTrash(_ trashedID: UUID) {
+        guard let index = trash.firstIndex(where: { $0.id == trashedID }) else { return }
+        let item = trash.remove(at: index)
+        createNote(item.note, activate: true, scheduleSave: true)
+        saveNow()
+    }
+
+    func deletePermanently(_ trashedID: UUID) {
+        trash.removeAll { $0.id == trashedID }
+        saveNow()
+    }
+
+    private func appendVersion(for document: NoteDocument) {
+        let version = NoteVersion(
+            date: Date(),
+            title: document.title,
+            content: document.content,
+            theme: document.theme,
+            monospace: document.monospace,
+            fontFamily: document.fontFamily,
+            zoom: document.zoom
+        )
+
+        if let last = document.versions.last,
+           last.title == version.title,
+           last.content == version.content,
+           last.theme == version.theme,
+           last.monospace == version.monospace,
+           last.fontFamily == version.fontFamily,
+           last.zoom == version.zoom
+        {
+            return
+        }
+
+        document.versions.append(version)
+        if document.versions.count > maxVersionsPerNote {
+            document.versions.removeFirst(document.versions.count - maxVersionsPerNote)
+        }
+
+        scheduleSave()
     }
 
     private func activeController() -> NoteWindowController? {

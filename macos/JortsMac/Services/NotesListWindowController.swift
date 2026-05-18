@@ -4,20 +4,26 @@ import SwiftUI
 final class NotesListWindowController: NSWindowController, NSWindowDelegate {
     private let manager: NoteManager
     private let onNoteSelected: (UUID) -> Void
+    private let onShowPreferences: () -> Void
     private var hostingController: NSHostingController<NotesListView>?
 
     init(
         manager: NoteManager,
+        onShowPreferences: @escaping () -> Void,
         onNoteSelected: @escaping (UUID) -> Void
     ) {
         self.manager = manager
         self.onNoteSelected = onNoteSelected
+        self.onShowPreferences = onShowPreferences
 
         let listView = NotesListView(
             documents: manager.documents,
+            trash: manager.trashedNotes,
             onCreateNote: { manager.createNote() },
-            onClose: { },
-            onNoteSelected: onNoteSelected
+            onShowPreferences: onShowPreferences,
+            onNoteSelected: onNoteSelected,
+            onRestoreTrashed: { manager.restoreFromTrash($0) },
+            onDeleteTrashed: { manager.deletePermanently($0) }
         )
 
         self.hostingController = NSHostingController(rootView: listView)
@@ -51,18 +57,25 @@ final class NotesListWindowController: NSWindowController, NSWindowDelegate {
     private func updateListView() {
         hostingController?.rootView = NotesListView(
             documents: manager.documents,
+            trash: manager.trashedNotes,
             onCreateNote: { [weak self] in
                 self?.manager.createNote()
                 self?.updateListView()
             },
-            onClose: { [weak self] in
-                self?.close()
-            },
+            onShowPreferences: { [weak self] in self?.onShowPreferences() },
             onNoteSelected: { [weak self] noteID in
                 self?.onNoteSelected(noteID)
                 DispatchQueue.main.async { [weak self] in
                     self?.close()
                 }
+            },
+            onRestoreTrashed: { [weak self] trashedID in
+                self?.manager.restoreFromTrash(trashedID)
+                self?.updateListView()
+            },
+            onDeleteTrashed: { [weak self] trashedID in
+                self?.manager.deletePermanently(trashedID)
+                self?.updateListView()
             }
         )
     }
@@ -77,7 +90,7 @@ final class NotesListWindowController: NSWindowController, NSWindowDelegate {
 
         let visibleFrame = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 900, height: 700)
         let targetHeight = visibleFrame.height * 0.8
-        let targetWidth = min(max(window.frame.width, 500), visibleFrame.width * 0.9)
+        let targetWidth = min(max(400, window.frame.width), visibleFrame.width * 0.9)
         let x = visibleFrame.midX - targetWidth / 2
         let y = visibleFrame.midY - targetHeight / 2
 

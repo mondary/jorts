@@ -7,6 +7,8 @@ final class AppSettings: ObservableObject {
         static let listItemPrefix = "list-item-start"
         static let selectedLanguage = "selected-language"
         static let shortcuts = "keyboard-shortcuts"
+        static let storageDirectory = "storage-directory"
+        static let randomizeNewNotePosition = "randomize-new-note-position"
     }
 
     private let defaults: UserDefaults
@@ -29,13 +31,23 @@ final class AppSettings: ObservableObject {
 
     @Published private(set) var shortcuts: [ShortcutAction: KeyboardShortcutSetting]
 
+    @Published var storageDirectoryPath: String {
+        didSet { defaults.set(storageDirectoryPath, forKey: Keys.storageDirectory) }
+    }
+
+    @Published var randomizeNewNotePosition: Bool {
+        didSet { defaults.set(randomizeNewNotePosition, forKey: Keys.randomizeNewNotePosition) }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         defaults.register(defaults: [
             Keys.scribblyModeActive: false,
             Keys.hideActionBar: false,
             Keys.listItemPrefix: " • ",
-            Keys.selectedLanguage: AppLanguage.english.rawValue
+            Keys.selectedLanguage: AppLanguage.english.rawValue,
+            Keys.storageDirectory: "",
+            Keys.randomizeNewNotePosition: true
         ])
 
         scribblyModeActive = defaults.bool(forKey: Keys.scribblyModeActive)
@@ -45,6 +57,8 @@ final class AppSettings: ObservableObject {
         let languageRaw = defaults.string(forKey: Keys.selectedLanguage) ?? AppLanguage.english.rawValue
         selectedLanguage = AppLanguage(rawValue: languageRaw) ?? .english
         shortcuts = Self.loadShortcuts(from: defaults)
+        storageDirectoryPath = defaults.string(forKey: Keys.storageDirectory) ?? ""
+        randomizeNewNotePosition = defaults.bool(forKey: Keys.randomizeNewNotePosition)
     }
 
     func resetListPrefix() {
@@ -88,5 +102,11 @@ final class AppSettings: ObservableObject {
         }
 
         return shortcuts
+    }
+
+    var storageDirectoryURL: URL? {
+        let trimmed = storageDirectoryPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return URL(fileURLWithPath: trimmed, isDirectory: true)
     }
 }

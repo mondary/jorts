@@ -7,7 +7,7 @@ final class NoteStorage {
 
     let storageURL: URL
 
-    init(fileManager: FileManager = .default) {
+    init(storageDirectoryOverride: URL? = nil, fileManager: FileManager = .default) {
         self.fileManager = fileManager
 
         encoder = JSONEncoder()
@@ -21,30 +21,36 @@ final class NoteStorage {
             create: true
         )
 
-        let storageDirectory = (applicationSupport ?? fileManager.homeDirectoryForCurrentUser)
+        let baseDirectory = storageDirectoryOverride ?? (applicationSupport ?? fileManager.homeDirectoryForCurrentUser)
+        let storageDirectory = baseDirectory
             .appendingPathComponent("io.github.elly_code.jorts.macos", isDirectory: true)
         storageURL = storageDirectory.appendingPathComponent("saved_state.json")
         prepareStorageDirectory(storageDirectory)
         importLegacySaveIfNeeded(to: storageURL)
     }
 
-    func load() -> [NoteData] {
+    func loadState() -> SavedState {
         guard fileManager.fileExists(atPath: storageURL.path) else {
-            return []
+            return SavedState()
         }
 
         do {
             let data = try Data(contentsOf: storageURL)
-            return try decoder.decode([NoteData].self, from: data)
+            if let state = try? decoder.decode(SavedState.self, from: data) {
+                return state
+            }
+            // Backward compatibility: legacy format was a flat [NoteData]
+            let notes = try decoder.decode([NoteData].self, from: data)
+            return SavedState(notes: notes, trash: [])
         } catch {
             NSLog("JortsMac: failed to load notes from \(storageURL.path): \(error)")
-            return []
+            return SavedState()
         }
     }
 
-    func save(_ notes: [NoteData]) {
+    func saveState(_ state: SavedState) {
         do {
-            let data = try encoder.encode(notes)
+            let data = try encoder.encode(state)
             try data.write(to: storageURL, options: [.atomic])
         } catch {
             NSLog("JortsMac: failed to save notes to \(storageURL.path): \(error)")

@@ -20,6 +20,7 @@ struct NoteData: Codable, Identifiable {
     var x: Double?
     var y: Double?
     var macFrameVersion: Int
+    var versions: [NoteVersion]
 
     enum CodingKeys: String, CodingKey {
         case title
@@ -33,6 +34,7 @@ struct NoteData: Codable, Identifiable {
         case x
         case y
         case macFrameVersion
+        case versions
     }
 
     init(
@@ -46,7 +48,8 @@ struct NoteData: Codable, Identifiable {
         height: Int = NoteData.defaultHeight,
         x: Double? = nil,
         y: Double? = nil,
-        macFrameVersion: Int = NoteData.currentMacFrameVersion
+        macFrameVersion: Int = NoteData.currentMacFrameVersion,
+        versions: [NoteVersion] = []
     ) {
         self.title = title
         self.theme = theme
@@ -59,6 +62,7 @@ struct NoteData: Codable, Identifiable {
         self.x = x
         self.y = y
         self.macFrameVersion = macFrameVersion
+        self.versions = versions
     }
 
     init(from decoder: Decoder) throws {
@@ -74,6 +78,7 @@ struct NoteData: Codable, Identifiable {
         let decodedWidth = try container.decodeIfPresent(Int.self, forKey: .width) ?? NoteData.defaultWidth
         let decodedHeight = try container.decodeIfPresent(Int.self, forKey: .height) ?? NoteData.defaultHeight
         macFrameVersion = try container.decodeIfPresent(Int.self, forKey: .macFrameVersion) ?? 0
+        versions = try container.decodeIfPresent([NoteVersion].self, forKey: .versions) ?? []
 
         if macFrameVersion == 0 && decodedWidth <= 260 && decodedHeight <= 300 {
             width = NoteData.defaultWidth
@@ -100,5 +105,8 @@ struct NoteData: Codable, Identifiable {
         if let x = x { try container.encode(x, forKey: .x) }
         if let y = y { try container.encode(y, forKey: .y) }
         try container.encode(NoteData.currentMacFrameVersion, forKey: .macFrameVersion)
+        if !versions.isEmpty {
+            try container.encode(versions, forKey: .versions)
+        }
     }
 }

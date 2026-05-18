@@ -12,7 +12,7 @@ struct PreferencesView: View {
     var body: some View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Jorts")
+                Text("JortsMacOS")
                     .font(.largeTitle.weight(.bold))
                     .padding(.bottom, 18)
 
@@ -38,7 +38,7 @@ struct PreferencesView: View {
                 Group {
                     switch selection {
                     case .general:
-                        GeneralPreferencesView(settings: settings, storageURL: storageURL)
+                        GeneralPreferencesView(settings: settings, storageURL: storageURL, onRestartRequested: onLanguageChanged)
                     case .shortcuts:
                         ShortcutsPreferencesView(settings: settings)
                     case .about:

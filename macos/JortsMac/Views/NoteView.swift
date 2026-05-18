@@ -4,6 +4,7 @@ struct NoteView: View {
     @ObservedObject var document: NoteDocument
     @ObservedObject var settings: AppSettings
     @State private var isPreferencesPopoverPresented = false
+    @State private var isHistoryPopoverPresented = false
     @State private var fontSearchText = ""
 
     let onNew: () -> Void
@@ -100,6 +101,20 @@ struct NoteView: View {
                 notePreferencesPopover
             }
             .help("Preferences for this sticky note")
+
+            Button {
+                isHistoryPopoverPresented.toggle()
+            } label: {
+                Image(systemName: "clock.arrow.circlepath")
+                    .renderingMode(.template)
+                    .frame(width: 26, height: 26)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(document.theme.autoTextColorColor.opacity(0.78))
+            .popover(isPresented: $isHistoryPopoverPresented, arrowEdge: .bottom) {
+                noteHistoryPopover
+            }
+            .help("History (restore previous versions)")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -118,6 +133,11 @@ struct NoteView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 4) {
+                    fontSection("System", fonts: [], includesSystemMonospace: true)
+
+                    Divider()
+                        .padding(.vertical, 4)
+
                     fontSection("Standard Fonts", fonts: filteredStandardFonts)
 
                     if !filteredNerdFonts.isEmpty {
@@ -131,9 +151,6 @@ struct NoteView: View {
             .frame(height: 230)
 
             Divider()
-
-            Toggle("Monospaced", isOn: $document.monospace)
-                .foregroundColor(Color(NSColor.labelColor))
 
             HStack(spacing: 8) {
                 Button {
@@ -158,6 +175,12 @@ struct NoteView: View {
                 .help("Zoom In")
             }
             .buttonStyle(.borderless)
+
+            if !document.versions.isEmpty {
+                Divider()
+
+                historySection
+            }
         }
         .padding(14)
         .foregroundColor(Color(NSColor.labelColor))
@@ -167,15 +190,127 @@ struct NoteView: View {
         .frame(width: 320)
     }
 
-    private func fontSection(_ title: String, fonts: [FontFamily]) -> some View {
+    private var noteHistoryPopover: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("History")
+                .font(.headline)
+                .foregroundColor(Color(NSColor.labelColor))
+
+            if document.versions.isEmpty {
+                Text("No versions yet.")
+                    .font(.callout)
+                    .foregroundColor(Color(NSColor.secondaryLabelColor))
+                    .frame(maxWidth: .infinity, minHeight: 140, alignment: .center)
+            } else {
+                historySection
+            }
+        }
+        .padding(14)
+        .foregroundColor(Color(NSColor.labelColor))
+        .tint(Color(NSColor.controlAccentColor))
+        .background(Color(NSColor.windowBackgroundColor).ignoresSafeArea())
+        .environment(\.colorScheme, .light)
+        .frame(width: 360)
+    }
+
+    private var historySection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("History")
+                .font(.caption.weight(.semibold))
+                .foregroundColor(Color(NSColor.secondaryLabelColor))
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(document.versions.suffix(12).reversed()) { version in
+                        Button {
+                            restore(version)
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(version.title.isEmpty ? "Untitled" : version.title)
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(Color(NSColor.labelColor))
+                                        .lineLimit(1)
+                                    Text(relativeDateString(version.date))
+                                        .font(.caption2.monospaced())
+                                        .foregroundColor(Color(NSColor.secondaryLabelColor))
+                                }
+                                Spacer()
+                                Text("Restore")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(Color(NSColor.controlAccentColor))
+                            }
+                            .contentShape(Rectangle())
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 6)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                    .fill(Color(NSColor.controlBackgroundColor))
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+            .frame(height: 160)
+        }
+    }
+
+    private func restore(_ version: NoteVersion) {
+        document.title = version.title
+        document.content = version.content
+        document.theme = version.theme
+        document.monospace = version.monospace
+        document.fontFamily = version.fontFamily
+        document.zoom = version.zoom
+    }
+
+    private func relativeDateString(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
+
+    private func fontSection(_ title: String, fonts: [FontFamily], includesSystemMonospace: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(title)
                 .font(.caption.weight(.semibold))
                 .foregroundColor(Color(NSColor.secondaryLabelColor))
                 .padding(.horizontal, 6)
 
+            if includesSystemMonospace {
+                Button {
+                    document.monospace = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Text("System Monospace")
+                            .font(.system(size: 13))
+                            .foregroundColor(Color(NSColor.labelColor))
+                            .lineLimit(1)
+
+                        Spacer()
+
+                        if document.monospace {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(Color(NSColor.controlAccentColor))
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(document.monospace ? Color(NSColor.selectedContentBackgroundColor).opacity(0.18) : .clear)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+
             ForEach(fonts, id: \.self) { font in
                 Button {
+                    document.monospace = false
                     document.fontFamily = font
                 } label: {
                     HStack(spacing: 8) {
@@ -229,24 +364,24 @@ struct NoteView: View {
             return font
         }
 
-        if let font = NSFont(name: document.fontFamily.fontName, size: document.bodyFontSize) {
-            return font
-        }
-
         if document.monospace {
             return .monospacedSystemFont(ofSize: document.bodyFontSize, weight: .regular)
+        }
+
+        if let font = NSFont(name: document.fontFamily.fontName, size: document.bodyFontSize) {
+            return font
         }
 
         return .systemFont(ofSize: document.bodyFontSize)
     }
 
     private var titleFont: NSFont {
-        if let font = NSFont(name: document.fontFamily.fontName, size: document.titleFontSize) {
-            return font
-        }
-
         if document.monospace {
             return .monospacedSystemFont(ofSize: document.titleFontSize, weight: .semibold)
+        }
+
+        if let font = NSFont(name: document.fontFamily.fontName, size: document.titleFontSize) {
+            return font
         }
 
         return .systemFont(ofSize: document.titleFontSize, weight: .semibold)
