@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let settings = AppSettings()
@@ -6,9 +7,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var preferencesWindowController: PreferencesWindowController?
     private var notesListWindowController: NotesListWindowController?
     private var statusMenuController: StatusMenuController?
+    private var cancellables: Set<AnyCancellable> = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         FontRegistrar.registerBundledFonts()
+        observeSettings()
         buildMainMenu()
         manager.onShowList = { [weak self] in self?.showNotesList(nil) }
         manager.launch()
@@ -109,6 +112,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         manager.saveNow()
     }
 
+    @objc private func showAllNotes(_ sender: Any?) {
+        manager.showAllNotes()
+    }
+
     @objc private func showPreferences(_ sender: Any?) {
         if preferencesWindowController == nil {
             preferencesWindowController = PreferencesWindowController(
@@ -202,6 +209,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    private func observeSettings() {
+        settings.$shortcuts
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.buildMainMenu()
+                self?.buildStatusMenu()
+            }
+            .store(in: &cancellables)
+    }
+
     private func buildMainMenu() {
         let mainMenu = NSMenu()
         NSApp.mainMenu = mainMenu
@@ -212,7 +230,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         appMenuItem.submenu = appMenu
         appMenu.addItem(menuItem("About Jorts", action: #selector(showAbout(_:)), key: ""))
         appMenu.addItem(.separator())
-        appMenu.addItem(menuItem("Preferences…", action: #selector(showPreferences(_:)), key: ","))
+        appMenu.addItem(menuItem("Preferences…", action: #selector(showPreferences(_:)), shortcut: .preferences))
         appMenu.addItem(.separator())
 
         let servicesItem = NSMenuItem(title: "Services", action: nil, keyEquivalent: "")
@@ -238,11 +256,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mainMenu.addItem(fileMenuItem)
         let fileMenu = NSMenu(title: "File")
         fileMenuItem.submenu = fileMenu
-        fileMenu.addItem(menuItem("New Sticky Note", action: #selector(newNote(_:)), key: "n"))
-        fileMenu.addItem(menuItem("Save All Notes", action: #selector(saveAll(_:)), key: "s"))
+        fileMenu.addItem(menuItem("New Sticky Note", action: #selector(newNote(_:)), shortcut: .newStickyNote))
+        fileMenu.addItem(menuItem("Save All Notes", action: #selector(saveAll(_:)), shortcut: .saveAllNotes))
         fileMenu.addItem(.separator())
-        fileMenu.addItem(menuItem("Close Note Window", action: #selector(closeCurrentNoteWindow(_:)), key: "w"))
-        fileMenu.addItem(menuItem("Delete Sticky Note", action: #selector(deleteCurrentNote(_:)), key: "\u{8}"))
+        fileMenu.addItem(menuItem("Close Note Window", action: #selector(closeCurrentNoteWindow(_:)), shortcut: .closeNoteWindow))
+        fileMenu.addItem(menuItem("Delete Sticky Note", action: #selector(deleteCurrentNote(_:)), shortcut: .deleteStickyNote))
 
         let editMenuItem = NSMenuItem()
         mainMenu.addItem(editMenuItem)
@@ -256,23 +274,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         editMenu.addItem(responderItem("Paste", action: #selector(NSText.paste(_:)), key: "v"))
         editMenu.addItem(responderItem("Select All", action: #selector(NSText.selectAll(_:)), key: "a"))
         editMenu.addItem(.separator())
-        editMenu.addItem(menuItem("Toggle List", action: #selector(toggleCurrentList(_:)), key: "l", modifiers: [.command, .shift]))
-        editMenu.addItem(menuItem("Emoji & Symbols", action: #selector(showCharacterPalette(_:)), key: " ", modifiers: [.command, .control]))
+        editMenu.addItem(menuItem("Toggle List", action: #selector(toggleCurrentList(_:)), shortcut: .toggleList))
+        editMenu.addItem(menuItem("Emoji & Symbols", action: #selector(showCharacterPalette(_:)), shortcut: .emojiSymbols))
 
         let noteMenuItem = NSMenuItem()
         mainMenu.addItem(noteMenuItem)
         let noteMenu = NSMenu(title: "Note")
         noteMenuItem.submenu = noteMenu
-        noteMenu.addItem(menuItem("Toggle Monospace", action: #selector(toggleCurrentMonospace(_:)), key: "m"))
+        noteMenu.addItem(menuItem("Toggle Monospace", action: #selector(toggleCurrentMonospace(_:)), shortcut: .toggleMonospace))
         noteMenu.addItem(.separator())
-        noteMenu.addItem(menuItem("Zoom In", action: #selector(zoomIn(_:)), key: "+"))
-        noteMenu.addItem(menuItem("Zoom Out", action: #selector(zoomOut(_:)), key: "-"))
-        noteMenu.addItem(menuItem("Actual Size", action: #selector(zoomDefault(_:)), key: "0"))
+        noteMenu.addItem(menuItem("Zoom In", action: #selector(zoomIn(_:)), shortcut: .zoomIn))
+        noteMenu.addItem(menuItem("Zoom Out", action: #selector(zoomOut(_:)), shortcut: .zoomOut))
+        noteMenu.addItem(menuItem("Actual Size", action: #selector(zoomDefault(_:)), shortcut: .actualSize))
 
         let windowMenuItem = NSMenuItem()
         mainMenu.addItem(windowMenuItem)
         let windowMenu = NSMenu(title: "Window")
         windowMenuItem.submenu = windowMenu
+        windowMenu.addItem(menuItem("Show All Notes", action: #selector(showAllNotes(_:)), shortcut: .showAllNotes))
+        windowMenu.addItem(menuItem("Show Notes List", action: #selector(showNotesList(_:)), shortcut: .showNotesList))
+        windowMenu.addItem(.separator())
         windowMenu.addItem(responderItem("Minimize", action: #selector(NSWindow.miniaturize(_:)), key: "m"))
         windowMenu.addItem(responderItem("Zoom", action: #selector(NSWindow.performZoom(_:)), key: ""))
         NSApp.windowsMenu = windowMenu
@@ -288,8 +309,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onShowAbout: { [weak self] in self?.showAbout(nil) },
             onRestart: { [weak self] in self?.restartApp(nil) },
             onShowList: { [weak self] in self?.showNotesList(nil) },
-            onQuit: { NSApp.terminate(nil) }
+            onQuit: { NSApp.terminate(nil) },
+            settings: settings
         )
+    }
+
+    private func menuItem(_ title: String, action: Selector, shortcut actionShortcut: ShortcutAction) -> NSMenuItem {
+        let shortcut = settings.shortcut(for: actionShortcut)
+        return menuItem(title, action: action, key: shortcut.normalizedKey, modifiers: shortcut.modifier.flags)
     }
 
     private func menuItem(

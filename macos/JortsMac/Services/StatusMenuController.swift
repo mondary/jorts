@@ -13,6 +13,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let onRestart: () -> Void
     private let onShowList: () -> Void
     private let onQuit: () -> Void
+    private let settings: AppSettings
 
     init(
         manager: NoteManager,
@@ -23,7 +24,8 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         onShowAbout: @escaping () -> Void,
         onRestart: @escaping () -> Void,
         onShowList: @escaping () -> Void,
-        onQuit: @escaping () -> Void
+        onQuit: @escaping () -> Void,
+        settings: AppSettings
     ) {
         statusItem = NSStatusBar.system.statusItem(withLength: 26)
         self.manager = manager
@@ -35,6 +37,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         self.onRestart = onRestart
         self.onShowList = onShowList
         self.onQuit = onQuit
+        self.settings = settings
 
         super.init()
 
@@ -118,12 +121,12 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         }
 
         menu.addItem(.separator())
-        menu.addItem(actionItem("New Note", action: #selector(newNote(_:)), keyEquivalent: "n"))
-        menu.addItem(actionItem("Show All Notes", action: #selector(showAllNotes(_:)), keyEquivalent: "l"))
-        menu.addItem(actionItem("Show List", action: #selector(showList(_:)), keyEquivalent: "L"))
-        menu.addItem(actionItem("Save All Notes", action: #selector(saveAllNotes(_:)), keyEquivalent: "s"))
+        menu.addItem(actionItem("New Note", action: #selector(newNote(_:)), shortcut: .newStickyNote))
+        menu.addItem(actionItem("Show All Notes", action: #selector(showAllNotes(_:)), shortcut: .showAllNotes))
+        menu.addItem(actionItem("Show List", action: #selector(showList(_:)), shortcut: .showNotesList))
+        menu.addItem(actionItem("Save All Notes", action: #selector(saveAllNotes(_:)), shortcut: .saveAllNotes))
         menu.addItem(.separator())
-        menu.addItem(actionItem("Settings…", action: #selector(showSettings(_:)), keyEquivalent: ","))
+        menu.addItem(actionItem("Settings…", action: #selector(showSettings(_:)), shortcut: .preferences, systemImage: "gearshape"))
         menu.addItem(actionItem("About Jorts", action: #selector(showAbout(_:)), keyEquivalent: ""))
         menu.addItem(actionItem("Restart Jorts", action: #selector(restart(_:)), keyEquivalent: ""))
         menu.addItem(actionItem("Quit Jorts", action: #selector(quit(_:)), keyEquivalent: "q"))
@@ -132,11 +135,32 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private func actionItem(
         _ title: String,
         action: Selector,
-        keyEquivalent: String
+        shortcut actionShortcut: ShortcutAction,
+        systemImage: String? = nil
+    ) -> NSMenuItem {
+        let shortcut = settings.shortcut(for: actionShortcut)
+        return actionItem(
+            title,
+            action: action,
+            keyEquivalent: shortcut.normalizedKey,
+            modifiers: shortcut.modifier.flags,
+            systemImage: systemImage
+        )
+    }
+
+    private func actionItem(
+        _ title: String,
+        action: Selector,
+        keyEquivalent: String,
+        modifiers: NSEvent.ModifierFlags = [.command],
+        systemImage: String? = nil
     ) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: keyEquivalent)
         item.target = self
-        item.keyEquivalentModifierMask = keyEquivalent.isEmpty ? [] : [.command]
+        item.keyEquivalentModifierMask = keyEquivalent.isEmpty ? [] : modifiers
+        if let systemImage {
+            item.image = NSImage(systemSymbolName: systemImage, accessibilityDescription: title)
+        }
         return item
     }
 

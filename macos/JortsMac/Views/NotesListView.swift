@@ -16,7 +16,7 @@ struct NotesListView: View {
                 list
             }
         }
-        .frame(minWidth: 400, minHeight: 500)
+        .frame(minWidth: 400, minHeight: 420)
         .background(Color(NSColor.windowBackgroundColor))
     }
 

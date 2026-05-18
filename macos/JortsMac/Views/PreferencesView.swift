@@ -7,55 +7,83 @@ struct PreferencesView: View {
     let onClose: () -> Void
     let onLanguageChanged: () -> Void
 
-    @State private var selection: PreferencesSection? = .general
+    @State private var selection: PreferencesSection = .general
 
     var body: some View {
-        NavigationSplitView {
-            List(selection: $selection) {
-                Section {
-                    Label(localizedString("general"), systemImage: "gearshape")
-                        .tag(PreferencesSection.general)
-                }
+        HStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Jorts")
+                    .font(.largeTitle.weight(.bold))
+                    .padding(.bottom, 18)
 
-                Section {
-                    Label("About", systemImage: "info.circle")
-                        .tag(PreferencesSection.about)
-                }
+                sidebarButton(.general, title: localizedString("general"), systemImage: "gearshape")
+                sidebarButton(.shortcuts, title: "Shortcuts", systemImage: "keyboard")
+                sidebarButton(.about, title: "About", systemImage: "info.circle")
+
+                Spacer()
             }
-            .listStyle(.sidebar)
-            .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 280)
-        } detail: {
-            Group {
-                switch selection ?? .general {
-                case .general:
-                    GeneralPreferencesView(settings: settings, storageURL: storageURL)
-                        .navigationTitle(localizedString("general"))
-                case .about:
-                    AboutPreferencesView()
-                        .navigationTitle("About")
+            .padding(18)
+            .frame(width: 240)
+            .background(Color(NSColor.controlBackgroundColor))
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 0) {
+                Text(selection.title)
+                    .font(.title2.weight(.semibold))
+                    .padding(.horizontal, 24)
+                    .padding(.top, 20)
+                    .padding(.bottom, 8)
+
+                Group {
+                    switch selection {
+                    case .general:
+                        GeneralPreferencesView(settings: settings, storageURL: storageURL)
+                    case .shortcuts:
+                        ShortcutsPreferencesView(settings: settings)
+                    case .about:
+                        AboutPreferencesView()
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(localizedString("close"), action: onClose)
-                        .keyboardShortcut(.cancelAction)
-                }
-            }
         }
         .frame(width: 920, height: 600)
-        .onAppear {
-            if selection == nil {
-                selection = .general
-            }
-        }
         .onChange(of: settings.selectedLanguage) { _ in
             onLanguageChanged()
         }
+    }
+
+    private func sidebarButton(_ section: PreferencesSection, title: String, systemImage: String) -> some View {
+        Button {
+            selection = section
+        } label: {
+            Label(title, systemImage: systemImage)
+                .font(.system(size: 14, weight: .medium))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .foregroundStyle(selection == section ? .white : .primary)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(selection == section ? Color.accentColor : .clear)
+                )
+        }
+        .buttonStyle(.plain)
     }
 }
 
 private enum PreferencesSection: Hashable {
     case general
+    case shortcuts
     case about
+
+    var title: String {
+        switch self {
+        case .general: localizedString("general")
+        case .shortcuts: "Shortcuts"
+        case .about: "About"
+        }
+    }
 }

@@ -22,11 +22,8 @@ final class NotesListWindowController: NSWindowController, NSWindowDelegate {
 
         self.hostingController = NSHostingController(rootView: listView)
 
-        let visibleFrame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 900, height: 700)
-        let defaultHeight = max(420, visibleFrame.height * 0.8)
-
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 500, height: defaultHeight),
+            contentRect: NSRect(x: 0, y: 0, width: 500, height: 600),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
@@ -68,6 +65,23 @@ final class NotesListWindowController: NSWindowController, NSWindowDelegate {
                 }
             }
         )
+    }
+
+    override func showWindow(_ sender: Any?) {
+        applyDefaultWindowSize()
+        super.showWindow(sender)
+    }
+
+    private func applyDefaultWindowSize() {
+        guard let window else { return }
+
+        let visibleFrame = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 900, height: 700)
+        let targetHeight = visibleFrame.height * 0.8
+        let targetWidth = min(max(window.frame.width, 500), visibleFrame.width * 0.9)
+        let x = visibleFrame.midX - targetWidth / 2
+        let y = visibleFrame.midY - targetHeight / 2
+
+        window.setFrame(NSRect(x: x, y: y, width: targetWidth, height: targetHeight), display: false)
     }
 
     func windowWillClose(_ notification: Notification) {
