@@ -105,94 +105,100 @@ struct NoteView: View {
     }
 
     private var notePreferencesPopover: some View {
-        NavigationStack {
-            List {
-                Section("Font") {
-                    ForEach(filteredStandardFonts, id: \.self) { font in
-                        Button {
-                            document.fontFamily = font
-                        } label: {
-                            HStack {
-                                Text(font.displayName)
-                                    .foregroundStyle(.primary)
-                                Spacer()
-                                if document.fontFamily == font {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Preferences")
+                .font(.headline)
+                .foregroundColor(Color(NSColor.labelColor))
+
+            TextField("Search fonts", text: $fontSearchText)
+                .textFieldStyle(.roundedBorder)
+                .foregroundColor(Color(NSColor.labelColor))
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 4) {
+                    fontSection("Standard Fonts", fonts: filteredStandardFonts)
 
                     if !filteredNerdFonts.isEmpty {
                         Divider()
-                        ForEach(filteredNerdFonts, id: \.self) { font in
-                            Button {
-                                document.fontFamily = font
-                            } label: {
-                                HStack {
-                                    Text(font.displayName)
-                                        .foregroundStyle(.primary)
-                                    Spacer()
-                                    if document.fontFamily == font {
-                                        Image(systemName: "checkmark")
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-                            }
-                            .buttonStyle(.plain)
-                        }
+                            .padding(.vertical, 4)
+                        fontSection("Nerd Fonts", fonts: filteredNerdFonts)
                     }
                 }
-
-                Section("Options") {
-                    Toggle("Monospaced", isOn: $document.monospace)
-                }
-
-                Section("Zoom") {
-                    HStack(spacing: 8) {
-                        Button {
-                            document.zoomOut()
-                        } label: {
-                            Image(systemName: "minus.magnifyingglass")
-                        }
-                        .help("Zoom Out")
-
-                        Button {
-                            document.resetZoom()
-                        } label: {
-                            Image(systemName: "1.magnifyingglass")
-                        }
-                        .help("Actual Size")
-
-                        Button {
-                            document.zoomIn()
-                        } label: {
-                            Image(systemName: "plus.magnifyingglass")
-                        }
-                        .help("Zoom In")
-                    }
-                    .buttonStyle(.borderless)
-                }
+                .padding(.vertical, 2)
             }
-            .navigationTitle("Preferences")
-            .searchable(text: $fontSearchText, placement: .toolbar, prompt: "Search fonts")
-            .modifier(SystemListBackgroundModifier())
+            .frame(height: 230)
+
+            Divider()
+
+            Toggle("Monospaced", isOn: $document.monospace)
+                .foregroundColor(Color(NSColor.labelColor))
+
+            HStack(spacing: 8) {
+                Button {
+                    document.zoomOut()
+                } label: {
+                    Image(systemName: "minus.magnifyingglass")
+                }
+                .help("Zoom Out")
+
+                Button {
+                    document.resetZoom()
+                } label: {
+                    Image(systemName: "1.magnifyingglass")
+                }
+                .help("Actual Size")
+
+                Button {
+                    document.zoomIn()
+                } label: {
+                    Image(systemName: "plus.magnifyingglass")
+                }
+                .help("Zoom In")
+            }
+            .buttonStyle(.borderless)
         }
-        // Prevent inheriting note colors; keep popover system-readable.
-        .foregroundStyle(.primary)
+        .padding(14)
+        .foregroundColor(Color(NSColor.labelColor))
         .tint(Color(NSColor.controlAccentColor))
-        .background(Color(NSColor.windowBackgroundColor))
-        .frame(width: 320, height: 420)
+        .background(Color(NSColor.windowBackgroundColor).ignoresSafeArea())
+        .environment(\.colorScheme, .light)
+        .frame(width: 320)
     }
 
-    private struct SystemListBackgroundModifier: ViewModifier {
-        func body(content: Content) -> some View {
-            if #available(macOS 13.0, *) {
-                content.scrollContentBackground(.hidden)
-            } else {
-                content
+    private func fontSection(_ title: String, fonts: [FontFamily]) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(Color(NSColor.secondaryLabelColor))
+                .padding(.horizontal, 6)
+
+            ForEach(fonts, id: \.self) { font in
+                Button {
+                    document.fontFamily = font
+                } label: {
+                    HStack(spacing: 8) {
+                        Text(font.displayName)
+                            .font(.system(size: 13))
+                            .foregroundColor(Color(NSColor.labelColor))
+                            .lineLimit(1)
+
+                        Spacer()
+
+                        if document.fontFamily == font {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(Color(NSColor.controlAccentColor))
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(document.fontFamily == font ? Color(NSColor.selectedContentBackgroundColor).opacity(0.18) : .clear)
+                    )
+                }
+                .buttonStyle(.plain)
             }
         }
     }

@@ -51,10 +51,20 @@
         };
         delete_item.add_css_class (STYLE_THEMEDBUTTON);
 
+        var list_notes_item = new Gtk.Button () {
+            // action_name = NoteManager.ACTION_PREFIX + ... (A définir)
+            icon_name = "view-list-symbolic",
+            width_request = ICON_SIZE,
+            height_request = ICON_SIZE,
+            tooltip_markup = _("Show all notes"),
+            has_frame = false
+        };
+        list_notes_item.add_css_class (STYLE_THEMEDBUTTON);
+
         /* **** RIGHT **** */
         list_button = new Gtk.Button () {
             action_name = TextView.ACTION_PREFIX + TextView.ACTION_TOGGLE_LIST,
-            icon_name = "view-list-symbolic",
+            icon_name = "format-list-bulleted-symbolic",
             width_request = ICON_SIZE,
             height_request = ICON_SIZE,
             tooltip_markup = Granite.markup_accel_tooltip (
@@ -101,6 +111,7 @@
         actionbar.revealed = false;
         actionbar.pack_start (new_item);
         actionbar.pack_start (delete_item);
+        actionbar.pack_start (list_notes_item);
         actionbar.pack_end (menu_button);
         actionbar.pack_end (emoji_button);
         actionbar.pack_end (list_button);
