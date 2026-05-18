@@ -13,6 +13,12 @@
   </p>
 </div>
 
+<br/>
+
+<img src="https://github.com/elly-code/jorts/blob/main/data/screenshots/spread.png" alt="Several colourful sticky notes in a spread. Most are covered in scribbles. One in forefront is blue and has the text 'Lovely little colourful squares for all of your notes! 🥰'">
+
+<br/>
+
 ---
 
 ## macOS Port
