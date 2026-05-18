@@ -192,6 +192,10 @@ final class NoteManager {
         trash
     }
 
+    func trashedNote(id: UUID) -> TrashedNote? {
+        trash.first(where: { $0.id == id })
+    }
+
     func restoreFromTrash(_ trashedID: UUID) {
         guard let index = trash.firstIndex(where: { $0.id == trashedID }) else { return }
         let item = trash.remove(at: index)

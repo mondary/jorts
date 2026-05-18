@@ -17,6 +17,9 @@ final class NoteWindowController: NSWindowController, NSWindowDelegate {
         onSave: @escaping () -> Void,
         onShowEmoji: @escaping () -> Void,
         onShowList: @escaping () -> Void,
+        mode: NoteViewMode = .normal,
+        onRestoreFromTrash: (() -> Void)? = nil,
+        onDeletePermanently: (() -> Void)? = nil,
         onDocumentChanged: @escaping () -> Void
     ) {
         self.noteDocument = document
@@ -29,7 +32,10 @@ final class NoteWindowController: NSWindowController, NSWindowDelegate {
             onDelete: onDelete,
             onSave: onSave,
             onShowEmoji: onShowEmoji,
-            onShowList: onShowList
+            onShowList: onShowList,
+            mode: mode,
+            onRestoreFromTrash: onRestoreFromTrash,
+            onDeletePermanently: onDeletePermanently
         )
 
         let hostingController = NSHostingController(rootView: rootView)

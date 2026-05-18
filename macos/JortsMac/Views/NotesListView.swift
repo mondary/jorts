@@ -6,8 +6,7 @@ struct NotesListView: View {
     let onCreateNote: () -> Void
     let onShowPreferences: () -> Void
     let onNoteSelected: (UUID) -> Void
-    let onRestoreTrashed: (UUID) -> Void
-    let onDeleteTrashed: (UUID) -> Void
+    let onOpenTrashed: (UUID) -> Void
 
     @State private var selection: ListSelection = .notes
 
@@ -30,7 +29,7 @@ struct NotesListView: View {
     private var header: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("Toutes mes notes")
+                Text(selection == .trash ? "Poubelle" : "Toutes mes notes")
                     .font(.title2.weight(.semibold))
 
                 Spacer()
@@ -48,17 +47,18 @@ struct NotesListView: View {
                 }
                 .buttonStyle(.plain)
                 .help("Preferences")
+
+                Button {
+                    selection = (selection == .trash) ? .notes : .trash
+                } label: {
+                    Image(systemName: selection == .trash ? "arrow.uturn.backward.circle.fill" : "arrow.uturn.backward.circle")
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
+                .help("Restore / Trash")
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-
-            Picker("", selection: $selection) {
-                Text("Notes").tag(ListSelection.notes)
-                Text("Poubelle").tag(ListSelection.trash)
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
         }
         .background(Color(NSColor.controlBackgroundColor))
     }
@@ -107,7 +107,8 @@ struct NotesListView: View {
                     }
                 case .trash:
                     ForEach(trash) { item in
-                        TrashedNoteRow(item: item, onRestore: { onRestoreTrashed(item.id) }, onDelete: { onDeleteTrashed(item.id) })
+                        TrashedNoteRow(item: item)
+                            .onTapGesture { onOpenTrashed(item.id) }
                         Divider()
                     }
                 }
@@ -164,8 +165,6 @@ struct NoteRow: View {
 
 struct TrashedNoteRow: View {
     let item: TrashedNote
-    let onRestore: () -> Void
-    let onDelete: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -187,12 +186,6 @@ struct TrashedNoteRow: View {
             Text(deletedAt)
                 .font(.caption)
                 .foregroundColor(.secondary)
-
-            Button("Restore", action: onRestore)
-                .buttonStyle(.borderless)
-
-            Button("Delete", role: .destructive, action: onDelete)
-                .buttonStyle(.borderless)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)

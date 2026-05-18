@@ -7,12 +7,18 @@ struct NoteView: View {
     @State private var isHistoryPopoverPresented = false
     @State private var fontSearchText = ""
     @State private var historyCursor = 0
+    @State private var editorFocusRequestToken = 0
 
     let onNew: () -> Void
     let onDelete: () -> Void
     let onSave: () -> Void
     let onShowEmoji: () -> Void
     let onShowList: () -> Void
+    let mode: NoteViewMode
+    let onRestoreFromTrash: (() -> Void)?
+    let onDeletePermanently: (() -> Void)?
+
+    @FocusState private var focus: FocusTarget?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -20,6 +26,9 @@ struct NoteView: View {
 
             NoteTextView(
                 text: $document.content,
+                onShiftTabToTitle: { focus = .title },
+                focusRequestToken: editorFocusRequestToken,
+                isEditable: mode == .normal,
                 font: editorFont,
                 textColor: document.theme.autoTextColor,
                 insertionPointColor: document.theme.accentNSColor,
@@ -31,8 +40,15 @@ struct NoteView: View {
             if !settings.hideActionBar {
                 Divider()
                     .overlay(document.theme.autoTextColorColor.opacity(0.18))
-                actionBar
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                Group {
+                    switch mode {
+                    case .normal:
+                        actionBar
+                    case .trash:
+                        trashActionBar
+                    }
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .frame(minWidth: 240, minHeight: 240)
@@ -42,21 +58,29 @@ struct NoteView: View {
 
     private var titleBar: some View {
         HStack(spacing: 10) {
-            Spacer()
-                .frame(width: 68)
-
-            TextField("Title", text: $document.title)
-                .textFieldStyle(.plain)
-                .font(Font(titleFont))
-                .foregroundStyle(document.theme.autoTextColorColor)
-                .lineLimit(1)
-
-            Button(action: onSave) {
-                Image(systemName: "checkmark.circle")
+            HStack(spacing: 0) {
+                Button(action: onSave) {
+                    Image(systemName: "checkmark.circle")
+                        .frame(width: 26, height: 26)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(document.theme.autoTextColorColor.opacity(0.72))
+                .help("Save all notes")
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(document.theme.autoTextColorColor.opacity(0.72))
-            .help("Save all notes")
+            .frame(width: 44, alignment: .leading)
+
+            TitleTextField(
+                text: $document.title,
+                font: titleFontBold,
+                textColor: document.theme.autoTextColor,
+                onTabToEditor: { editorFocusRequestToken += 1 }
+            )
+            .frame(maxWidth: 420)
+            .focused($focus, equals: .title)
+
+            // Keep symmetry so the title stays centered.
+            Color.clear
+                .frame(width: 44, height: 26)
         }
         .padding(.top, 13)
         .padding(.horizontal, 12)
@@ -119,6 +143,29 @@ struct NoteView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
+        .background(document.theme.backgroundColor.opacity(0.98))
+    }
+
+    private var trashActionBar: some View {
+        HStack(spacing: 10) {
+            Spacer()
+
+            Button {
+                onRestoreFromTrash?()
+            }
+            label: {
+                Label("Restaurer", systemImage: "arrow.uturn.backward")
+            }
+            .keyboardShortcut(.defaultAction)
+
+            Button(role: .destructive) {
+                onDeletePermanently?()
+            } label: {
+                Label("Supprimer", systemImage: "trash")
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
         .background(document.theme.backgroundColor.opacity(0.98))
     }
 
@@ -406,6 +453,13 @@ struct NoteView: View {
         return .systemFont(ofSize: document.titleFontSize, weight: .semibold)
     }
 
+    private var titleFontBold: NSFont {
+        if let converted = NSFontManager.shared.convert(titleFont, toHaveTrait: .boldFontMask) as NSFont? {
+            return converted
+        }
+        return titleFont
+    }
+
     private func iconButton(
         _ systemName: String,
         role: ButtonRole? = nil,
@@ -438,4 +492,14 @@ struct NoteView: View {
             popover.show(relativeTo: rect, of: contentView, preferredEdge: .minY)
         }
     }
+}
+
+private enum FocusTarget: Hashable {
+    case title
+    case editor
+}
+
+enum NoteViewMode: Hashable {
+    case normal
+    case trash
 }

@@ -3,6 +3,9 @@ import SwiftUI
 
 struct NoteTextView: NSViewRepresentable {
     @Binding var text: String
+    let onShiftTabToTitle: () -> Void
+    let focusRequestToken: Int
+    let isEditable: Bool
 
     let font: NSFont
     let textColor: NSColor
@@ -28,6 +31,7 @@ struct NoteTextView: NSViewRepresentable {
         textView.isRichText = false
         textView.importsGraphics = false
         textView.allowsUndo = true
+        textView.isEditable = isEditable
         textView.isVerticallyResizable = true
         textView.isHorizontallyResizable = false
         textView.textContainerInset = NSSize(width: 12, height: 8)
@@ -49,6 +53,7 @@ struct NoteTextView: NSViewRepresentable {
         }
 
         applyStyle(to: textView)
+        textView.isEditable = isEditable
 
         if textView.string != text && !context.coordinator.isApplyingChange {
             let selectedRange = textView.selectedRange()
@@ -59,6 +64,11 @@ struct NoteTextView: NSViewRepresentable {
         if context.coordinator.lastToggleListRequestToken != toggleListRequestToken {
             context.coordinator.lastToggleListRequestToken = toggleListRequestToken
             context.coordinator.toggleList(in: textView)
+        }
+
+        if context.coordinator.lastFocusRequestToken != focusRequestToken {
+            context.coordinator.lastFocusRequestToken = focusRequestToken
+            textView.window?.makeFirstResponder(textView)
         }
     }
 
@@ -79,6 +89,7 @@ struct NoteTextView: NSViewRepresentable {
         var parent: NoteTextView
         var isApplyingChange = false
         var lastToggleListRequestToken = 0
+        var lastFocusRequestToken = 0
 
         init(_ parent: NoteTextView) {
             self.parent = parent
@@ -112,6 +123,14 @@ struct NoteTextView: NSViewRepresentable {
             }
 
             return true
+        }
+
+        func textView(_ textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+            if commandSelector == #selector(NSResponder.insertBacktab(_:)) {
+                parent.onShiftTabToTitle()
+                return true
+            }
+            return false
         }
 
         func textDidChange(_ notification: Notification) {
