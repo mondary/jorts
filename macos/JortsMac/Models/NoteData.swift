@@ -1,8 +1,8 @@
 import Foundation
 
 struct NoteData: Codable, Identifiable {
-    static let defaultWidth = 580
-    static let defaultHeight = 640
+    static let defaultWidth = 400
+    static let defaultHeight = 400
     static let defaultZoom = 100
     static let minimumZoom = 20
     static let maximumZoom = 300
