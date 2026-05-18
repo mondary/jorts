@@ -1,0 +1,72 @@
+/*
+  JortsMac - French localization
+*/
+
+/* Preferences */
+"preferences_title" = "Préférences pour vos Jorts";
+"list_item_prefix" = "Préfixe des éléments de liste";
+"list_item_prefix_hint" = "Si laissé vide, le bouton de liste sera masqué.";
+"reset" = "Réinitialiser";
+"scribble_mode" = "Texte gribouillé des notes non focalisées";
+"hide_action_bar" = "Masquer la barre d'action inférieure";
+"storage" = "Stockage";
+"close" = "Fermer";
+"language" = "Langue";
+
+/* About */
+"app_name" = "Jorts_MacOS";
+"app_version" = "4.2.0 port macOS";
+"about_header" = "Jorts_MacOS";
+"about_description" = "Portage natif macOS en Swift";
+"original_project" = "Projet original : ";
+"macos_fork" = "fork macOS : ";
+"support_developer" = "☕ Soutenez le développeur original : ";
+
+/* Menu Bar */
+"no_notes" = "Aucune note";
+"new_note" = "Nouvelle note";
+"show_all_notes" = "Afficher toutes les notes";
+"save_all_notes" = "Enregistrer toutes les notes";
+"settings" = "Paramètres…";
+"about" = "À propos de Jorts";
+"restart" = "Redémarrer Jorts";
+"quit" = "Quitter Jorts";
+
+/* Note Window */
+"untitled" = "Sans titre";
+"title_placeholder" = "Titre";
+"save" = "Enregistrer toutes les notes";
+"new_sticky_note" = "Nouvelle note autocollante";
+"delete_sticky_note" = "Supprimer la note autocollante";
+"close_note_window" = "Fermer la fenêtre de note";
+"toggle_list" = "Activer/désactiver la liste";
+"toggle_monospace" = "Activer/désactiver monospace";
+"zoom_in" = "Zoom avant";
+"zoom_out" = "Zoom arrière";
+"actual_size" = "Taille réelle";
+"emoji_symbols" = "Emoji & Symboles";
+"preferences_note" = "Préférences pour cette note autocollante";
+
+/* Theme colors */
+"color" = "Couleur";
+"blueberry" = "Myrtille";
+"mint" = "Menthe";
+"lime" = "Citron vert";
+"banana" = "Banane";
+"orange" = "Orange";
+"strawberry" = "Fraise";
+"bubblegum" = "Chewing-gum";
+"grape" = "Raisin";
+"cocoa" = "Cacao";
+"slate" = "Ardoise";
+"latte" = "Latte";
+"hot_pink" = "Rose vif";
+"electric_blue" = "Bleu électrique";
+"neon_green" = "Vert néon";
+"crimson" = "Cramoisi";
+"sunshine" = "Soleil";
+"violet" = "Violet";
+"tangerine" = "Mandarine";
+
+/* Status Menu */
+"jorts_tooltip" = "Jorts";

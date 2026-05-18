@@ -1,0 +1,72 @@
+/*
+  JortsMac - English localization
+*/
+
+/* Preferences */
+"preferences_title" = "Preferences for your Jorts";
+"list_item_prefix" = "List item prefix";
+"list_item_prefix_hint" = "If left empty, the list button is hidden.";
+"reset" = "Reset";
+"scribble_mode" = "Scribble text of unfocused notes";
+"hide_action_bar" = "Hide bottom action bar";
+"storage" = "Storage";
+"close" = "Close";
+"language" = "Language";
+
+/* About */
+"app_name" = "Jorts_MacOS";
+"app_version" = "4.2.0 macOS port";
+"about_header" = "Jorts_MacOS";
+"about_description" = "Native macOS Swift port";
+"original_project" = "Original project: ";
+"macos_fork" = "macOS fork: ";
+"support_developer" = "☕ Support the original developer: ";
+
+/* Menu Bar */
+"no_notes" = "No notes";
+"new_note" = "New Note";
+"show_all_notes" = "Show All Notes";
+"save_all_notes" = "Save All Notes";
+"settings" = "Settings…";
+"about" = "About Jorts";
+"restart" = "Restart Jorts";
+"quit" = "Quit Jorts";
+
+/* Note Window */
+"untitled" = "Untitled";
+"title_placeholder" = "Title";
+"save" = "Save all notes";
+"new_sticky_note" = "New sticky note";
+"delete_sticky_note" = "Delete sticky note";
+"close_note_window" = "Close note window";
+"toggle_list" = "Toggle list";
+"toggle_monospace" = "Toggle monospace";
+"zoom_in" = "Zoom in";
+"zoom_out" = "Zoom out";
+"actual_size" = "Actual size";
+"emoji_symbols" = "Emoji & Symbols";
+"preferences_note" = "Preferences for this sticky note";
+
+/* Theme colors */
+"color" = "Color";
+"blueberry" = "Blueberry";
+"mint" = "Mint";
+"lime" = "Lime";
+"banana" = "Banana";
+"orange" = "Orange";
+"strawberry" = "Strawberry";
+"bubblegum" = "Bubblegum";
+"grape" = "Grape";
+"cocoa" = "Cocoa";
+"slate" = "Slate";
+"latte" = "Latte";
+"hot_pink" = "Hot Pink";
+"electric_blue" = "Electric Blue";
+"neon_green" = "Neon Green";
+"crimson" = "Crimson";
+"sunshine" = "Sunshine";
+"violet" = "Violet";
+"tangerine" = "Tangerine";
+
+/* Status Menu */
+"jorts_tooltip" = "Jorts";

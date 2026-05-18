@@ -11,6 +11,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let onShowSettings: () -> Void
     private let onShowAbout: () -> Void
     private let onRestart: () -> Void
+    private let onShowList: () -> Void
     private let onQuit: () -> Void
 
     init(
@@ -21,6 +22,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         onShowSettings: @escaping () -> Void,
         onShowAbout: @escaping () -> Void,
         onRestart: @escaping () -> Void,
+        onShowList: @escaping () -> Void,
         onQuit: @escaping () -> Void
     ) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -31,6 +33,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         self.onShowSettings = onShowSettings
         self.onShowAbout = onShowAbout
         self.onRestart = onRestart
+        self.onShowList = onShowList
         self.onQuit = onQuit
 
         super.init()
@@ -86,6 +89,10 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         onRestart()
     }
 
+    @objc private func showList(_ sender: NSMenuItem) {
+        onShowList()
+    }
+
     private func rebuildMenu() {
         menu.removeAllItems()
 
@@ -112,6 +119,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(actionItem("New Note", action: #selector(newNote(_:)), keyEquivalent: "n"))
         menu.addItem(actionItem("Show All Notes", action: #selector(showAllNotes(_:)), keyEquivalent: "l"))
+        menu.addItem(actionItem("Show List", action: #selector(showList(_:)), keyEquivalent: "L"))
         menu.addItem(actionItem("Save All Notes", action: #selector(saveAllNotes(_:)), keyEquivalent: "s"))
         menu.addItem(.separator())
         menu.addItem(actionItem("Settings…", action: #selector(showSettings(_:)), keyEquivalent: ","))

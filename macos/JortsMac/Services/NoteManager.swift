@@ -121,6 +121,10 @@ final class NoteManager {
         }
     }
 
+    var documents: [NoteDocument] {
+        orderedControllers().map { $0.noteDocument }
+    }
+
     func toggleListForActiveNote() {
         activeController()?.noteDocument.toggleList()
     }

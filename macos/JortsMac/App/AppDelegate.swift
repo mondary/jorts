@@ -4,6 +4,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let settings = AppSettings()
     private lazy var manager = NoteManager(settings: settings)
     private var preferencesWindowController: PreferencesWindowController?
+    private var notesListWindowController: NotesListWindowController?
     private var statusMenuController: StatusMenuController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -150,6 +151,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.terminate(nil)
     }
 
+    @objc private func showNotesList(_ sender: Any?) {
+        if notesListWindowController == nil {
+            notesListWindowController = NotesListWindowController(
+                manager: manager,
+                onNoteSelected: { [weak self] noteID in
+                    self?.manager.focusNote(documentID: noteID)
+                }
+            )
+        }
+
+        notesListWindowController?.showWindow(nil)
+        notesListWindowController?.window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     private func buildMainMenu() {
         let mainMenu = NSMenu()
         NSApp.mainMenu = mainMenu
@@ -235,6 +251,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onShowSettings: { [weak self] in self?.showPreferences(nil) },
             onShowAbout: { [weak self] in self?.showAbout(nil) },
             onRestart: { [weak self] in self?.restartApp(nil) },
+            onShowList: { [weak self] in self?.showNotesList(nil) },
             onQuit: { NSApp.terminate(nil) }
         )
     }

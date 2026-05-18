@@ -4,6 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "JortsMac",
+    defaultLocalization: "en",
     platforms: [
         .macOS(.v13)
     ],
@@ -15,7 +16,8 @@ let package = Package(
             name: "JortsMac",
             path: "macos/JortsMac",
             resources: [
-                .copy("Resources/RedactedScript-Regular.ttf")
+                .copy("Resources/RedactedScript-Regular.ttf"),
+                .process("Resources/Localizations")
             ]
         )
     ]
