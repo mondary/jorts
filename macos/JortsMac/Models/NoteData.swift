@@ -23,6 +23,7 @@ struct NoteData: Codable, Identifiable {
     var versions: [NoteVersion]
 
     enum CodingKeys: String, CodingKey {
+        case id
         case title
         case color
         case content
@@ -67,6 +68,7 @@ struct NoteData: Codable, Identifiable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
         title = try container.decodeIfPresent(String.self, forKey: .title) ?? RandomContent.title()
         let colorValue = try container.decodeIfPresent(Int.self, forKey: .color) ?? NoteTheme.blueberry.rawValue
         theme = NoteTheme(rawValue: colorValue) ?? .blueberry
@@ -94,6 +96,7 @@ struct NoteData: Codable, Identifiable {
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
         try container.encode(title, forKey: .title)
         try container.encode(theme.rawValue, forKey: .color)
         try container.encode(content, forKey: .content)

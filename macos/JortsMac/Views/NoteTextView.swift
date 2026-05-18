@@ -192,20 +192,21 @@ struct NoteTextView: NSViewRepresentable {
             guard now - lastEffectAt > 0.02 else { return }
             lastEffectAt = now
 
-            guard let host = effectHost else { return }
+            guard let host = effectHost, let window = textView.window else { return }
+
             let caretLocation = max(0, textView.selectedRange().location)
             let caretRange = NSRange(location: min(caretLocation, (textView.string as NSString).length), length: 0)
-            var caretRect = textView.firstRect(forCharacterRange: caretRange, actualRange: nil)
-            if caretRect.isEmpty {
-                caretRect = textView.visibleRect
-            }
-            // Convert screen -> host coords.
-            if let window = textView.window {
-                caretRect = window.convertFromScreen(caretRect)
-                caretRect = host.convert(caretRect, from: nil as NSView?)
+
+            // firstRect(...) is in screen coordinates.
+            var screenRect = textView.firstRect(forCharacterRange: caretRange, actualRange: nil)
+            if screenRect.isEmpty {
+                screenRect = window.convertToScreen(textView.visibleRect)
             }
 
-            let point = CGPoint(x: caretRect.midX, y: caretRect.midY)
+            // screen -> window -> host
+            let windowRect = window.convertFromScreen(screenRect)
+            let hostRect = host.convert(windowRect, from: nil)
+            let point = CGPoint(x: hostRect.midX, y: hostRect.midY)
             host.emit(effect: parent.typingEffect, at: point)
         }
 
@@ -319,6 +320,8 @@ final class EffectHostView: NSView {
 
         overlay.isHidden = false
         overlay.alphaValue = 1
+        overlay.layer?.masksToBounds = false
+        overlay.layer?.zPosition = 999
     }
 
     required init?(coder: NSCoder) {
