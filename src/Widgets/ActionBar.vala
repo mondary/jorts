@@ -52,11 +52,11 @@
         delete_item.add_css_class (STYLE_THEMEDBUTTON);
 
         var list_notes_item = new Gtk.Button () {
-            // action_name = NoteManager.ACTION_PREFIX + ... (A définir)
+            action_name = NoteManager.ACTION_PREFIX + NoteManager.ACTION_LIST_NOTES,
             icon_name = "view-list-symbolic",
             width_request = ICON_SIZE,
             height_request = ICON_SIZE,
-            tooltip_markup = _("Show all notes"),
+            tooltip_markup = _("Toutes mes notes"),
             has_frame = false
         };
         list_notes_item.add_css_class (STYLE_THEMEDBUTTON);
@@ -110,7 +110,6 @@
         };
         actionbar.revealed = false;
         actionbar.pack_start (new_item);
-        actionbar.pack_start (delete_item);
         actionbar.pack_start (list_notes_item);
         actionbar.pack_end (menu_button);
         actionbar.pack_end (emoji_button);

@@ -8,6 +8,8 @@ final class NoteManager {
     private var saveWorkItem: DispatchWorkItem?
     private var latestTheme: NoteTheme = .blueberry
 
+    var onShowList: (() -> Void)?
+
     var storageURL: URL {
         storage.storageURL
     }
@@ -46,6 +48,7 @@ final class NoteManager {
             },
             onSave: { [weak self] in self?.saveNow() },
             onShowEmoji: { NSApp.orderFrontCharacterPalette(nil) },
+            onShowList: { [weak self] in self?.onShowList?() },
             onDocumentChanged: { [weak self, weak document] in
                 guard let document else { return }
                 self?.latestTheme = document.theme

@@ -22,12 +22,14 @@ public class Jorts.NoteManager : Object {
     public const string ACTION_PREFIX = "app.";
     public const string ACTION_NEW = "action_new";
     public const string ACTION_SAVE = "action_save";
+    public const string ACTION_LIST_NOTES = "action_list_notes";
 
     public static Gee.MultiMap<string, string> action_accelerators;
 
     public const GLib.ActionEntry[] ACTION_ENTRIES = {
         {ACTION_NEW, action_new},
         {ACTION_SAVE, save_all},
+        {ACTION_LIST_NOTES, action_list_notes},
     };
 
     public NoteManager (Jorts.Application app) {
@@ -181,5 +183,9 @@ public class Jorts.NoteManager : Object {
     public void action_new () {
         debug ("New Note");
         create_note ();
+    }
+
+    public void action_list_notes () {
+        debug ("List notes requested");
     }
 }

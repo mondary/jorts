@@ -10,6 +10,7 @@ struct NoteView: View {
     let onDelete: () -> Void
     let onSave: () -> Void
     let onShowEmoji: () -> Void
+    let onShowList: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -65,6 +66,7 @@ struct NoteView: View {
         HStack(spacing: 10) {
             iconButton("plus", help: "New sticky note", action: onNew)
             iconButton("trash", role: .destructive, help: "Delete sticky note", action: onDelete)
+            iconButton("note.text", help: "Show notes list", action: onShowList)
 
             Spacer()
 

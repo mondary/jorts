@@ -95,6 +95,35 @@
                 settingsbox.append (hidebar_box);
 
 
+                /*************************************************/
+                /*              Raccourcis clavier               */
+                /*************************************************/
+
+                var shortcuts_label = new Granite.HeaderLabel (_("Raccourcis clavier"));
+                settingsbox.append (shortcuts_label);
+
+                var accel_new_entry = new Gtk.Entry () { halign = Gtk.Align.END };
+                Application.gsettings.bind (KEY_ACCEL_NEW, accel_new_entry, "text", SettingsBindFlags.DEFAULT);
+                var box_new = new Gtk.Box (HORIZONTAL, SPACING_STANDARD);
+                box_new.append (new Gtk.Label (_("Nouvelle note")));
+                box_new.append (accel_new_entry);
+                settingsbox.append (box_new);
+
+                var accel_del_entry = new Gtk.Entry () { halign = Gtk.Align.END };
+                Application.gsettings.bind (KEY_ACCEL_DELETE, accel_del_entry, "text", SettingsBindFlags.DEFAULT);
+                var box_del = new Gtk.Box (HORIZONTAL, SPACING_STANDARD);
+                box_del.append (new Gtk.Label (_("Supprimer la note")));
+                box_del.append (accel_del_entry);
+                settingsbox.append (box_del);
+
+                var accel_list_entry = new Gtk.Entry () { halign = Gtk.Align.END };
+                Application.gsettings.bind (KEY_ACCEL_TOGGLE_LIST, accel_list_entry, "text", SettingsBindFlags.DEFAULT);
+                var box_list = new Gtk.Box (HORIZONTAL, SPACING_STANDARD);
+                box_list.append (new Gtk.Label (_("Activer la liste")));
+                box_list.append (accel_list_entry);
+                settingsbox.append (box_list);
+
+
                 /****************************************************/
                 /*               Autostart Request                  */
                 /****************************************************/

@@ -35,6 +35,10 @@ msgid "Delete sticky note"
 msgstr "Supprimer une note autocollante"
 
 #: src/Widgets/ActionBar.vala:62
+msgid "Toutes mes notes"
+msgstr "Toutes mes notes"
+
+#: src/Widgets/ActionBar.vala:62
 msgid "Toggle list"
 msgstr "Basculer liste"
 

@@ -22,8 +22,11 @@ final class NotesListWindowController: NSWindowController, NSWindowDelegate {
 
         self.hostingController = NSHostingController(rootView: listView)
 
+        let visibleFrame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 900, height: 700)
+        let defaultHeight = max(420, visibleFrame.height * 0.8)
+
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 500, height: 600),
+            contentRect: NSRect(x: 0, y: 0, width: 500, height: defaultHeight),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
@@ -33,6 +36,7 @@ final class NotesListWindowController: NSWindowController, NSWindowDelegate {
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
+        window.minSize = NSSize(width: 400, height: 420)
         window.contentViewController = self.hostingController
 
         super.init(window: window)

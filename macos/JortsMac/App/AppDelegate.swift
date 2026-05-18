@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         FontRegistrar.registerBundledFonts()
         buildMainMenu()
+        manager.onShowList = { [weak self] in self?.showNotesList(nil) }
         manager.launch()
         buildStatusMenu()
         NSApp.activate(ignoringOtherApps: true)

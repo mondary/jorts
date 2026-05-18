@@ -38,16 +38,19 @@ public class Jorts.StickyNoteWindow : Gtk.ApplicationWindow {
     private const GLib.ActionEntry[] ACTION_ENTRIES = {
         { ACTION_DELETE, action_delete}
     };
+public StickyNoteWindow (Jorts.Application app, NoteData data) {
+    Intl.setlocale ();
+    debug ("New StickyNoteWindow instance!");
+    application = app;
 
-    public StickyNoteWindow (Jorts.Application app, NoteData data) {
-        Intl.setlocale ();
-        debug ("New StickyNoteWindow instance!");
-        application = app;
+    var actions = new SimpleActionGroup ();
+    actions.add_action_entries (ACTION_ENTRIES, this);
+    insert_action_group ("win", actions);
 
-        var actions = new SimpleActionGroup ();
-        actions.add_action_entries (ACTION_ENTRIES, this);
-        insert_action_group ("win", actions);
-        app.set_accels_for_action (ACTION_PREFIX + ACTION_DELETE, {"<Control>W"});
+    string accel_del = Application.gsettings.get_string (KEY_ACCEL_DELETE);
+    app.set_accels_for_action (ACTION_PREFIX + ACTION_DELETE, {accel_del});
+
+    // ... (suite du constructeur)
 
         color_controller = new Jorts.ColorController (this);
         zoom_controller = new Jorts.ZoomController (this);

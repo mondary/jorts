@@ -16,5 +16,17 @@
 			<summary>Hide actionbar</summary>
 			<description>Whether to hide the actionbar and its buttons</description>
 		</key>
+		<key name="accel-new" type="s">
+			<default>"&lt;Control&gt;n"</default>
+			<summary>Shortcut for new note</summary>
+		</key>
+		<key name="accel-delete" type="s">
+			<default>"&lt;Control&gt;w"</default>
+			<summary>Shortcut for delete note</summary>
+		</key>
+		<key name="accel-toggle-list" type="s">
+			<default>"&lt;Shift&gt;F12"</default>
+			<summary>Shortcut for toggle list</summary>
+		</key>
 	</schema>
 </schemalist>

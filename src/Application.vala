@@ -55,7 +55,7 @@ public class Jorts.Application : Gtk.Application {
     public const string ACTION_QUIT = "action_quit";
     public const string ACTION_TOGGLE_SCRIBBLY = "action_toggle_scribbly";
     public const string ACTION_TOGGLE_ACTIONBAR = "action_toggle_actionbar";
-    public const string ACTION_SHOW_PREFERENCES = "action_show_preferences";
+    public const string ACTION_SHOW_ABOUT = "action_show_about";
     public const string ACTION_SAVE = "action_save";
 
     public static Gee.MultiMap<string, string> action_accelerators = new Gee.HashMultiMap<string, string> ();
@@ -65,6 +65,7 @@ public class Jorts.Application : Gtk.Application {
         { ACTION_TOGGLE_SCRIBBLY, action_toggle_scribbly},
         { ACTION_TOGGLE_ACTIONBAR, action_toggle_actionbar},
         { ACTION_SHOW_PREFERENCES, action_show_preferences},
+        { ACTION_SHOW_ABOUT, action_show_about},
     };
 
     public Application () {
@@ -94,8 +95,16 @@ public class Jorts.Application : Gtk.Application {
         Granite.init ();
 
         add_action_entries (ACTION_ENTRIES, this);
+        
+        string accel_quit = gsettings.get_string (KEY_ACCEL_NEW); // Exemple d'utilisation
         set_accels_for_action ("app.action_quit", {"<Control>Q"});
-        set_accels_for_action ("app.action_toggle_actionbar", {"<Control>T"});
+        
+        string accel_new = gsettings.get_string (KEY_ACCEL_NEW);
+        set_accels_for_action ("app.action_new", {accel_new});
+        
+        string accel_toggle = gsettings.get_string (KEY_ACCEL_TOGGLE_LIST);
+        set_accels_for_action ("app.action_toggle_actionbar", {accel_toggle});
+        
         set_accels_for_action ("app.action_show_preferences", {"<Control>P"});
         set_accels_for_action ("app.action_toggle_scribbly", {"<Control>H"});
 
@@ -173,6 +182,12 @@ Please wait while the app remembers all the things...
 
     public static int main (string[] args) {
         return new Application ().run (args);
+    }
+
+    private void action_show_about () {
+        var about = new Jorts.AboutWindow ();
+        about.set_transient_for (active_window);
+        about.show ();
     }
 
     private void action_show_preferences () {
