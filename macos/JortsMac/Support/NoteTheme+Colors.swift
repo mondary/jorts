@@ -15,6 +15,13 @@ extension NoteTheme {
         case .cocoa: 0xE7D8C8
         case .slate: 0xE1E5EA
         case .latte: 0xF4E3C1
+        case .hotPink: 0xFF6B9D
+        case .electricBlue: 0x4FC3F7
+        case .neonGreen: 0x69F0AE
+        case .crimson: 0xFF5252
+        case .sunshine: 0xFFEB3B
+        case .violet: 0xB388FF
+        case .tangerine: 0xFF9800
         }
     }
 
@@ -31,6 +38,13 @@ extension NoteTheme {
         case .cocoa: 0x4D3424
         case .slate: 0x25313D
         case .latte: 0x5C4630
+        case .hotPink: 0x4A0A2A
+        case .electricBlue: 0x0A2E4A
+        case .neonGreen: 0x1B4A0A
+        case .crimson: 0x4A0A0A
+        case .sunshine: 0x4A3A00
+        case .violet: 0x2A0A4A
+        case .tangerine: 0x4A2A00
         }
     }
 
@@ -47,6 +61,13 @@ extension NoteTheme {
         case .cocoa: 0x8B5E3C
         case .slate: 0x667885
         case .latte: 0xC8954A
+        case .hotPink: 0xE91E63
+        case .electricBlue: 0x00BCD4
+        case .neonGreen: 0x00E676
+        case .crimson: 0xD50000
+        case .sunshine: 0xFFC107
+        case .violet: 0x7C4DFF
+        case .tangerine: 0xFF5722
         }
     }
 

@@ -12,6 +12,13 @@ enum NoteTheme: Int, CaseIterable, Codable, Identifiable {
     case cocoa = 8
     case slate = 9
     case latte = 10
+    case hotPink = 11
+    case electricBlue = 12
+    case neonGreen = 13
+    case crimson = 14
+    case sunshine = 15
+    case violet = 16
+    case tangerine = 17
 
     var id: Int { rawValue }
 
@@ -28,6 +35,13 @@ enum NoteTheme: Int, CaseIterable, Codable, Identifiable {
         case .cocoa: "Cocoa"
         case .slate: "Slate"
         case .latte: "Latte"
+        case .hotPink: "Hot Pink"
+        case .electricBlue: "Electric Blue"
+        case .neonGreen: "Neon Green"
+        case .crimson: "Crimson"
+        case .sunshine: "Sunshine"
+        case .violet: "Violet"
+        case .tangerine: "Tangerine"
         }
     }
 

@@ -10,6 +10,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let onSaveAllNotes: () -> Void
     private let onShowSettings: () -> Void
     private let onShowAbout: () -> Void
+    private let onRestart: () -> Void
     private let onQuit: () -> Void
 
     init(
@@ -19,6 +20,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         onSaveAllNotes: @escaping () -> Void,
         onShowSettings: @escaping () -> Void,
         onShowAbout: @escaping () -> Void,
+        onRestart: @escaping () -> Void,
         onQuit: @escaping () -> Void
     ) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -28,6 +30,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         self.onSaveAllNotes = onSaveAllNotes
         self.onShowSettings = onShowSettings
         self.onShowAbout = onShowAbout
+        self.onRestart = onRestart
         self.onQuit = onQuit
 
         super.init()
@@ -79,6 +82,10 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         onQuit()
     }
 
+    @objc private func restart(_ sender: NSMenuItem) {
+        onRestart()
+    }
+
     private func rebuildMenu() {
         menu.removeAllItems()
 
@@ -109,6 +116,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(actionItem("Settings…", action: #selector(showSettings(_:)), keyEquivalent: ","))
         menu.addItem(actionItem("About Jorts", action: #selector(showAbout(_:)), keyEquivalent: ""))
+        menu.addItem(actionItem("Restart Jorts", action: #selector(restart(_:)), keyEquivalent: ""))
         menu.addItem(actionItem("Quit Jorts", action: #selector(quit(_:)), keyEquivalent: "q"))
     }
 

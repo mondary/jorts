@@ -87,6 +87,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.orderFrontCharacterPalette(sender)
     }
 
+    @objc private func restartApp(_ sender: Any?) {
+        manager.saveNow()
+
+        let url = URL(fileURLWithPath: Bundle.main.resourcePath!)
+        let path = url.deletingLastPathComponent().deletingLastPathComponent().absoluteString
+        let task = Process()
+        task.launchPath = "/usr/bin/open"
+        task.arguments = [path]
+        task.launch()
+
+        NSApp.terminate(nil)
+    }
+
     private func buildMainMenu() {
         let mainMenu = NSMenu()
         NSApp.mainMenu = mainMenu
@@ -171,6 +184,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onSaveAllNotes: { [weak self] in self?.manager.saveNow() },
             onShowSettings: { [weak self] in self?.showPreferences(nil) },
             onShowAbout: { [weak self] in self?.showAbout(nil) },
+            onRestart: { [weak self] in self?.restartApp(nil) },
             onQuit: { NSApp.terminate(nil) }
         )
     }
