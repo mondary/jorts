@@ -53,6 +53,21 @@ final class NoteDocument: ObservableObject, Identifiable {
         }
     }
 
+    @Published var position: CGPoint? {
+        didSet {
+            switch (position, oldValue) {
+            case let (newPosition?, oldPosition?):
+                guard abs(newPosition.x - oldPosition.x) > 0.5 || abs(newPosition.y - oldPosition.y) > 0.5 else { return }
+            case (nil, nil):
+                return
+            default:
+                break
+            }
+
+            markChanged()
+        }
+    }
+
     @Published var isFocused = true
     @Published var listToggleRequestToken = 0
 
@@ -64,6 +79,7 @@ final class NoteDocument: ObservableObject, Identifiable {
         monospace = data.monospace
         zoom = data.zoom
         size = CGSize(width: data.width, height: data.height)
+        position = data.x != nil && data.y != nil ? CGPoint(x: data.x!, y: data.y!) : nil
     }
 
     var windowTitle: String {
@@ -90,8 +106,15 @@ final class NoteDocument: ObservableObject, Identifiable {
             monospace: monospace,
             zoom: zoom,
             width: Int(size.width.rounded()),
-            height: Int(size.height.rounded())
+            height: Int(size.height.rounded()),
+            x: position.map { Double($0.x) },
+            y: position.map { Double($0.y) }
         )
+    }
+
+    func updateFrame(_ frame: CGRect) {
+        size = frame.size
+        position = frame.origin
     }
 
     func zoomIn() {

@@ -98,14 +98,10 @@ struct NoteView: View {
                 Button {
                     document.theme = theme
                 } label: {
-                    HStack {
-                        Circle()
-                            .fill(theme.accentColor)
-                            .frame(width: 10, height: 10)
-                        Text(theme.displayName)
-                        if document.theme == theme {
-                            Image(systemName: "checkmark")
-                        }
+                    Label {
+                        Text(document.theme == theme ? "✓ \(theme.displayName)" : theme.displayName)
+                    } icon: {
+                        Image(nsImage: theme.menuSwatchImage)
                     }
                 }
             }

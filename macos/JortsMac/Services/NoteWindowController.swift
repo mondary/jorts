@@ -31,19 +31,32 @@ final class NoteWindowController: NSWindowController, NSWindowDelegate {
         )
 
         let hostingController = NSHostingController(rootView: rootView)
+        let requestedRect = NSRect(
+            x: 0,
+            y: 0,
+            width: CGFloat(document.package().width),
+            height: CGFloat(document.package().height)
+        )
+
         let window = NSWindow(
-            contentRect: NSRect(
-                x: 0,
-                y: 0,
-                width: CGFloat(document.package().width),
-                height: CGFloat(document.package().height)
-            ),
+            contentRect: requestedRect,
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
 
-        window.center()
+        if let savedPosition = document.position {
+            let savedFrame = NSRect(
+                x: savedPosition.x,
+                y: savedPosition.y,
+                width: document.size.width,
+                height: document.size.height
+            )
+            window.setFrame(Self.constrainedFrame(savedFrame), display: false)
+        } else {
+            window.center()
+        }
+
         window.title = document.windowTitle
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
@@ -55,6 +68,8 @@ final class NoteWindowController: NSWindowController, NSWindowDelegate {
         super.init(window: window)
 
         window.delegate = self
+        noteDocument.updateFrame(window.frame)
+
         document.onChange = { [weak self] in
             self?.syncWindowFromDocument()
             self?.onDocumentChanged()
@@ -73,7 +88,12 @@ final class NoteWindowController: NSWindowController, NSWindowDelegate {
 
     func windowDidResize(_ notification: Notification) {
         guard let window else { return }
-        noteDocument.size = window.frame.size
+        noteDocument.updateFrame(window.frame)
+    }
+
+    func windowDidMove(_ notification: Notification) {
+        guard let window else { return }
+        noteDocument.updateFrame(window.frame)
     }
 
     func windowDidBecomeKey(_ notification: Notification) {
@@ -103,5 +123,27 @@ final class NoteWindowController: NSWindowController, NSWindowDelegate {
     private func syncWindowFromDocument() {
         window?.title = noteDocument.windowTitle
         window?.backgroundColor = noteDocument.theme.backgroundNSColor
+    }
+
+    private static func constrainedFrame(_ frame: NSRect) -> NSRect {
+        let visibleFrames = NSScreen.screens.map(\.visibleFrame)
+
+        if visibleFrames.contains(where: { visibleFrame in
+            let intersection = visibleFrame.intersection(frame)
+            return intersection.width >= 120 && intersection.height >= 120
+        }) {
+            return frame
+        }
+
+        guard let visibleFrame = NSScreen.main?.visibleFrame ?? visibleFrames.first else {
+            return frame
+        }
+
+        let width = min(max(frame.width, 240), visibleFrame.width)
+        let height = min(max(frame.height, 240), visibleFrame.height)
+        let x = (visibleFrame.midX - width / 2).clamped(to: visibleFrame.minX...(visibleFrame.maxX - width))
+        let y = (visibleFrame.midY - height / 2).clamped(to: visibleFrame.minY...(visibleFrame.maxY - height))
+
+        return NSRect(x: x, y: y, width: width, height: height)
     }
 }

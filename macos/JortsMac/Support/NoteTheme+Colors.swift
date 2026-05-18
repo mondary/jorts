@@ -73,4 +73,27 @@ extension NoteTheme {
     var accentNSColor: NSColor {
         NSColor(hex: accentHex)
     }
+
+    var menuSwatchImage: NSImage {
+        let size = NSSize(width: 14, height: 14)
+        let image = NSImage(size: size)
+
+        image.lockFocus()
+
+        let bounds = NSRect(origin: .zero, size: size)
+        let swatchRect = bounds.insetBy(dx: 1, dy: 1)
+        let path = NSBezierPath(ovalIn: swatchRect)
+
+        backgroundNSColor.setFill()
+        path.fill()
+
+        accentNSColor.withAlphaComponent(0.75).setStroke()
+        path.lineWidth = 1
+        path.stroke()
+
+        image.unlockFocus()
+        image.isTemplate = false
+
+        return image
+    }
 }

@@ -16,7 +16,18 @@ APP_RESOURCES="$APP_CONTENTS/Resources"
 APP_BINARY="$APP_MACOS/$APP_NAME"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
 
-pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+if pgrep -x "$APP_NAME" >/dev/null 2>&1; then
+  /usr/bin/osascript -e "tell application \"$BUNDLE_NAME\" to quit" >/dev/null 2>&1 || true
+
+  for _ in {1..20}; do
+    if ! pgrep -x "$APP_NAME" >/dev/null 2>&1; then
+      break
+    fi
+    sleep 0.1
+  done
+
+  pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+fi
 
 cd "$ROOT_DIR"
 swift build
