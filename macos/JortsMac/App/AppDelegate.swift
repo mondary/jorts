@@ -78,6 +78,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             credits.append(NSAttributedString(string: supportLink, attributes: supportLinkAttr))
         }
 
+        credits.append(NSAttributedString(string: "\n"))
+
+        let forkSupportText = "☕ Support this macOS fork: "
+        credits.append(NSAttributedString(string: forkSupportText))
+
+        let forkSupportLink = "ko-fi.com/pouark"
+        if let forkSupportURL = URL(string: "https://ko-fi.com/pouark") {
+            let forkSupportAttr: [NSAttributedString.Key: Any] = [
+                .link: forkSupportURL,
+                .foregroundColor: NSColor.systemBlue,
+                .font: NSFont.systemFont(ofSize: 11)
+            ]
+            credits.append(NSAttributedString(string: forkSupportLink, attributes: forkSupportAttr))
+        }
+
         NSApp.orderFrontStandardAboutPanel(options: [
             .applicationName: "Jorts_MacOS",
             .applicationVersion: "4.2.0 macOS port",
