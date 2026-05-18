@@ -6,6 +6,7 @@ struct NoteView: View {
     @State private var isPreferencesPopoverPresented = false
     @State private var isHistoryPopoverPresented = false
     @State private var fontSearchText = ""
+    @State private var historyCursor = 0
 
     let onNew: () -> Void
     let onDelete: () -> Void
@@ -176,11 +177,6 @@ struct NoteView: View {
             }
             .buttonStyle(.borderless)
 
-            if !document.versions.isEmpty {
-                Divider()
-
-                historySection
-            }
         }
         .padding(14)
         .foregroundColor(Color(NSColor.labelColor))
@@ -202,7 +198,7 @@ struct NoteView: View {
                     .foregroundColor(Color(NSColor.secondaryLabelColor))
                     .frame(maxWidth: .infinity, minHeight: 140, alignment: .center)
             } else {
-                historySection
+                historyNavigator
             }
         }
         .padding(14)
@@ -213,47 +209,70 @@ struct NoteView: View {
         .frame(width: 360)
     }
 
-    private var historySection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("History")
-                .font(.caption.weight(.semibold))
-                .foregroundColor(Color(NSColor.secondaryLabelColor))
+    private var historyNavigator: some View {
+        let versions = Array(document.versions.reversed())
+        let clampedCursor = min(max(historyCursor, 0), max(0, versions.count - 1))
+        let current = versions[clampedCursor]
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Button {
+                    historyCursor = max(0, clampedCursor - 1)
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .disabled(clampedCursor == 0)
+
+                Button {
+                    historyCursor = min(versions.count - 1, clampedCursor + 1)
+                } label: {
+                    Image(systemName: "chevron.right")
+                }
+                .disabled(clampedCursor >= versions.count - 1)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(current.title.isEmpty ? "Untitled" : current.title)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(Color(NSColor.labelColor))
+                        .lineLimit(1)
+                    Text("\(relativeDateString(current.date))  •  \(clampedCursor + 1)/\(versions.count)")
+                        .font(.caption2.monospaced())
+                        .foregroundColor(Color(NSColor.secondaryLabelColor))
+                }
+
+                Spacer()
+
+                Button("Apply") {
+                    restore(current)
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+            .buttonStyle(.borderless)
+
+            Divider()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(document.versions.suffix(12).reversed()) { version in
-                        Button {
-                            restore(version)
-                        } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(version.title.isEmpty ? "Untitled" : version.title)
-                                        .font(.system(size: 12, weight: .semibold))
-                                        .foregroundColor(Color(NSColor.labelColor))
-                                        .lineLimit(1)
-                                    Text(relativeDateString(version.date))
-                                        .font(.caption2.monospaced())
-                                        .foregroundColor(Color(NSColor.secondaryLabelColor))
-                                }
-                                Spacer()
-                                Text("Restore")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(Color(NSColor.controlAccentColor))
-                            }
-                            .contentShape(Rectangle())
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 6)
-                            .background(
-                                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                    .fill(Color(NSColor.controlBackgroundColor))
-                            )
-                        }
-                        .buttonStyle(.plain)
+                VStack(alignment: .leading, spacing: 8) {
+                    if !current.content.isEmpty {
+                        Text(current.content)
+                            .font(.system(size: 12))
+                            .foregroundColor(Color(NSColor.labelColor))
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        Text("(Empty note)")
+                            .font(.system(size: 12))
+                            .foregroundColor(Color(NSColor.secondaryLabelColor))
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-                .padding(.vertical, 2)
+                .padding(8)
+                .background(Color(NSColor.controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
-            .frame(height: 160)
+            .frame(height: 220)
+        }
+        .onAppear {
+            historyCursor = 0
         }
     }
 
