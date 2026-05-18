@@ -84,10 +84,70 @@ struct NoteTextView: NSViewRepresentable {
             self.parent = parent
         }
 
+        func textView(_ textView: NSTextView, shouldChangeTextIn affectedCharRange: NSRange, replacementString: String?) -> Bool {
+            guard !isApplyingChange,
+                  let replacementString,
+                  !parent.listPrefix.isEmpty else {
+                return true
+            }
+
+            // Continue bullet list on newline if current line starts with the list prefix.
+            if replacementString == "\n" {
+                let original = textView.string as NSString
+                let insertionLocation = affectedCharRange.location
+                var lineStart = 0
+                var lineEnd = 0
+                var contentsEnd = 0
+                original.getLineStart(&lineStart, end: &lineEnd, contentsEnd: &contentsEnd, for: NSRange(location: insertionLocation, length: 0))
+
+                let lineRange = NSRange(location: lineStart, length: max(0, contentsEnd - lineStart))
+                if hasPrefix(parent.listPrefix, in: original, lineRange: lineRange) {
+                    isApplyingChange = true
+                    textView.insertText("\n\(parent.listPrefix)", replacementRange: affectedCharRange)
+                    isApplyingChange = false
+                    parent.text = textView.string
+                    textView.didChangeText()
+                    return false
+                }
+            }
+
+            return true
+        }
+
         func textDidChange(_ notification: Notification) {
             guard !isApplyingChange,
                   let textView = notification.object as? NSTextView else {
                 return
+            }
+
+            // Convert "- " at start of line into the configured list prefix once the user starts typing content.
+            if !parent.listPrefix.isEmpty {
+                let original = textView.string as NSString
+                let insertionLocation = textView.selectedRange().location
+                if insertionLocation <= original.length {
+                    var lineStart = 0
+                    var lineEnd = 0
+                    var contentsEnd = 0
+                    original.getLineStart(&lineStart, end: &lineEnd, contentsEnd: &contentsEnd, for: NSRange(location: max(0, insertionLocation - 1), length: 0))
+
+                    if contentsEnd >= lineStart + 3,
+                       lineStart + 2 <= original.length
+                    {
+                        let maybeDash = original.substring(with: NSRange(location: lineStart, length: 2))
+                        if maybeDash == "- " {
+                            let nextCharRange = NSRange(location: lineStart + 2, length: 1)
+                            let nextChar = original.substring(with: nextCharRange)
+                            if nextChar != "\n" && nextChar != "\r" && nextChar != " " && nextChar != "\t" {
+                                isApplyingChange = true
+                                textView.textStorage?.beginEditing()
+                                textView.textStorage?.replaceCharacters(in: NSRange(location: lineStart, length: 2), with: parent.listPrefix)
+                                textView.textStorage?.endEditing()
+                                isApplyingChange = false
+                                textView.didChangeText()
+                            }
+                        }
+                    }
+                }
             }
 
             parent.text = textView.string
