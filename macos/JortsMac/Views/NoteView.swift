@@ -29,9 +29,10 @@ struct NoteView: View {
                 onShiftTabToTitle: { focus = .title },
                 focusRequestToken: editorFocusRequestToken,
                 isEditable: mode == .normal,
+                typingEffect: settings.typingEffect,
                 font: editorFont,
                 textColor: document.theme.autoTextColor,
-                insertionPointColor: document.theme.accentNSColor,
+                insertionPointColor: document.theme.autoTextColor,
                 listPrefix: settings.listItemPrefix,
                 toggleListRequestToken: document.listToggleRequestToken
             )
@@ -381,7 +382,7 @@ struct NoteView: View {
                 } label: {
                     HStack(spacing: 8) {
                         Text(font.displayName)
-                            .font(.system(size: 13))
+                            .font(fontPreviewFont(for: font))
                             .foregroundColor(Color(NSColor.labelColor))
                             .lineLimit(1)
 
@@ -404,6 +405,14 @@ struct NoteView: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    private func fontPreviewFont(for font: FontFamily) -> Font {
+        // Render the font name in its own typeface, with a safe fallback.
+        if NSFont(name: font.fontName, size: 13) != nil {
+            return .custom(font.fontName, size: 13)
+        }
+        return .system(size: 13)
     }
 
     private var filteredStandardFonts: [FontFamily] {

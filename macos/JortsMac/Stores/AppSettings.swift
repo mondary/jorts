@@ -9,6 +9,7 @@ final class AppSettings: ObservableObject {
         static let shortcuts = "keyboard-shortcuts"
         static let storageDirectory = "storage-directory"
         static let randomizeNewNotePosition = "randomize-new-note-position"
+        static let typingEffect = "typing-effect"
     }
 
     private let defaults: UserDefaults
@@ -39,6 +40,10 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(randomizeNewNotePosition, forKey: Keys.randomizeNewNotePosition) }
     }
 
+    @Published var typingEffect: TypingEffect {
+        didSet { defaults.set(typingEffect.rawValue, forKey: Keys.typingEffect) }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         defaults.register(defaults: [
@@ -48,6 +53,8 @@ final class AppSettings: ObservableObject {
             Keys.selectedLanguage: AppLanguage.english.rawValue,
             Keys.storageDirectory: "",
             Keys.randomizeNewNotePosition: true
+            ,
+            Keys.typingEffect: TypingEffect.off.rawValue
         ])
 
         scribblyModeActive = defaults.bool(forKey: Keys.scribblyModeActive)
@@ -59,6 +66,8 @@ final class AppSettings: ObservableObject {
         shortcuts = Self.loadShortcuts(from: defaults)
         storageDirectoryPath = defaults.string(forKey: Keys.storageDirectory) ?? ""
         randomizeNewNotePosition = defaults.bool(forKey: Keys.randomizeNewNotePosition)
+        let effectRaw = defaults.string(forKey: Keys.typingEffect) ?? TypingEffect.off.rawValue
+        typingEffect = TypingEffect(rawValue: effectRaw) ?? .off
     }
 
     func resetListPrefix() {

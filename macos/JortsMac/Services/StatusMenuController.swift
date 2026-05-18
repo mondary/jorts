@@ -124,7 +124,6 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         menu.addItem(actionItem("New Note", action: #selector(newNote(_:)), shortcut: .newStickyNote))
         menu.addItem(actionItem("Show All Notes", action: #selector(showAllNotes(_:)), shortcut: .showAllNotes))
         menu.addItem(actionItem("Show List", action: #selector(showList(_:)), shortcut: .showNotesList))
-        menu.addItem(actionItem("Save All Notes", action: #selector(saveAllNotes(_:)), shortcut: .saveAllNotes))
         menu.addItem(.separator())
         menu.addItem(actionItem("Settings…", action: #selector(showSettings(_:)), shortcut: .preferences, systemImage: "gearshape"))
         menu.addItem(actionItem("About Jorts", action: #selector(showAbout(_:)), keyEquivalent: ""))

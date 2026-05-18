@@ -1,7 +1,7 @@
 import Foundation
 
 func localizedString(_ key: String) -> String {
-    NSLocalizedString(key, bundle: .main, comment: "")
+    NSLocalizedString(key, bundle: .module, comment: "")
 }
 
 func localizedString(_ key: String, _ arguments: CVarArg...) -> String {

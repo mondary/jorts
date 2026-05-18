@@ -67,6 +67,24 @@ struct GeneralPreferencesView: View {
 
             Divider()
 
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Typing Effects")
+                    .font(.headline)
+
+                Picker("Effect", selection: $settings.typingEffect) {
+                    ForEach(TypingEffect.allCases) { effect in
+                        Text(effect.displayName).tag(effect)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Text("Adds a visual effect for each typed character.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Divider()
+
             // Import/Export
             VStack(alignment: .leading, spacing: 10) {
                 Text("Import / Export")
