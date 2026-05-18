@@ -6,6 +6,7 @@ struct NoteData: Codable, Identifiable {
     static let defaultZoom = 100
     static let minimumZoom = 20
     static let maximumZoom = 300
+    static let currentMacFrameVersion = 1
 
     var id = UUID()
     var title: String
@@ -17,6 +18,7 @@ struct NoteData: Codable, Identifiable {
     var height: Int
     var x: Double?
     var y: Double?
+    var macFrameVersion: Int
 
     enum CodingKeys: String, CodingKey {
         case title
@@ -28,6 +30,7 @@ struct NoteData: Codable, Identifiable {
         case height
         case x
         case y
+        case macFrameVersion
     }
 
     init(
@@ -39,7 +42,8 @@ struct NoteData: Codable, Identifiable {
         width: Int = NoteData.defaultWidth,
         height: Int = NoteData.defaultHeight,
         x: Double? = nil,
-        y: Double? = nil
+        y: Double? = nil,
+        macFrameVersion: Int = NoteData.currentMacFrameVersion
     ) {
         self.title = title
         self.theme = theme
@@ -50,6 +54,7 @@ struct NoteData: Codable, Identifiable {
         self.height = max(240, height)
         self.x = x
         self.y = y
+        self.macFrameVersion = macFrameVersion
     }
 
     init(from decoder: Decoder) throws {
@@ -61,8 +66,18 @@ struct NoteData: Codable, Identifiable {
         monospace = try container.decodeIfPresent(Bool.self, forKey: .monospace) ?? false
         let decodedZoom = try container.decodeIfPresent(Int.self, forKey: .zoom) ?? NoteData.defaultZoom
         zoom = decodedZoom.clamped(to: NoteData.minimumZoom...NoteData.maximumZoom)
-        width = max(240, try container.decodeIfPresent(Int.self, forKey: .width) ?? NoteData.defaultWidth)
-        height = max(240, try container.decodeIfPresent(Int.self, forKey: .height) ?? NoteData.defaultHeight)
+        let decodedWidth = try container.decodeIfPresent(Int.self, forKey: .width) ?? NoteData.defaultWidth
+        let decodedHeight = try container.decodeIfPresent(Int.self, forKey: .height) ?? NoteData.defaultHeight
+        macFrameVersion = try container.decodeIfPresent(Int.self, forKey: .macFrameVersion) ?? 0
+
+        if macFrameVersion == 0 && decodedWidth <= 260 && decodedHeight <= 300 {
+            width = NoteData.defaultWidth
+            height = NoteData.defaultHeight
+        } else {
+            width = max(240, decodedWidth)
+            height = max(240, decodedHeight)
+        }
+
         x = try container.decodeIfPresent(Double.self, forKey: .x)
         y = try container.decodeIfPresent(Double.self, forKey: .y)
     }
@@ -78,5 +93,6 @@ struct NoteData: Codable, Identifiable {
         try container.encode(height, forKey: .height)
         if let x = x { try container.encode(x, forKey: .x) }
         if let y = y { try container.encode(y, forKey: .y) }
+        try container.encode(NoteData.currentMacFrameVersion, forKey: .macFrameVersion)
     }
 }

@@ -4,11 +4,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let settings = AppSettings()
     private lazy var manager = NoteManager(settings: settings)
     private var preferencesWindowController: PreferencesWindowController?
+    private var statusMenuController: StatusMenuController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         FontRegistrar.registerBundledFonts()
         buildMainMenu()
         manager.launch()
+        buildStatusMenu()
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -159,6 +161,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         windowMenu.addItem(responderItem("Minimize", action: #selector(NSWindow.miniaturize(_:)), key: "m"))
         windowMenu.addItem(responderItem("Zoom", action: #selector(NSWindow.performZoom(_:)), key: ""))
         NSApp.windowsMenu = windowMenu
+    }
+
+    private func buildStatusMenu() {
+        statusMenuController = StatusMenuController(
+            manager: manager,
+            onNewNote: { [weak self] in self?.manager.createNote() },
+            onShowAllNotes: { [weak self] in self?.manager.showAllNotes() },
+            onSaveAllNotes: { [weak self] in self?.manager.saveNow() },
+            onShowSettings: { [weak self] in self?.showPreferences(nil) },
+            onShowAbout: { [weak self] in self?.showAbout(nil) },
+            onQuit: { NSApp.terminate(nil) }
+        )
     }
 
     private func menuItem(

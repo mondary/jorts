@@ -31,11 +31,15 @@ final class NoteWindowController: NSWindowController, NSWindowDelegate {
         )
 
         let hostingController = NSHostingController(rootView: rootView)
+        let requestedSize = NSSize(
+            width: CGFloat(document.package().width),
+            height: CGFloat(document.package().height)
+        )
         let requestedRect = NSRect(
             x: 0,
             y: 0,
-            width: CGFloat(document.package().width),
-            height: CGFloat(document.package().height)
+            width: requestedSize.width,
+            height: requestedSize.height
         )
 
         let window = NSWindow(
@@ -44,6 +48,14 @@ final class NoteWindowController: NSWindowController, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
+
+        window.title = document.windowTitle
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.isMovableByWindowBackground = true
+        window.minSize = NSSize(width: 240, height: 240)
+        window.backgroundColor = document.theme.backgroundNSColor
+        window.contentViewController = hostingController
 
         if let savedPosition = document.position {
             let savedFrame = NSRect(
@@ -54,16 +66,9 @@ final class NoteWindowController: NSWindowController, NSWindowDelegate {
             )
             window.setFrame(Self.constrainedFrame(savedFrame), display: false)
         } else {
+            window.setContentSize(requestedSize)
             window.center()
         }
-
-        window.title = document.windowTitle
-        window.titleVisibility = .hidden
-        window.titlebarAppearsTransparent = true
-        window.isMovableByWindowBackground = true
-        window.minSize = NSSize(width: 240, height: 240)
-        window.backgroundColor = document.theme.backgroundNSColor
-        window.contentViewController = hostingController
 
         super.init(window: window)
 

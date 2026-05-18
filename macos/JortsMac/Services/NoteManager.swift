@@ -4,6 +4,7 @@ final class NoteManager {
     private let settings: AppSettings
     private let storage: NoteStorage
     private var controllers: [UUID: NoteWindowController] = [:]
+    private var orderedNoteIDs: [UUID] = []
     private var saveWorkItem: DispatchWorkItem?
     private var latestTheme: NoteTheme = .blueberry
 
@@ -53,6 +54,7 @@ final class NoteManager {
         )
 
         controllers[document.id] = controller
+        orderedNoteIDs.append(document.id)
         controller.showWindow(nil)
 
         if activate {
@@ -71,12 +73,12 @@ final class NoteManager {
             return
         }
 
-        controllers.values.forEach { controller in
+        orderedControllers().forEach { controller in
             controller.showWindow(nil)
             controller.window?.orderFront(nil)
         }
 
-        controllers.values.first?.window?.makeKeyAndOrderFront(nil)
+        orderedControllers().first?.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -93,8 +95,30 @@ final class NoteManager {
             return
         }
 
+        orderedNoteIDs.removeAll { $0 == documentID }
         controller.closeForDelete()
         saveNow()
+    }
+
+    func focusNote(documentID: UUID) {
+        guard let controller = controllers[documentID] else {
+            return
+        }
+
+        controller.showWindow(nil)
+        controller.window?.deminiaturize(nil)
+        controller.window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func menuEntries() -> [NoteMenuEntry] {
+        orderedControllers().map { controller in
+            NoteMenuEntry(
+                id: controller.noteDocument.id,
+                title: controller.noteDocument.title.isEmpty ? "Untitled" : controller.noteDocument.title,
+                theme: controller.noteDocument.theme
+            )
+        }
     }
 
     func toggleListForActiveNote() {
@@ -139,7 +163,7 @@ final class NoteManager {
     func saveNow() {
         saveWorkItem?.cancel()
         saveWorkItem = nil
-        storage.save(controllers.values.map { $0.noteDocument.package() })
+        storage.save(orderedControllers().map { $0.noteDocument.package() })
     }
 
     private func activeController() -> NoteWindowController? {
@@ -153,6 +177,16 @@ final class NoteManager {
             return controller
         }
 
-        return controllers.values.first
+        return orderedControllers().first
     }
+
+    private func orderedControllers() -> [NoteWindowController] {
+        orderedNoteIDs.compactMap { controllers[$0] }
+    }
+}
+
+struct NoteMenuEntry {
+    let id: UUID
+    let title: String
+    let theme: NoteTheme
 }
