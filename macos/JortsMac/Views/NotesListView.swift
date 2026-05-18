@@ -22,7 +22,7 @@ struct NotesListView: View {
 
     private var header: some View {
         HStack {
-            Text(NSLocalizedString("show_all_notes", bundle: .main, comment: ""))
+            Text("Toutes mes notes")
                 .font(.title2.weight(.semibold))
 
             Spacer()
@@ -33,13 +33,6 @@ struct NotesListView: View {
             }
             .buttonStyle(.plain)
             .help("New note")
-
-            Button(action: onClose) {
-                Image(systemName: "xmark.circle")
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(.plain)
-            .help("Close list")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)

@@ -38,19 +38,6 @@
         };
         new_item.add_css_class (STYLE_THEMEDBUTTON);
 
-        var delete_item = new Gtk.Button () {
-            action_name = StickyNoteWindow.ACTION_PREFIX + StickyNoteWindow.ACTION_DELETE,
-            icon_name = "edit-delete-symbolic",
-            width_request = ICON_SIZE,
-            height_request = ICON_SIZE,
-            tooltip_markup = Granite.markup_accel_tooltip (
-                {"<Control>w"},
-                _("Delete sticky note")
-            ),
-            has_frame = false
-        };
-        delete_item.add_css_class (STYLE_THEMEDBUTTON);
-
         var list_notes_item = new Gtk.Button () {
             action_name = NoteManager.ACTION_PREFIX + NoteManager.ACTION_LIST_NOTES,
             icon_name = "view-list-symbolic",

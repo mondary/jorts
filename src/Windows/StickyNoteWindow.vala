@@ -43,86 +43,80 @@ public StickyNoteWindow (Jorts.Application app, NoteData data) {
     debug ("New StickyNoteWindow instance!");
     application = app;
 
+    setup_actions();
+    setup_controllers();
+    setup_ui();
+    setup_connections();
+
+    load_data (data);
+
+#if DEVEL
+    add_css_class (STYLE_DEVEL);
+#endif
+}
+
+private void setup_actions() {
     var actions = new SimpleActionGroup ();
     actions.add_action_entries (ACTION_ENTRIES, this);
     insert_action_group ("win", actions);
 
     string accel_del = Application.gsettings.get_string (KEY_ACCEL_DELETE);
-    app.set_accels_for_action (ACTION_PREFIX + ACTION_DELETE, {accel_del});
+    application.set_accels_for_action (ACTION_PREFIX + ACTION_DELETE, {accel_del});
+}
 
-    // ... (suite du constructeur)
+private void setup_controllers() {
+    color_controller = new Jorts.ColorController (this);
+    zoom_controller = new Jorts.ZoomController (this);
+    scribbly_controller = new Jorts.ScribblyController (this);
 
-        color_controller = new Jorts.ColorController (this);
-        zoom_controller = new Jorts.ZoomController (this);
-        scribbly_controller = new Jorts.ScribblyController (this);
+    keypress_controller = new Gtk.EventControllerKey ();
+    scroll_controller = new Gtk.EventControllerScroll (VERTICAL) {
+        propagation_phase = Gtk.PropagationPhase.CAPTURE
+    };
 
-        keypress_controller = new Gtk.EventControllerKey ();
-        scroll_controller = new Gtk.EventControllerScroll (VERTICAL) {
-            propagation_phase = Gtk.PropagationPhase.CAPTURE
-        };
+    gesturezoom_controller = new Gtk.GestureZoom ();
 
-        gesturezoom_controller = new Gtk.GestureZoom ();
+    ((Gtk.Widget)this).add_controller (keypress_controller);
+    ((Gtk.Widget)this).add_controller (scroll_controller);
+    ((Gtk.Widget)this).add_controller (gesturezoom_controller);
+}
 
+private void setup_ui() {
+    titlebar = new Gtk.Grid () {visible = false};
 
-        ((Gtk.Widget)this).add_controller (keypress_controller);
-        ((Gtk.Widget)this).add_controller (scroll_controller);
-        ((Gtk.Widget)this).add_controller (gesturezoom_controller);
+    view = new NoteView ();
+    textview = view.textview;
+    insert_action_group ("noteview", view.actions);
+    insert_action_group ("textview", textview.actions);
+    insert_action_group ("zoom_controller", zoom_controller.actions);
 
-        // The view has its own titlebar
-        titlebar = new Gtk.Grid () {visible = false};
+    popover = view.popover;
+    set_child (view);
+    set_focus (view);
+}
 
-        view = new NoteView ();
-        textview = view.textview;
-        insert_action_group ("noteview", view.actions);
-        insert_action_group ("textview", textview.actions);
-        insert_action_group ("zoom_controller", zoom_controller.actions);
+private void setup_connections() {
+    view.popover.scroll_controller.scroll.connect (zoom_controller.on_scroll);
+    view.popover.keypress_controller.key_pressed.connect (zoom_controller.on_key_press_event);
+    view.popover.keypress_controller.key_released.connect (zoom_controller.on_key_release_event);
 
-        // Have shortcuts keep working with the popover open.
-        popover = view.popover;
-        view.popover.scroll_controller.scroll.connect (zoom_controller.on_scroll);
-        view.popover.keypress_controller.key_pressed.connect (zoom_controller.on_key_press_event);
-        view.popover.keypress_controller.key_released.connect (zoom_controller.on_key_release_event);
+    keypress_controller.key_pressed.connect (zoom_controller.on_key_press_event);
+    keypress_controller.key_released.connect (zoom_controller.on_key_release_event);
+    scroll_controller.scroll.connect (zoom_controller.on_scroll);
+    gesturezoom_controller.scale_changed.connect (zoom_controller.on_pinch);
 
-        set_child (view);
-        set_focus (view);
-        load_data (data);
+    view.editablelabel.changed.connect (on_editable_changed);
+    view.textview.buffer.changed.connect (has_changed);
+    popover.theme_changed.connect (color_controller.on_color_changed);
 
-#if DEVEL
-        add_css_class (STYLE_DEVEL);
-#endif
+    this.notify["is-active"].connect (color_controller.on_focus_changed);
 
-
-        /***************************************************/
-        /*              CONNECTS AND BINDS                 */
-        /***************************************************/
-
-        // We need this for Ctr + Scroll. We delegate everything to zoomcontroller
-        keypress_controller.key_pressed.connect (zoom_controller.on_key_press_event);
-        keypress_controller.key_released.connect (zoom_controller.on_key_release_event);
-        scroll_controller.scroll.connect (zoom_controller.on_scroll);
-        gesturezoom_controller.scale_changed.connect (zoom_controller.on_pinch);
-
-
-
-        debug ("Built UI. Lets do connects and binds");
-
-        // Save when title or text have changed
-        view.editablelabel.changed.connect (on_editable_changed);
-        view.textview.buffer.changed.connect (has_changed);
-        popover.theme_changed.connect (color_controller.on_color_changed);
-
-        // Use the color theme of this sticky note when focused
-        this.notify["is-active"].connect (color_controller.on_focus_changed);
-
-        // Respect animation settings for showing ui elements
-        if (Application.gtk_settings.gtk_enable_animations && (!Application.gsettings.get_boolean ("hide-bar"))) {
-            show.connect_after (delayed_show);
-
-        } else {
-            bind_hidebar ();
-        }
+    if (Application.gtk_settings.gtk_enable_animations && (!Application.gsettings.get_boolean ("hide-bar"))) {
+        show.connect_after (delayed_show);
+    } else {
+        bind_hidebar ();
     }
-
+}
         /********************************************/
         /*                  METHODS                 */
         /********************************************/
