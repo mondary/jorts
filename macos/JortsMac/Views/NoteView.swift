@@ -72,9 +72,19 @@ struct NoteView: View {
 
             iconButton("face.smiling", help: "Insert emoji", action: onShowEmoji)
 
+            // Dedicated color button with brush icon
+            Button {
+                showColorPopover(for: document)
+            } label: {
+                Image(systemName: "paintbrush")
+                    .frame(width: 26, height: 26)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(document.theme.foregroundColor.opacity(0.78))
+            .help("Change color")
+
+            // Settings menu with font/size options
             Menu {
-                themeMenu
-                Divider()
                 Toggle("Monospaced", isOn: $document.monospace)
                 Divider()
                 Button("Zoom In") { document.zoomIn() }
@@ -90,22 +100,6 @@ struct NoteView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(document.theme.backgroundColor.opacity(0.98))
-    }
-
-    @ViewBuilder private var themeMenu: some View {
-        Section("Color") {
-            ForEach(NoteTheme.allCases) { theme in
-                Button {
-                    document.theme = theme
-                } label: {
-                    Label {
-                        Text(document.theme == theme ? "✓ \(theme.displayName)" : theme.displayName)
-                    } icon: {
-                        Image(nsImage: theme.menuSwatchImage)
-                    }
-                }
-            }
-        }
     }
 
     private var editorFont: NSFont {
@@ -142,5 +136,23 @@ struct NoteView: View {
         .buttonStyle(.plain)
         .foregroundStyle(document.theme.foregroundColor.opacity(0.78))
         .help(help)
+    }
+
+    private func showColorPopover(for document: NoteDocument) {
+        let popover = NSPopover()
+        popover.contentSize = NSSize(width: 270, height: 300)
+        popover.behavior = .transient
+        popover.contentViewController = NSHostingController(rootView: ColorGridView(document: document, popover: popover))
+
+        if let window = NSApp.keyWindow,
+           let contentView = window.contentView {
+            let rect = NSRect(
+                x: (contentView.bounds.width - 270) / 2,
+                y: (contentView.bounds.height - 300) / 2,
+                width: 270,
+                height: 300
+            )
+            popover.show(relativeTo: rect, of: contentView, preferredEdge: .minY)
+        }
     }
 }

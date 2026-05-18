@@ -4,6 +4,7 @@
 
 /* Preferences */
 "preferences_title" = "Einstellungen für Ihre Jorts";
+"general" = "Allgemein";
 "list_item_prefix" = "Listenelementpräfix";
 "list_item_prefix_hint" = "Wenn leer, wird der Listenbutton ausgeblendet.";
 "reset" = "Zurücksetzen";

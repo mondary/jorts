@@ -4,6 +4,7 @@
 
 /* Preferences */
 "preferences_title" = "Préférences pour vos Jorts";
+"general" = "Général";
 "list_item_prefix" = "Préfixe des éléments de liste";
 "list_item_prefix_hint" = "Si laissé vide, le bouton de liste sera masqué.";
 "reset" = "Réinitialiser";

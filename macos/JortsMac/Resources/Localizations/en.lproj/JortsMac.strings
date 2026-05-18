@@ -4,6 +4,7 @@
 
 /* Preferences */
 "preferences_title" = "Preferences for your Jorts";
+"general" = "General";
 "list_item_prefix" = "List item prefix";
 "list_item_prefix_hint" = "If left empty, the list button is hidden.";
 "reset" = "Reset";
