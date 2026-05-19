@@ -74,9 +74,15 @@ struct NoteTextView: NSViewRepresentable {
 
         if context.coordinator.lastFocusRequestToken != focusRequestToken {
             context.coordinator.lastFocusRequestToken = focusRequestToken
+            context.coordinator.needsDeferredFocusToTop = true
+        }
+
+        if context.coordinator.needsDeferredFocusToTop, textView.window != nil {
+            context.coordinator.needsDeferredFocusToTop = false
             textView.window?.makeFirstResponder(textView)
-            textView.setSelectedRange(NSRange(location: 0, length: 0))
-            textView.scrollRangeToVisible(NSRange(location: 0, length: 0))
+            let top = NSRange(location: 0, length: 0)
+            textView.setSelectedRange(top)
+            textView.scrollRangeToVisible(top)
         }
     }
 
@@ -98,6 +104,7 @@ struct NoteTextView: NSViewRepresentable {
         var isApplyingChange = false
         var lastToggleListRequestToken = 0
         var lastFocusRequestToken = 0
+        var needsDeferredFocusToTop = false
         weak var effectHost: EffectHostView?
         weak var textView: NSTextView?
         private var lastEffectAt: TimeInterval = 0
