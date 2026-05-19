@@ -148,7 +148,7 @@ private struct LineParser {
 
     private mutating func parseConversionSuffix(from value: Value) -> Value? {
         guard let t = peek() else { return nil }
-        guard t == .opWord("in") || t == .opWord("to") else { return nil }
+        guard t == .opWord("in") || t == .opWord("to") || t == .opWord("en") else { return nil }
         _ = advance()
         guard case let .unit(target)? = peek() else { return nil }
         _ = advance()
@@ -328,8 +328,10 @@ private struct Tokenizer {
             if c.isLetter || c == "°" {
                 let word = readWord()
                 let lowered = word.lowercased()
-                if lowered == "in" || lowered == "to" {
+                if lowered == "in" || lowered == "to" || lowered == "en" {
                     out.append(.opWord(lowered))
+                } else if lowered == "x" {
+                    out.append(.mul)
                 } else if let unit = UnitRegistry.parseUnit(lowered) {
                     out.append(.unit(unit))
                 } else {
