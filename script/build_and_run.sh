@@ -3,7 +3,7 @@ set -euo pipefail
 
 MODE="${1:-run}"
 APP_NAME="JortsMac"
-BUNDLE_NAME="Jorts"
+BUNDLE_NAME="JortsMacOS"
 BUNDLE_ID="io.github.ellycode.jorts.macos"
 MIN_SYSTEM_VERSION="13.0"
 
@@ -77,9 +77,9 @@ cat >"$INFO_PLIST" <<PLIST
   <key>CFBundleIdentifier</key>
   <string>$BUNDLE_ID</string>
   <key>CFBundleName</key>
-  <string>Jorts</string>
+  <string>JortsMacOS</string>
   <key>CFBundleDisplayName</key>
-  <string>Jorts</string>
+  <string>JortsMacOS</string>
   <key>CFBundleIconFile</key>
   <string>Jorts</string>
   <key>CFBundlePackageType</key>

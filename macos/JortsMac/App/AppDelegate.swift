@@ -34,7 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func showAbout(_ sender: Any?) {
         let credits = NSMutableAttributedString()
 
-        let header = "Jorts_MacOS\n\n"
+        let header = "JortsMacOS\n\n"
         let headerAttr: [NSAttributedString.Key: Any] = [.font: NSFont.boldSystemFont(ofSize: 13)]
         credits.append(NSAttributedString(string: header, attributes: headerAttr))
 
@@ -98,7 +98,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         NSApp.orderFrontStandardAboutPanel(options: [
-            .applicationName: "Jorts_MacOS",
+            .applicationName: "JortsMacOS",
             .applicationVersion: "4.2.0 macOS port",
             .credits: credits
         ])
@@ -137,7 +137,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let alert = NSAlert()
         alert.messageText = "Language Changed"
-        alert.informativeText = "Jorts_MacOS needs to restart to apply the language change."
+        alert.informativeText = "JortsMacOS needs to restart to apply the language change."
         alert.alertStyle = .informational
         alert.addButton(withTitle: "Restart Now")
         alert.addButton(withTitle: "Later")
@@ -230,7 +230,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mainMenu.addItem(appMenuItem)
         let appMenu = NSMenu()
         appMenuItem.submenu = appMenu
-        appMenu.addItem(menuItem("About Jorts", action: #selector(showAbout(_:)), key: ""))
+        appMenu.addItem(menuItem("About JortsMacOS", action: #selector(showAbout(_:)), key: ""))
         appMenu.addItem(.separator())
         appMenu.addItem(menuItem("Preferences…", action: #selector(showPreferences(_:)), shortcut: .preferences))
         appMenu.addItem(.separator())
@@ -242,7 +242,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.servicesMenu = servicesMenu
 
         appMenu.addItem(.separator())
-        appMenu.addItem(NSMenuItem(title: "Hide Jorts", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
+        appMenu.addItem(NSMenuItem(title: "Hide JortsMacOS", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
         let hideOthers = NSMenuItem(
             title: "Hide Others",
             action: #selector(NSApplication.hideOtherApplications(_:)),
@@ -252,7 +252,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         appMenu.addItem(hideOthers)
         appMenu.addItem(NSMenuItem(title: "Show All", action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: ""))
         appMenu.addItem(.separator())
-        appMenu.addItem(NSMenuItem(title: "Quit Jorts", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        appMenu.addItem(NSMenuItem(title: "Quit JortsMacOS", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
 
         let fileMenuItem = NSMenuItem()
         mainMenu.addItem(fileMenuItem)

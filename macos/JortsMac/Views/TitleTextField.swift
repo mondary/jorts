@@ -6,6 +6,7 @@ struct TitleTextField: NSViewRepresentable {
     let font: NSFont
     let textColor: NSColor
     let onTabToEditor: () -> Void
+    let isNewNote: Bool
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -38,6 +39,7 @@ struct TitleTextField: NSViewRepresentable {
 
     final class Coordinator: NSObject, NSTextFieldDelegate {
         var parent: TitleTextField
+        private var hasFocusedOnce = false
 
         init(_ parent: TitleTextField) {
             self.parent = parent
@@ -53,7 +55,29 @@ struct TitleTextField: NSViewRepresentable {
                 parent.onTabToEditor()
                 return true
             }
+            if commandSelector == #selector(NSResponder.insertNewline(_:)) || commandSelector == #selector(NSResponder.insertLineBreak(_:)) {
+                parent.onTabToEditor()
+                return true
+            }
             return false
+        }
+
+        func controlDidBecomeEditing(_ notification: Notification) {
+            guard let field = notification.object as? NSTextField else { return }
+
+            // Only apply custom focus behavior on first focus
+            guard !hasFocusedOnce else {
+                return
+            }
+            hasFocusedOnce = true
+
+            if parent.isNewNote {
+                // New note: select all text for easy replacement
+                field.selectText(nil)
+            } else {
+                // Existing note: move cursor to end
+                field.currentEditor()?.selectedRange = NSRange(location: field.stringValue.count, length: 0)
+            }
         }
     }
 }

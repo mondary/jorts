@@ -74,7 +74,8 @@ struct NoteView: View {
                 text: $document.title,
                 font: titleFontBold,
                 textColor: document.theme.autoTextColor,
-                onTabToEditor: { editorFocusRequestToken += 1 }
+                onTabToEditor: { editorFocusRequestToken += 1 },
+                isNewNote: document.isNewNote
             )
             .frame(maxWidth: 420)
             .focused($focus, equals: .title)

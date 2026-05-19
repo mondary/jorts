@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct GeneralPreferencesView: View {
@@ -6,7 +7,8 @@ struct GeneralPreferencesView: View {
     let onRestartRequested: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
             // Language Section
             VStack(alignment: .leading, spacing: 8) {
                 Text(localizedString("language"))
@@ -101,9 +103,24 @@ struct GeneralPreferencesView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Spacer()
+            Divider()
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Cleanup")
+                    .font(.headline)
+
+                Button("Archive Duplicates / Backups…") {
+                    archiveDuplicatesAndBackups()
+                }
+
+                Text("Moves `Notes/Duplicates`, `Trash/Duplicates`, and `saved_state` backup files into an Archive folder (safe cleanup).")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            }
+            .padding(24)
         }
-        .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
@@ -172,6 +189,59 @@ struct GeneralPreferencesView: View {
             onRestartRequested()
         } catch {
             NSLog("JortsMac: failed to import notes: \(error)")
+        }
+    }
+
+    private func archiveDuplicatesAndBackups() {
+        let storageDir = storageURL.deletingLastPathComponent()
+        let candidates: [URL] = [
+            storageDir.appendingPathComponent("Notes/Duplicates", isDirectory: true),
+            storageDir.appendingPathComponent("Trash/Duplicates", isDirectory: true),
+            storageDir.appendingPathComponent("saved_state.json.bak"),
+            storageDir.appendingPathComponent("saved_state.backup.json")
+        ]
+
+        let existing = candidates.filter { FileManager.default.fileExists(atPath: $0.path) }
+        guard !existing.isEmpty else {
+            let alert = NSAlert()
+            alert.messageText = "Nothing to archive"
+            alert.informativeText = "No Duplicates folders or backup files were found."
+            alert.runModal()
+            return
+        }
+
+        let alert = NSAlert()
+        alert.messageText = "Archive duplicates and backups?"
+        alert.informativeText = "This will move Duplicates folders and saved_state backup files into an Archive folder inside your storage directory."
+        alert.addButton(withTitle: "Archive")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        let fm = FileManager.default
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        let stamp = formatter.string(from: Date())
+        let archiveDir = storageDir
+            .appendingPathComponent("Archive", isDirectory: true)
+            .appendingPathComponent("Cleanup-\(stamp)", isDirectory: true)
+        do {
+            try fm.createDirectory(at: archiveDir, withIntermediateDirectories: true)
+
+            for src in existing {
+                let target = archiveDir.appendingPathComponent(src.lastPathComponent, isDirectory: src.hasDirectoryPath)
+                try? fm.removeItem(at: target)
+                try fm.moveItem(at: src, to: target)
+            }
+
+            let done = NSAlert()
+            done.messageText = "Archive created"
+            done.informativeText = archiveDir.path
+            done.runModal()
+        } catch {
+            let failed = NSAlert()
+            failed.messageText = "Archive failed"
+            failed.informativeText = error.localizedDescription
+            failed.runModal()
         }
     }
 }

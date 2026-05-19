@@ -80,6 +80,11 @@ final class NoteDocument: ObservableObject, Identifiable {
     @Published var listToggleRequestToken = 0
     @Published var versions: [NoteVersion]
 
+    var isNewNote: Bool {
+        // Consider a note "new" if it has no content and no title
+        title.isEmpty && content.isEmpty
+    }
+
     private var lastVersionedAt: Date = .distantPast
 
     init(data: NoteData) {
@@ -96,7 +101,7 @@ final class NoteDocument: ObservableObject, Identifiable {
     }
 
     var windowTitle: String {
-        "\(title.isEmpty ? "Untitled" : title) - Jorts_MacOS"
+        "\(title.isEmpty ? "Untitled" : title) - JortsMacOS"
     }
 
     var textScale: CGFloat {

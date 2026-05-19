@@ -75,6 +75,8 @@ struct NoteTextView: NSViewRepresentable {
         if context.coordinator.lastFocusRequestToken != focusRequestToken {
             context.coordinator.lastFocusRequestToken = focusRequestToken
             textView.window?.makeFirstResponder(textView)
+            textView.setSelectedRange(NSRange(location: 0, length: 0))
+            textView.scrollRangeToVisible(NSRange(location: 0, length: 0))
         }
     }
 
@@ -192,22 +194,46 @@ struct NoteTextView: NSViewRepresentable {
             guard now - lastEffectAt > 0.02 else { return }
             lastEffectAt = now
 
-            guard let host = effectHost, let window = textView.window else { return }
+            guard let host = effectHost else { return }
 
-            let caretLocation = max(0, textView.selectedRange().location)
-            let caretRange = NSRange(location: min(caretLocation, (textView.string as NSString).length), length: 0)
+            guard let pointInTextView = caretPoint(in: textView) else { return }
 
-            // firstRect(...) is in screen coordinates.
-            var screenRect = textView.firstRect(forCharacterRange: caretRange, actualRange: nil)
-            if screenRect.isEmpty {
-                screenRect = window.convertToScreen(textView.visibleRect)
+            // textView -> window -> host
+            let pointInWindow = textView.convert(pointInTextView, to: nil)
+            let pointInHost = host.convert(pointInWindow, from: nil)
+            host.emit(effect: parent.typingEffect, at: pointInHost)
+        }
+
+        private func caretPoint(in textView: NSTextView) -> CGPoint? {
+            let stringLength = (textView.string as NSString).length
+            let caretLocation = min(max(0, textView.selectedRange().location), stringLength)
+
+            // Prefer AppKit's caret rect (screen coords), but avoid falling back to a generic visibleRect center,
+            // which makes effects appear "random" on screen.
+            let caretRange = NSRange(location: caretLocation, length: 0)
+            let screenRect = textView.firstRect(forCharacterRange: caretRange, actualRange: nil)
+            if !screenRect.isEmpty, let window = textView.window {
+                let windowRect = window.convertFromScreen(screenRect)
+                let rectInTextView = textView.convert(windowRect, from: nil)
+                return CGPoint(x: rectInTextView.minX, y: rectInTextView.midY)
             }
 
-            // screen -> window -> host
-            let windowRect = window.convertFromScreen(screenRect)
-            let hostRect = host.convert(windowRect, from: nil)
-            let point = CGPoint(x: hostRect.midX, y: hostRect.midY)
-            host.emit(effect: parent.typingEffect, at: point)
+            guard let layoutManager = textView.layoutManager,
+                  let textContainer = textView.textContainer else {
+                return nil
+            }
+
+            layoutManager.ensureLayout(for: textContainer)
+
+            let anchorCharIndex = max(0, min(caretLocation, max(0, stringLength - 1)))
+            let glyphIndex = layoutManager.glyphIndexForCharacter(at: anchorCharIndex)
+            let lineRect = layoutManager.lineFragmentUsedRect(forGlyphAt: glyphIndex, effectiveRange: nil)
+            let glyphLocation = layoutManager.location(forGlyphAt: glyphIndex)
+            let origin = textView.textContainerOrigin
+
+            let x = origin.x + lineRect.minX + glyphLocation.x
+            let y = origin.y + lineRect.minY + glyphLocation.y + (textView.font?.ascender ?? 0) * 0.35
+            return CGPoint(x: x, y: y)
         }
 
         func toggleList(in textView: NSTextView) {
@@ -352,6 +378,14 @@ final class EffectOverlayView: NSView {
             emitConfetti(at: point)
         case .doom:
             emitDoom(at: point)
+        case .typewriter:
+            emitTypewriter(at: point)
+        case .wave:
+            emitWave(at: point)
+        case .pop:
+            emitPop(at: point)
+        case .glow:
+            emitGlow(at: point)
         }
     }
 
@@ -360,30 +394,34 @@ final class EffectOverlayView: NSView {
         let emitter = CAEmitterLayer()
         emitter.emitterPosition = point
         emitter.emitterShape = .point
+        emitter.renderMode = .additive
         emitter.beginTime = CACurrentMediaTime()
-        emitter.lifetime = 0.35
+        emitter.lifetime = 0.5
 
         let colors: [CGColor] = [
             NSColor.systemPink.cgColor,
-            NSColor.systemTeal.cgColor,
+            NSColor.systemRed.cgColor,
+            NSColor.systemOrange.cgColor,
             NSColor.systemYellow.cgColor,
-            NSColor.systemPurple.cgColor,
-            NSColor.systemOrange.cgColor
+            NSColor.systemGreen.cgColor,
+            NSColor.systemTeal.cgColor,
+            NSColor.systemBlue.cgColor,
+            NSColor.systemPurple.cgColor
         ]
 
         emitter.emitterCells = (0..<10).map { _ in
             let cell = CAEmitterCell()
-            cell.birthRate = 60
-            cell.lifetime = 0.45
+            cell.birthRate = 90
+            cell.lifetime = 0.6
             cell.lifetimeRange = 0.2
-            cell.velocity = 140
+            cell.velocity = 110
             cell.velocityRange = 80
             cell.emissionRange = .pi * 2
-            cell.scale = 0.02
-            cell.scaleRange = 0.015
-            cell.spin = 6
-            cell.spinRange = 8
-            cell.alphaSpeed = -2.2
+            cell.scale = 0.22
+            cell.scaleRange = 0.12
+            cell.spin = 3
+            cell.spinRange = 5
+            cell.alphaSpeed = -1.6
             cell.color = colors.randomElement()
             cell.contents = NSImage(systemSymbolName: "sparkle", accessibilityDescription: nil)?
                 .withSymbolConfiguration(.init(pointSize: 12, weight: .regular))?
@@ -392,7 +430,7 @@ final class EffectOverlayView: NSView {
         }
 
         layer.addSublayer(emitter)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak emitter] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak emitter] in
             emitter?.removeFromSuperlayer()
         }
     }
@@ -402,29 +440,282 @@ final class EffectOverlayView: NSView {
         let emitter = CAEmitterLayer()
         emitter.emitterPosition = point
         emitter.emitterShape = .circle
-        emitter.emitterSize = CGSize(width: 4, height: 4)
+        emitter.emitterSize = CGSize(width: 10, height: 10)
+        emitter.renderMode = .additive
         emitter.beginTime = CACurrentMediaTime()
-        emitter.lifetime = 0.25
+        emitter.lifetime = 0.35
 
-        let cell = CAEmitterCell()
-        cell.birthRate = 220
-        cell.lifetime = 0.25
-        cell.lifetimeRange = 0.1
-        cell.velocity = 220
-        cell.velocityRange = 120
-        cell.emissionRange = .pi * 2
-        cell.scale = 0.03
-        cell.scaleRange = 0.02
-        cell.alphaSpeed = -4.0
-        cell.color = NSColor.systemRed.cgColor
-        cell.contents = NSImage(systemSymbolName: "circle.fill", accessibilityDescription: nil)?
-            .withSymbolConfiguration(.init(pointSize: 10, weight: .bold))?
+        let colors: [CGColor] = [
+            NSColor.systemRed.cgColor,
+            NSColor.systemOrange.cgColor,
+            NSColor.systemYellow.cgColor,
+            NSColor.systemPurple.cgColor,
+            NSColor.systemBlue.cgColor
+        ]
+
+        let baseImage = NSImage(systemSymbolName: "sparkle", accessibilityDescription: nil)?
+            .withSymbolConfiguration(.init(pointSize: 14, weight: .bold))?
             .cgImage(forProposedRect: nil, context: nil, hints: nil)
-        emitter.emitterCells = [cell]
+
+        emitter.emitterCells = (0..<5).map { i in
+            let cell = CAEmitterCell()
+            cell.birthRate = i == 0 ? 520 : 220
+            cell.lifetime = 0.35
+            cell.lifetimeRange = 0.18
+            cell.velocity = i == 0 ? 290 : 220
+            cell.velocityRange = 180
+            cell.emissionRange = .pi * 2
+            cell.scale = i == 0 ? 0.22 : 0.16
+            cell.scaleRange = 0.12
+            cell.alphaSpeed = -3.6
+            cell.color = colors[i % colors.count]
+            cell.contents = baseImage
+            return cell
+        }
 
         layer.addSublayer(emitter)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak emitter] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) { [weak emitter] in
             emitter?.removeFromSuperlayer()
+        }
+    }
+
+    private func emitTypewriter(at point: CGPoint) {
+        guard let layer else { return }
+
+        // Create a small letter that appears with bounce effect
+        let bounceLayer = CAShapeLayer()
+        let letterPath = NSBezierPath(rect: CGRect(x: -6, y: -8, width: 12, height: 16))
+        bounceLayer.path = letterPath.cgPath
+        bounceLayer.position = point
+        bounceLayer.fillColor = NSColor.labelColor.cgColor
+        bounceLayer.opacity = 0.8
+
+        layer.addSublayer(bounceLayer)
+
+        // Bounce animation - like a typewriter key being pressed
+        let bounceAnimation = CAKeyframeAnimation(keyPath: "transform.scale.y")
+        bounceAnimation.values = [1.0, 0.3, 1.2, 1.0]
+        bounceAnimation.keyTimes = [0, 0.2, 0.5, 1.0]
+        bounceAnimation.duration = 0.3
+        bounceAnimation.isRemovedOnCompletion = false
+        bounceAnimation.fillMode = .forwards
+
+        // Slight horizontal compression too
+        let scaleXAnimation = CAKeyframeAnimation(keyPath: "transform.scale.x")
+        scaleXAnimation.values = [1.0, 1.3, 0.9, 1.0]
+        scaleXAnimation.keyTimes = [0, 0.2, 0.5, 1.0]
+        scaleXAnimation.duration = 0.3
+        scaleXAnimation.isRemovedOnCompletion = false
+        scaleXAnimation.fillMode = .forwards
+
+        // Fade out
+        let fadeAnimation = CABasicAnimation(keyPath: "opacity")
+        fadeAnimation.fromValue = 0.8
+        fadeAnimation.toValue = 0.0
+        fadeAnimation.beginTime = CACurrentMediaTime() + 0.2
+        fadeAnimation.duration = 0.15
+        fadeAnimation.isRemovedOnCompletion = false
+        fadeAnimation.fillMode = .forwards
+
+        bounceLayer.add(bounceAnimation, forKey: "bounce")
+        bounceLayer.add(scaleXAnimation, forKey: "scaleX")
+        bounceLayer.add(fadeAnimation, forKey: "fade")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak bounceLayer] in
+            bounceLayer?.removeFromSuperlayer()
+        }
+    }
+
+    private func emitWave(at point: CGPoint) {
+        guard let layer else { return }
+
+        // Create a wavy line that passes through the typing point
+        let waveLayer = CAShapeLayer()
+        let wavePath = NSBezierPath()
+
+        // Create a sine wave
+        let amplitude: CGFloat = 8
+        let frequency: CGFloat = 0.3
+        let width: CGFloat = 80
+
+        wavePath.move(to: CGPoint(x: point.x - width/2, y: point.y))
+
+        for i in 0..<20 {
+            let x = point.x - width/2 + (CGFloat(i) / 20.0) * width
+            let normalizedX = CGFloat(i) / 20.0
+            let y = point.y + sin(normalizedX * .pi * 2 * frequency) * amplitude
+            wavePath.line(to: CGPoint(x: x, y: y))
+        }
+
+        waveLayer.path = wavePath.cgPath
+        waveLayer.strokeColor = NSColor.systemBlue.cgColor
+        waveLayer.fillColor = NSColor.clear.cgColor
+        waveLayer.lineWidth = 2.0
+        waveLayer.lineCap = .round
+        waveLayer.opacity = 0.7
+
+        layer.addSublayer(waveLayer)
+
+        // Wave animation - move horizontally
+        let moveAnimation = CABasicAnimation(keyPath: "transform.translation.x")
+        moveAnimation.fromValue = -20
+        moveAnimation.toValue = 20
+        moveAnimation.duration = 0.4
+        moveAnimation.timingFunction = CAMediaTimingFunction(name: .easeOut)
+
+        // Scale wave as it expands
+        let scaleAnimation = CABasicAnimation(keyPath: "transform.scale.x")
+        scaleAnimation.fromValue = 0.5
+        scaleAnimation.toValue = 1.5
+        scaleAnimation.duration = 0.4
+        scaleAnimation.timingFunction = CAMediaTimingFunction(name: .easeOut)
+
+        // Fade out
+        let fadeAnimation = CABasicAnimation(keyPath: "opacity")
+        fadeAnimation.fromValue = 0.7
+        fadeAnimation.toValue = 0.0
+        fadeAnimation.duration = 0.4
+        fadeAnimation.timingFunction = CAMediaTimingFunction(name: .easeOut)
+
+        waveLayer.add(moveAnimation, forKey: "move")
+        waveLayer.add(scaleAnimation, forKey: "scale")
+        waveLayer.add(fadeAnimation, forKey: "fade")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak waveLayer] in
+            waveLayer?.removeFromSuperlayer()
+        }
+    }
+
+    private func emitPop(at point: CGPoint) {
+        guard let layer else { return }
+
+        // Create a circle that pops at the cursor position
+        let popLayer = CAShapeLayer()
+        let circlePath = NSBezierPath(ovalIn: CGRect(x: -10, y: -10, width: 20, height: 20))
+        popLayer.path = circlePath.cgPath
+        popLayer.position = point
+        popLayer.fillColor = NSColor.systemPurple.withAlphaComponent(0.6).cgColor
+        popLayer.strokeColor = NSColor.systemPurple.cgColor
+        popLayer.lineWidth = 1.5
+
+        layer.addSublayer(popLayer)
+
+        // Scale animation - quick pop then settle
+        let scaleAnimation = CAKeyframeAnimation(keyPath: "transform.scale")
+        scaleAnimation.values = [0.1, 1.4, 1.0, 0.8]
+        scaleAnimation.keyTimes = [0, 0.15, 0.3, 1.0]
+        scaleAnimation.duration = 0.35
+        scaleAnimation.timingFunctions = [
+            CAMediaTimingFunction(name: .easeOut),
+            CAMediaTimingFunction(name: .easeIn),
+            CAMediaTimingFunction(name: .easeOut)
+        ]
+        scaleAnimation.isRemovedOnCompletion = false
+        scaleAnimation.fillMode = .forwards
+
+        // Rotation for extra flair
+        let rotateAnimation = CABasicAnimation(keyPath: "transform.rotation")
+        rotateAnimation.fromValue = 0
+        rotateAnimation.toValue = CGFloat.pi * 0.25
+        rotateAnimation.duration = 0.35
+        rotateAnimation.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        rotateAnimation.isRemovedOnCompletion = false
+        rotateAnimation.fillMode = .forwards
+
+        // Fade out
+        let fadeAnimation = CABasicAnimation(keyPath: "opacity")
+        fadeAnimation.fromValue = 1.0
+        fadeAnimation.toValue = 0.0
+        fadeAnimation.beginTime = CACurrentMediaTime() + 0.15
+        fadeAnimation.duration = 0.2
+        fadeAnimation.isRemovedOnCompletion = false
+        fadeAnimation.fillMode = .forwards
+
+        popLayer.add(scaleAnimation, forKey: "scale")
+        popLayer.add(rotateAnimation, forKey: "rotate")
+        popLayer.add(fadeAnimation, forKey: "fade")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak popLayer] in
+            popLayer?.removeFromSuperlayer()
+        }
+    }
+
+    private func emitGlow(at point: CGPoint) {
+        guard let layer else { return }
+
+        // Create a glowing starburst effect
+        let glowLayer = CALayer()
+        glowLayer.position = point
+
+        // Central glow
+        let centerGlow = CAShapeLayer()
+        let centerPath = NSBezierPath(ovalIn: CGRect(x: -8, y: -8, width: 16, height: 16))
+        centerGlow.path = centerPath.cgPath
+        centerGlow.fillColor = NSColor.systemYellow.withAlphaComponent(0.8).cgColor
+        glowLayer.addSublayer(centerGlow)
+
+        // Starburst rays
+        for i in 0..<8 {
+            let ray = CAShapeLayer()
+            let angle = CGFloat(i) * CGFloat.pi / 4
+            let length: CGFloat = 25
+            let rayPath = NSBezierPath()
+            rayPath.move(to: CGPoint(x: 0, y: 0))
+            rayPath.line(to: CGPoint(
+                x: cos(angle) * length,
+                y: sin(angle) * length
+            ))
+
+            ray.path = rayPath.cgPath
+            ray.strokeColor = NSColor.systemYellow.withAlphaComponent(0.9).cgColor
+            ray.lineWidth = 2.0
+            ray.lineCap = .round
+            glowLayer.addSublayer(ray)
+        }
+
+        // Outer glow ring
+        let ringLayer = CAShapeLayer()
+        let ringPath = NSBezierPath(ovalIn: CGRect(x: -15, y: -15, width: 30, height: 30))
+        ringLayer.path = ringPath.cgPath
+        ringLayer.strokeColor = NSColor.systemYellow.withAlphaComponent(0.5).cgColor
+        ringLayer.fillColor = NSColor.clear.cgColor
+        ringLayer.lineWidth = 1.5
+        glowLayer.addSublayer(ringLayer)
+
+        layer.addSublayer(glowLayer)
+
+        // Scale up and rotate
+        let scaleAnimation = CAKeyframeAnimation(keyPath: "transform.scale")
+        scaleAnimation.values = [0.2, 1.3, 1.0]
+        scaleAnimation.keyTimes = [0, 0.3, 1.0]
+        scaleAnimation.duration = 0.4
+        scaleAnimation.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        scaleAnimation.isRemovedOnCompletion = false
+        scaleAnimation.fillMode = .forwards
+
+        let rotateAnimation = CABasicAnimation(keyPath: "transform.rotation")
+        rotateAnimation.fromValue = 0
+        rotateAnimation.toValue = CGFloat.pi * 0.5
+        rotateAnimation.duration = 0.4
+        rotateAnimation.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        rotateAnimation.isRemovedOnCompletion = false
+        rotateAnimation.fillMode = .forwards
+
+        // Fade out
+        let fadeAnimation = CABasicAnimation(keyPath: "opacity")
+        fadeAnimation.fromValue = 1.0
+        fadeAnimation.toValue = 0.0
+        fadeAnimation.beginTime = CACurrentMediaTime() + 0.2
+        fadeAnimation.duration = 0.2
+        fadeAnimation.isRemovedOnCompletion = false
+        fadeAnimation.fillMode = .forwards
+
+        glowLayer.add(scaleAnimation, forKey: "scale")
+        glowLayer.add(rotateAnimation, forKey: "rotate")
+        glowLayer.add(fadeAnimation, forKey: "fade")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak glowLayer] in
+            glowLayer?.removeFromSuperlayer()
         }
     }
 }

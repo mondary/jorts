@@ -64,7 +64,7 @@ final class NoteStorage {
             let notes = try decoder.decode([NoteData].self, from: data)
             return SavedState(notes: notes, trash: [])
         } catch {
-            NSLog("JortsMac: failed to load notes from \(storageURL.path): \(error)")
+            NSLog("JortsMacOSMac: failed to load notes from \(storageURL.path): \(error)")
             return SavedState()
         }
     }
@@ -74,7 +74,7 @@ final class NoteStorage {
         do {
             try saveToMarkdownFiles(state)
         } catch {
-            NSLog("JortsMac: failed to save notes as Markdown files: \(error)")
+            NSLog("JortsMacOSMac: failed to save notes as Markdown files: \(error)")
         }
     }
 
@@ -104,7 +104,7 @@ final class NoteStorage {
             try? fileManager.removeItem(at: backupURL)
             try fileManager.moveItem(at: storageURL, to: backupURL)
         } catch {
-            NSLog("JortsMac: JSON->MD migration failed: \(error)")
+            NSLog("JortsMacOSMac: JSON->MD migration failed: \(error)")
         }
     }
 
@@ -123,7 +123,7 @@ final class NoteStorage {
             let state = try decoder.decode(SavedState.self, from: data)
             try saveToMarkdownFiles(state)
         } catch {
-            NSLog("JortsMac: forced seed JSON -> MD migration failed: \(error)")
+            NSLog("JortsMacOSMac: forced seed JSON -> MD migration failed: \(error)")
         }
     }
 
@@ -132,7 +132,7 @@ final class NoteStorage {
             try consolidateDuplicates(in: notesDirectory, duplicatesSubdirName: "Duplicates")
             try consolidateDuplicates(in: trashDirectory, duplicatesSubdirName: "Duplicates")
         } catch {
-            NSLog("JortsMac: duplicate consolidation failed: \(error)")
+            NSLog("JortsMacOSMac: duplicate consolidation failed: \(error)")
         }
     }
 
@@ -219,7 +219,7 @@ final class NoteStorage {
             try externalizeInlineVersions(in: notesDirectory)
             try externalizeInlineVersions(in: trashDirectory)
         } catch {
-            NSLog("JortsMac: inline versions migration failed: \(error)")
+            NSLog("JortsMacOSMac: inline versions migration failed: \(error)")
         }
     }
 
@@ -249,7 +249,7 @@ final class NoteStorage {
         do {
             try saveToMarkdownFiles(state)
         } catch {
-            NSLog("JortsMac: markdown canonicalization failed: \(error)")
+            NSLog("JortsMacOSMac: markdown canonicalization failed: \(error)")
         }
     }
 
@@ -286,7 +286,7 @@ final class NoteStorage {
 
             return SavedState(notes: notes, trash: trash.sorted { $0.deletedAt > $1.deletedAt })
         } catch {
-            NSLog("JortsMac: failed to load Markdown notes: \(error)")
+            NSLog("JortsMacOSMac: failed to load Markdown notes: \(error)")
             return nil
         }
     }
@@ -538,10 +538,17 @@ final class NoteStorage {
     }
 
     private func decodeNote(frontMatter: [String: String], body: String) -> NoteData {
+        var normalizedBody = body
+        if normalizedBody.hasPrefix("\r\n") {
+            normalizedBody.removeFirst(2)
+        } else if normalizedBody.hasPrefix("\n") {
+            normalizedBody.removeFirst(1)
+        }
+
         var note = NoteData(
             title: frontMatter["title"] ?? "",
             theme: NoteTheme(rawValue: Int(frontMatter["theme"] ?? "") ?? NoteTheme.blueberry.rawValue) ?? .blueberry,
-            content: body,
+            content: normalizedBody,
             monospace: parseBool(frontMatter["monospace"]) ?? false,
             fontFamily: FontFamily(rawValue: frontMatter["fontFamily"] ?? FontFamily.system.rawValue) ?? .system,
             zoom: Int(frontMatter["zoom"] ?? "") ?? NoteData.defaultZoom,
@@ -611,7 +618,7 @@ final class NoteStorage {
         do {
             try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         } catch {
-            NSLog("JortsMac: failed to create storage directory \(directory.path): \(error)")
+            NSLog("JortsMacOSMac: failed to create storage directory \(directory.path): \(error)")
         }
     }
 
@@ -623,10 +630,10 @@ final class NoteStorage {
         for candidate in legacySaveCandidates() where fileManager.fileExists(atPath: candidate.path) {
             do {
                 try fileManager.copyItem(at: candidate, to: destinationURL)
-                NSLog("JortsMac: imported legacy Jorts save from \(candidate.path)")
+                NSLog("JortsMacOSMac: imported legacy JortsMacOS save from \(candidate.path)")
                 return
             } catch {
-                NSLog("JortsMac: failed to import legacy save \(candidate.path): \(error)")
+                NSLog("JortsMacOSMac: failed to import legacy save \(candidate.path): \(error)")
             }
         }
     }

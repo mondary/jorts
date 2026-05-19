@@ -45,7 +45,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             button.image = Self.statusIcon()
             button.imagePosition = .imageOnly
             button.imageScaling = .scaleProportionallyUpOrDown
-            button.toolTip = "Jorts"
+            button.toolTip = "JortsMacOS"
         }
 
         menu.delegate = self
@@ -126,9 +126,9 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         menu.addItem(actionItem("Show List", action: #selector(showList(_:)), shortcut: .showNotesList))
         menu.addItem(.separator())
         menu.addItem(actionItem("Settings…", action: #selector(showSettings(_:)), shortcut: .preferences, systemImage: "gearshape"))
-        menu.addItem(actionItem("About Jorts", action: #selector(showAbout(_:)), keyEquivalent: ""))
-        menu.addItem(actionItem("Restart Jorts", action: #selector(restart(_:)), keyEquivalent: ""))
-        menu.addItem(actionItem("Quit Jorts", action: #selector(quit(_:)), keyEquivalent: "q"))
+        menu.addItem(actionItem("About JortsMacOS", action: #selector(showAbout(_:)), keyEquivalent: ""))
+        menu.addItem(actionItem("Restart JortsMacOS", action: #selector(restart(_:)), keyEquivalent: ""))
+        menu.addItem(actionItem("Quit JortsMacOS", action: #selector(quit(_:)), keyEquivalent: "q"))
     }
 
     private func actionItem(
@@ -165,7 +165,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
 
     private static func statusIcon() -> NSImage {
         let configuration = NSImage.SymbolConfiguration(pointSize: 16, weight: .semibold)
-        let symbol = NSImage(systemSymbolName: "note.text", accessibilityDescription: "Jorts")?
+        let symbol = NSImage(systemSymbolName: "note.text", accessibilityDescription: "JortsMacOS")?
             .withSymbolConfiguration(configuration)
 
         if let appIcon = Bundle.main.url(forResource: "JortsStatus", withExtension: "png")

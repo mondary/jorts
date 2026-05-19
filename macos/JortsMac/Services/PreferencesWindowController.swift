@@ -22,7 +22,7 @@ final class PreferencesWindowController: NSWindowController, NSWindowDelegate {
             defer: false
         )
 
-        window.title = "Preferences - Jorts_MacOS"
+        window.title = "Preferences - JortsMacOS"
         window.contentViewController = hostingController
         window.isReleasedWhenClosed = false
         window.center()

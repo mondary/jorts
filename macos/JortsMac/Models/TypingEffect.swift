@@ -4,6 +4,10 @@ enum TypingEffect: String, CaseIterable, Codable, Identifiable {
     case off
     case confetti
     case doom
+    case typewriter
+    case wave
+    case pop
+    case glow
 
     var id: String { rawValue }
 
@@ -12,6 +16,10 @@ enum TypingEffect: String, CaseIterable, Codable, Identifiable {
         case .off: "Off"
         case .confetti: "Confetti"
         case .doom: "Doom"
+        case .typewriter: "Typewriter"
+        case .wave: "Wave"
+        case .pop: "Pop"
+        case .glow: "Glow"
         }
     }
 }
