@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 
 enum ShortcutModifierPreset: String, CaseIterable, Codable, Identifiable {
+    case shift
     case command
     case commandShift
     case commandOption
@@ -12,6 +13,7 @@ enum ShortcutModifierPreset: String, CaseIterable, Codable, Identifiable {
 
     var displayName: String {
         switch self {
+        case .shift: "Shift"
         case .command: "Command"
         case .commandShift: "Command + Shift"
         case .commandOption: "Command + Option"
@@ -22,6 +24,7 @@ enum ShortcutModifierPreset: String, CaseIterable, Codable, Identifiable {
 
     var symbolPrefix: String {
         switch self {
+        case .shift: "⇧"
         case .command: "⌘"
         case .commandShift: "⇧⌘"
         case .commandOption: "⌥⌘"
@@ -32,6 +35,7 @@ enum ShortcutModifierPreset: String, CaseIterable, Codable, Identifiable {
 
     var flags: NSEvent.ModifierFlags {
         switch self {
+        case .shift: [.shift]
         case .command: [.command]
         case .commandShift: [.command, .shift]
         case .commandOption: [.command, .option]
@@ -111,8 +115,8 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
     var defaultShortcut: KeyboardShortcutSetting {
         switch self {
         case .newStickyNote: KeyboardShortcutSetting(key: "n", modifier: .command)
-        case .showAllNotes: KeyboardShortcutSetting(key: "l", modifier: .command)
-        case .showNotesList: KeyboardShortcutSetting(key: "l", modifier: .commandOption)
+        case .showAllNotes: KeyboardShortcutSetting(key: "l", modifier: .shift)
+        case .showNotesList: KeyboardShortcutSetting(key: "l", modifier: .commandShift)
         case .saveAllNotes: KeyboardShortcutSetting(key: "s", modifier: .command)
         case .preferences: KeyboardShortcutSetting(key: ",", modifier: .command)
         case .closeNoteWindow: KeyboardShortcutSetting(key: "w", modifier: .command)

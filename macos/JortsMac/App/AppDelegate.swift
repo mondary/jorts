@@ -10,7 +10,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var commandPaletteWindowController: CommandPaletteWindowController?
     private var statusMenuController: StatusMenuController?
     private var cancellables: Set<AnyCancellable> = []
-    private var globalHotKeyRef: EventHotKeyRef?
+    private var globalHotKeyNewRef: EventHotKeyRef?
+    private var globalHotKeyLastRef: EventHotKeyRef?
     private var globalHotKeyHandlerRef: EventHandlerRef?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -115,14 +116,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func registerGlobalHotKey() {
-        // Shift+Space anywhere -> new note.
-        // Warning: this can conflict with some input source shortcuts.
-        let hotKeyID = EventHotKeyID(signature: OSType("JRTS".fourCharCodeValue), id: 1)
-        let modifiers: UInt32 = UInt32(shiftKey)
+        // Global shortcuts.
+        // Warning: these can conflict with some input source / system shortcuts.
+        let signature = OSType("JRTS".fourCharCodeValue)
         let keyCode: UInt32 = UInt32(kVK_Space)
 
-        let status = RegisterEventHotKey(keyCode, modifiers, hotKeyID, GetApplicationEventTarget(), 0, &globalHotKeyRef)
-        guard status == noErr else { return }
+        // Shift+Space -> focus last note (or create if none)
+        let newID = EventHotKeyID(signature: signature, id: 1)
+        _ = RegisterEventHotKey(keyCode, UInt32(shiftKey), newID, GetApplicationEventTarget(), 0, &globalHotKeyNewRef)
+
+        // Shift+Cmd+Space -> new note
+        let lastID = EventHotKeyID(signature: signature, id: 2)
+        _ = RegisterEventHotKey(keyCode, UInt32(shiftKey | cmdKey), lastID, GetApplicationEventTarget(), 0, &globalHotKeyLastRef)
 
         var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
         let handler: EventHandlerUPP = { _, eventRef, userData in
@@ -155,10 +160,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             &hotKeyID
         )
         guard status == noErr else { return }
-        guard hotKeyID.signature == OSType("JRTS".fourCharCodeValue), hotKeyID.id == 1 else { return }
+        guard hotKeyID.signature == OSType("JRTS".fourCharCodeValue) else { return }
 
         DispatchQueue.main.async { [weak self] in
-            self?.manager.createNote()
+            guard let self else { return }
+            switch hotKeyID.id {
+            case 1:
+                self.manager.focusLastFocusedNote()
+            case 2:
+                self.manager.createNote()
+            default:
+                break
+            }
         }
     }
 

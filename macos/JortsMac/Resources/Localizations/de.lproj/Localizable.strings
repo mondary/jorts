@@ -13,14 +13,23 @@
 "storage" = "Speicher";
 "close" = "Schließen";
 "language" = "Sprache";
+"display_options" = "Anzeigeoptionen";
 
 /* About */
 "app_name" = "Jorts_MacOS";
-"app_version" = "4.2.0 macOS-Port";
+"app_version" = "Version 4.2.0 macOS-Port";
 "about_header" = "Jorts_MacOS";
 "about_description" = "Native macOS-Swift-Portierung";
-"original_project" = "Originalprojekt: ";
-"macos_fork" = "macOS-Fork: ";
+"links" = "Links";
+"original_project" = "Originalprojekt";
+"original_project_repo" = "elly-code/jorts";
+"macos_fork" = "macOS-Fork";
+"macos_fork_repo" = "clm-tmp/JORTS_macos";
+"support" = "Support";
+"original_developer" = "Ursprünglicher Entwickler";
+"original_developer_url" = "ko-fi.com/teamcons";
+"macos_fork_developer" = "macOS-Fork-Entwickler";
+"macos_fork_developer_url" = "ko-fi.com/pouark";
 "support_developer" = "☕ Unterstützen Sie den ursprünglichen Entwickler: ";
 
 /* Menu Bar */
@@ -32,6 +41,7 @@
 "about" = "Über Jorts";
 "restart" = "Jorts neu starten";
 "quit" = "Jorts beenden";
+"show_list" = "Liste anzeigen";
 
 /* Note Window */
 "untitled" = "Unbenannt";
