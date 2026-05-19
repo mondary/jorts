@@ -5,6 +5,7 @@ struct NotesListView: View {
     let trash: [TrashedNote]
     let onCreateNote: () -> Void
     let onShowPreferences: () -> Void
+    let onOpenFinder: () -> Void
     let onNoteSelected: (UUID) -> Void
     let onOpenTrashed: (UUID) -> Void
 
@@ -47,6 +48,13 @@ struct NotesListView: View {
                 }
                 .buttonStyle(.plain)
                 .help("Preferences")
+
+                Button(action: onOpenFinder) {
+                    Image(systemName: "folder")
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
+                .help("Open notes folder in Finder")
 
                 Button {
                     selection = (selection == .trash) ? .notes : .trash

@@ -114,6 +114,8 @@ struct NoteTextView: NSViewRepresentable {
         weak var effectHost: EffectHostView?
         weak var textView: NSTextView?
         private var lastEffectAt: TimeInterval = 0
+        private var lastCaretHostPoint: CGPoint?
+        private var lastCaretAt: TimeInterval = 0
 
         init(_ parent: NoteTextView) {
             self.parent = parent
@@ -198,6 +200,14 @@ struct NoteTextView: NSViewRepresentable {
             parent.text = textView.string
         }
 
+        func textViewDidChangeSelection(_ notification: Notification) {
+            guard let textView = notification.object as? NSTextView else { return }
+            // Hyper-style effects: show feedback when moving caret, not only when typing.
+            if parent.typingEffect == .doom {
+                maybeEmitTypingEffect(from: textView)
+            }
+        }
+
         private func maybeEmitTypingEffect(from textView: NSTextView) {
             guard parent.typingEffect != .off else { return }
             guard parent.isEditable else { return }
@@ -214,7 +224,23 @@ struct NoteTextView: NSViewRepresentable {
             // textView -> window -> host
             let pointInWindow = textView.convert(pointInTextView, to: nil)
             let pointInHost = host.convert(pointInWindow, from: nil)
-            host.emit(effect: parent.typingEffect, at: pointInHost)
+
+            var direction: CGVector?
+            if parent.typingEffect == .doom {
+                let dt = max(0.001, now - lastCaretAt)
+                if let prev = lastCaretHostPoint {
+                    let dx = pointInHost.x - prev.x
+                    let dy = pointInHost.y - prev.y
+                    // Normalize to a direction vector; scale down so emitter stays subtle.
+                    let len = max(1.0, sqrt(dx * dx + dy * dy))
+                    direction = CGVector(dx: dx / len, dy: dy / len)
+                }
+                lastCaretHostPoint = pointInHost
+                lastCaretAt = now
+                _ = dt
+            }
+
+            host.emit(effect: parent.typingEffect, at: pointInHost, direction: direction)
         }
 
         private func caretPoint(in textView: NSTextView) -> CGPoint? {
@@ -331,6 +357,7 @@ final class EffectHostView: NSView {
     private let scrollView: NSScrollView
     private let overlay = EffectOverlayView(frame: .zero)
     private let inlineCalcView = InlineCalcResultsView(frame: .zero)
+    private var lastShakeAt: TimeInterval = 0
 
     var textView: NSTextView? { scrollView.documentView as? NSTextView }
 
@@ -379,8 +406,30 @@ final class EffectHostView: NSView {
         nil
     }
 
-    func emit(effect: TypingEffect, at point: CGPoint) {
-        overlay.emit(effect: effect, at: point)
+    func emit(effect: TypingEffect, at point: CGPoint, direction: CGVector? = nil) {
+        if effect == .doom {
+            shakeWindowIfNeeded()
+        }
+        overlay.emit(effect: effect, at: point, direction: direction)
+    }
+
+    private func shakeWindowIfNeeded() {
+        let now = Date().timeIntervalSinceReferenceDate
+        guard now - lastShakeAt > 0.08 else { return }
+        lastShakeAt = now
+
+        guard let window else { return }
+        let originalFrame = window.frame
+        let offsets: [CGFloat] = [-3, 4, -2, 2, 0]
+
+        for (index, dx) in offsets.enumerated() {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(index) * 0.014) { [weak window] in
+                guard let window else { return }
+                var frame = originalFrame
+                frame.origin.x += dx
+                window.setFrame(frame, display: false)
+            }
+        }
     }
 
     func setInlineCalculationsVisible(_ visible: Bool) {
@@ -407,14 +456,14 @@ final class EffectOverlayView: NSView {
         nil
     }
 
-    func emit(effect: TypingEffect, at point: CGPoint) {
+    func emit(effect: TypingEffect, at point: CGPoint, direction: CGVector? = nil) {
         switch effect {
         case .off:
             return
         case .confetti:
             emitConfetti(at: point)
         case .doom:
-            emitDoom(at: point)
+            emitDoom(at: point, direction: direction)
         case .typewriter:
             emitTypewriter(at: point)
         case .wave:
@@ -472,48 +521,78 @@ final class EffectOverlayView: NSView {
         }
     }
 
-    private func emitDoom(at point: CGPoint) {
+    private func emitDoom(at point: CGPoint, direction: CGVector?) {
         guard let layer else { return }
+        // Hyperpower-style caret trail: bright burst, short trail, fast fade.
         let emitter = CAEmitterLayer()
         emitter.emitterPosition = point
-        emitter.emitterShape = .circle
-        emitter.emitterSize = CGSize(width: 10, height: 10)
+        emitter.emitterShape = .point
         emitter.renderMode = .additive
         emitter.beginTime = CACurrentMediaTime()
-        emitter.lifetime = 0.18
+        emitter.lifetime = 0.28
+        let baseAngle: CGFloat? = direction.map { atan2($0.dy, $0.dx) }
 
         let colors: [CGColor] = [
             NSColor.systemRed.cgColor,
             NSColor.systemOrange.cgColor,
             NSColor.systemYellow.cgColor,
+            NSColor.systemPink.cgColor,
             NSColor.systemPurple.cgColor,
             NSColor.systemBlue.cgColor
         ]
 
-        let baseImage = NSImage(systemSymbolName: "sparkle", accessibilityDescription: nil)?
+        let square = makeParticleImage(size: 8, cornerRadius: 1.5)
+        let spark = NSImage(systemSymbolName: "sparkle", accessibilityDescription: nil)?
             .withSymbolConfiguration(.init(pointSize: 14, weight: .bold))?
             .cgImage(forProposedRect: nil, context: nil, hints: nil)
 
-        emitter.emitterCells = (0..<5).map { i in
-            let cell = CAEmitterCell()
-            cell.birthRate = i == 0 ? 320 : 140
-            cell.lifetime = 0.20
-            cell.lifetimeRange = 0.10
-            cell.velocity = i == 0 ? 290 : 220
-            cell.velocityRange = 180
-            cell.emissionRange = .pi * 2
-            cell.scale = i == 0 ? 0.22 : 0.16
-            cell.scaleRange = 0.12
-            cell.alphaSpeed = -3.6
-            cell.color = colors[i % colors.count]
-            cell.contents = baseImage
-            return cell
-        }
+        let streak = CAEmitterCell()
+        streak.birthRate = 650
+        streak.lifetime = 0.26
+        streak.lifetimeRange = 0.08
+        streak.velocity = 170
+        streak.velocityRange = 90
+        if let baseAngle { streak.emissionLongitude = baseAngle }
+        streak.emissionRange = .pi / 3
+        streak.scale = 0.75
+        streak.scaleRange = 0.35
+        streak.scaleSpeed = -1.4
+        streak.alphaSpeed = -4.2
+        streak.spin = 5
+        streak.spinRange = 8
+        streak.color = colors.randomElement()
+        streak.contents = square
+
+        let burst = CAEmitterCell()
+        burst.birthRate = 220
+        burst.lifetime = 0.18
+        burst.lifetimeRange = 0.06
+        burst.velocity = 230
+        burst.velocityRange = 120
+        if let baseAngle { burst.emissionLongitude = baseAngle }
+        burst.emissionRange = .pi * 2
+        burst.scale = 0.32
+        burst.scaleRange = 0.16
+        burst.scaleSpeed = -1.8
+        burst.alphaSpeed = -5.8
+        burst.color = colors.randomElement()
+        burst.contents = spark
+
+        emitter.emitterCells = [streak, burst]
 
         layer.addSublayer(emitter)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) { [weak emitter] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.34) { [weak emitter] in
             emitter?.removeFromSuperlayer()
         }
+    }
+
+    private func makeParticleImage(size: CGFloat, cornerRadius: CGFloat) -> CGImage? {
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        NSColor.white.setFill()
+        NSBezierPath(roundedRect: NSRect(x: 0, y: 0, width: size, height: size), xRadius: cornerRadius, yRadius: cornerRadius).fill()
+        image.unlockFocus()
+        return image.cgImage(forProposedRect: nil, context: nil, hints: nil)
     }
 
     private func emitTypewriter(at point: CGPoint) {

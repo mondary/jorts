@@ -9,6 +9,7 @@ final class NoteManager {
     private var saveWorkItem: DispatchWorkItem?
     private var latestTheme: NoteTheme = .blueberry
     private let maxVersionsPerNote = 25
+    private var lastFocusedNoteID: UUID?
 
     var onShowList: (() -> Void)?
 
@@ -53,6 +54,9 @@ final class NoteManager {
             onSave: { [weak self] in self?.saveNow() },
             onShowEmoji: { NSApp.orderFrontCharacterPalette(nil) },
             onShowList: { [weak self] in self?.onShowList?() },
+            onBecameKey: { [weak self] id in
+                self?.lastFocusedNoteID = id
+            },
             onDocumentChanged: { [weak self, weak document] in
                 guard let document else { return }
                 self?.latestTheme = document.theme
@@ -72,6 +76,7 @@ final class NoteManager {
         if activate {
             controller.window?.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
+            lastFocusedNoteID = document.id
         }
 
         if scheduleSave {
@@ -123,6 +128,15 @@ final class NoteManager {
         controller.window?.deminiaturize(nil)
         controller.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        lastFocusedNoteID = documentID
+    }
+
+    func focusLastFocusedNote() {
+        guard let id = lastFocusedNoteID else {
+            createNote()
+            return
+        }
+        focusNote(documentID: id)
     }
 
     func menuEntries() -> [NoteMenuEntry] {

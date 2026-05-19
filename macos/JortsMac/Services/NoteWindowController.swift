@@ -6,6 +6,7 @@ final class NoteWindowController: NSWindowController, NSWindowDelegate {
     let noteDocument: NoteDocument
 
     private let onDocumentChanged: () -> Void
+    private let onBecameKey: (UUID) -> Void
     private var cancellables: Set<AnyCancellable> = []
     private var isDeleting = false
 
@@ -20,10 +21,12 @@ final class NoteWindowController: NSWindowController, NSWindowDelegate {
         mode: NoteViewMode = .normal,
         onRestoreFromTrash: (() -> Void)? = nil,
         onDeletePermanently: (() -> Void)? = nil,
+        onBecameKey: @escaping (UUID) -> Void = { _ in },
         onDocumentChanged: @escaping () -> Void
     ) {
         self.noteDocument = document
         self.onDocumentChanged = onDocumentChanged
+        self.onBecameKey = onBecameKey
 
         let rootView = NoteView(
             document: document,
@@ -123,6 +126,7 @@ final class NoteWindowController: NSWindowController, NSWindowDelegate {
 
     func windowDidBecomeKey(_ notification: Notification) {
         noteDocument.isFocused = true
+        onBecameKey(noteDocument.id)
     }
 
     func windowDidResignKey(_ notification: Notification) {

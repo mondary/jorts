@@ -24,6 +24,7 @@ final class NotesListWindowController: NSWindowController, NSWindowDelegate {
             trash: manager.trashedNotes,
             onCreateNote: { manager.createNote() },
             onShowPreferences: onShowPreferences,
+            onOpenFinder: { NSWorkspace.shared.activateFileViewerSelecting([manager.storageURL]) },
             onNoteSelected: onNoteSelected,
             onOpenTrashed: { _ in }
         ))
@@ -63,6 +64,10 @@ final class NotesListWindowController: NSWindowController, NSWindowDelegate {
                 self?.updateListView()
             },
             onShowPreferences: { [weak self] in self?.onShowPreferences() },
+            onOpenFinder: { [weak self] in
+                guard let self else { return }
+                NSWorkspace.shared.activateFileViewerSelecting([self.manager.storageURL])
+            },
             onNoteSelected: { [weak self] noteID in
                 self?.onNoteSelected(noteID)
                 DispatchQueue.main.async { [weak self] in
