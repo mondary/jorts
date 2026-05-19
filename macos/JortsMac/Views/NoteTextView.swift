@@ -223,7 +223,12 @@ struct NoteTextView: NSViewRepresentable {
 
             // textView -> window -> host
             let pointInWindow = textView.convert(pointInTextView, to: nil)
-            let pointInHost = host.convert(pointInWindow, from: nil)
+            var pointInHost = host.convert(pointInWindow, from: nil)
+
+            // Place the effect slightly to the right of the caret so it doesn't sit "under" the glyph.
+            if parent.typingEffect == .doom {
+                pointInHost.x += max(6, (textView.font?.pointSize ?? 14) * 0.45)
+            }
 
             var direction: CGVector?
             if parent.typingEffect == .doom {
@@ -254,7 +259,8 @@ struct NoteTextView: NSViewRepresentable {
             if !screenRect.isEmpty, let window = textView.window {
                 let windowRect = window.convertFromScreen(screenRect)
                 let rectInTextView = textView.convert(windowRect, from: nil)
-                return CGPoint(x: rectInTextView.minX, y: rectInTextView.midY)
+                // Anchor on the right edge of the caret rect to place effects "after" the cursor.
+                return CGPoint(x: rectInTextView.maxX, y: rectInTextView.midY)
             }
 
             guard let layoutManager = textView.layoutManager,
@@ -529,7 +535,7 @@ final class EffectOverlayView: NSView {
         emitter.emitterShape = .point
         emitter.renderMode = .additive
         emitter.beginTime = CACurrentMediaTime()
-        emitter.lifetime = 0.28
+        emitter.lifetime = 0.22
         let baseAngle: CGFloat? = direction.map { atan2($0.dy, $0.dx) }
 
         let colors: [CGColor] = [
@@ -547,41 +553,41 @@ final class EffectOverlayView: NSView {
             .cgImage(forProposedRect: nil, context: nil, hints: nil)
 
         let streak = CAEmitterCell()
-        streak.birthRate = 650
-        streak.lifetime = 0.26
-        streak.lifetimeRange = 0.08
-        streak.velocity = 170
-        streak.velocityRange = 90
+        streak.birthRate = 420
+        streak.lifetime = 0.20
+        streak.lifetimeRange = 0.06
+        streak.velocity = 140
+        streak.velocityRange = 70
         if let baseAngle { streak.emissionLongitude = baseAngle }
         streak.emissionRange = .pi / 3
-        streak.scale = 0.75
-        streak.scaleRange = 0.35
-        streak.scaleSpeed = -1.4
-        streak.alphaSpeed = -4.2
+        streak.scale = 0.48
+        streak.scaleRange = 0.20
+        streak.scaleSpeed = -1.6
+        streak.alphaSpeed = -5.0
         streak.spin = 5
         streak.spinRange = 8
         streak.color = colors.randomElement()
         streak.contents = square
 
         let burst = CAEmitterCell()
-        burst.birthRate = 220
-        burst.lifetime = 0.18
-        burst.lifetimeRange = 0.06
-        burst.velocity = 230
-        burst.velocityRange = 120
+        burst.birthRate = 120
+        burst.lifetime = 0.14
+        burst.lifetimeRange = 0.05
+        burst.velocity = 190
+        burst.velocityRange = 90
         if let baseAngle { burst.emissionLongitude = baseAngle }
         burst.emissionRange = .pi * 2
-        burst.scale = 0.32
-        burst.scaleRange = 0.16
-        burst.scaleSpeed = -1.8
-        burst.alphaSpeed = -5.8
+        burst.scale = 0.22
+        burst.scaleRange = 0.10
+        burst.scaleSpeed = -2.0
+        burst.alphaSpeed = -6.4
         burst.color = colors.randomElement()
         burst.contents = spark
 
         emitter.emitterCells = [streak, burst]
 
         layer.addSublayer(emitter)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.34) { [weak emitter] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.26) { [weak emitter] in
             emitter?.removeFromSuperlayer()
         }
     }
