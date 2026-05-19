@@ -7,6 +7,7 @@ struct NoteTextView: NSViewRepresentable {
     let focusRequestToken: Int
     let isEditable: Bool
     let typingEffect: TypingEffect
+    let showsInlineCalculations: Bool
 
     let font: NSFont
     let textColor: NSColor
@@ -47,6 +48,8 @@ struct NoteTextView: NSViewRepresentable {
         let host = EffectHostView(scrollView: scrollView)
         context.coordinator.effectHost = host
         context.coordinator.textView = textView
+        host.setInlineCalculationsVisible(showsInlineCalculations)
+        host.updateInlineCalculations(noteText: text, font: font, color: textColor)
         return host
     }
 
@@ -60,12 +63,15 @@ struct NoteTextView: NSViewRepresentable {
 
         applyStyle(to: textView)
         textView.isEditable = isEditable
+        host.setInlineCalculationsVisible(showsInlineCalculations)
 
         if textView.string != text && !context.coordinator.isApplyingChange {
             let selectedRange = textView.selectedRange()
             textView.string = text
             textView.setSelectedRange(selectedRange.clamped(toLength: (text as NSString).length))
         }
+
+        host.updateInlineCalculations(noteText: textView.string, font: font, color: textColor)
 
         if context.coordinator.lastToggleListRequestToken != toggleListRequestToken {
             context.coordinator.lastToggleListRequestToken = toggleListRequestToken
@@ -324,6 +330,7 @@ struct NoteTextView: NSViewRepresentable {
 final class EffectHostView: NSView {
     private let scrollView: NSScrollView
     private let overlay = EffectOverlayView(frame: .zero)
+    private let inlineCalcView = InlineCalcResultsView(frame: .zero)
 
     var textView: NSTextView? { scrollView.documentView as? NSTextView }
 
@@ -335,9 +342,11 @@ final class EffectHostView: NSView {
 
         addSubview(scrollView)
         addSubview(overlay)
+        scrollView.contentView.addSubview(inlineCalcView)
 
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         overlay.translatesAutoresizingMaskIntoConstraints = false
+        inlineCalcView.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
             scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
@@ -348,13 +357,22 @@ final class EffectHostView: NSView {
             overlay.leadingAnchor.constraint(equalTo: leadingAnchor),
             overlay.trailingAnchor.constraint(equalTo: trailingAnchor),
             overlay.topAnchor.constraint(equalTo: topAnchor),
-            overlay.bottomAnchor.constraint(equalTo: bottomAnchor)
+            overlay.bottomAnchor.constraint(equalTo: bottomAnchor),
+
+            inlineCalcView.trailingAnchor.constraint(equalTo: scrollView.contentView.trailingAnchor),
+            inlineCalcView.topAnchor.constraint(equalTo: scrollView.contentView.topAnchor),
+            inlineCalcView.bottomAnchor.constraint(equalTo: scrollView.contentView.bottomAnchor),
+            inlineCalcView.widthAnchor.constraint(equalToConstant: 160)
         ])
 
         overlay.isHidden = false
         overlay.alphaValue = 1
         overlay.layer?.masksToBounds = false
         overlay.layer?.zPosition = 999
+
+        inlineCalcView.isHidden = true
+        inlineCalcView.alphaValue = 1
+        inlineCalcView.layer?.zPosition = 10
     }
 
     required init?(coder: NSCoder) {
@@ -363,6 +381,14 @@ final class EffectHostView: NSView {
 
     func emit(effect: TypingEffect, at point: CGPoint) {
         overlay.emit(effect: effect, at: point)
+    }
+
+    func setInlineCalculationsVisible(_ visible: Bool) {
+        inlineCalcView.isHidden = !visible
+    }
+
+    func updateInlineCalculations(noteText: String, font: NSFont, color: NSColor) {
+        inlineCalcView.update(noteText: noteText, font: font, color: color)
     }
 }
 
@@ -728,5 +754,51 @@ final class EffectOverlayView: NSView {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak glowLayer] in
             glowLayer?.removeFromSuperlayer()
         }
+    }
+}
+
+final class InlineCalcResultsView: NSView {
+    private let textLayer = CATextLayer()
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+
+        textLayer.contentsScale = NSScreen.main?.backingScaleFactor ?? 2
+        textLayer.alignmentMode = .right
+        textLayer.isWrapped = true
+        textLayer.truncationMode = .none
+        layer?.addSublayer(textLayer)
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        nil
+    }
+
+    override func layout() {
+        super.layout()
+        textLayer.frame = bounds.insetBy(dx: 10, dy: 8)
+    }
+
+    func update(noteText: String, font: NSFont, color: NSColor) {
+        let resultsText = InlineCalculator.renderResultsColumn(from: noteText)
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .right
+        paragraph.lineBreakMode = .byClipping
+
+        let attributed = NSAttributedString(
+            string: resultsText,
+            attributes: [
+                .font: NSFont.monospacedSystemFont(ofSize: font.pointSize, weight: .regular),
+                .foregroundColor: color.withAlphaComponent(0.55),
+                .paragraphStyle: paragraph
+            ]
+        )
+        textLayer.string = attributed
+        needsLayout = true
     }
 }

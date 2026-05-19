@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var manager = NoteManager(settings: settings)
     private var preferencesWindowController: PreferencesWindowController?
     private var notesListWindowController: NotesListWindowController?
+    private var commandPaletteWindowController: CommandPaletteWindowController?
     private var statusMenuController: StatusMenuController?
     private var cancellables: Set<AnyCancellable> = []
 
@@ -297,9 +298,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         windowMenu.addItem(menuItem("Show All Notes", action: #selector(showAllNotes(_:)), shortcut: .showAllNotes))
         windowMenu.addItem(menuItem("Show Notes List", action: #selector(showNotesList(_:)), shortcut: .showNotesList))
         windowMenu.addItem(.separator())
+        windowMenu.addItem(menuItem("Command Palette…", action: #selector(showCommandPalette(_:)), key: "k", modifiers: [.command]))
+        windowMenu.addItem(.separator())
         windowMenu.addItem(responderItem("Minimize", action: #selector(NSWindow.miniaturize(_:)), key: "m"))
         windowMenu.addItem(responderItem("Zoom", action: #selector(NSWindow.performZoom(_:)), key: ""))
         NSApp.windowsMenu = windowMenu
+    }
+
+    @objc private func showCommandPalette(_ sender: Any?) {
+        if commandPaletteWindowController == nil {
+            commandPaletteWindowController = CommandPaletteWindowController(manager: manager)
+        }
+        commandPaletteWindowController?.showWindow(sender)
     }
 
     private func buildStatusMenu() {

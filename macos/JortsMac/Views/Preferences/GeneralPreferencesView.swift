@@ -87,6 +87,20 @@ struct GeneralPreferencesView: View {
 
             Divider()
 
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Inline Calculations")
+                    .font(.headline)
+
+                Toggle("Show results while typing", isOn: $settings.inlineCalculations)
+                    .toggleStyle(.switch)
+
+                Text("Shows simple math results in a subtle right-side column (Numi-style).")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Divider()
+
             // Import/Export
             VStack(alignment: .leading, spacing: 10) {
                 Text("Import / Export")

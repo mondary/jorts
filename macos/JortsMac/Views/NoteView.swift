@@ -31,6 +31,7 @@ struct NoteView: View {
                 focusRequestToken: editorFocusRequestToken,
                 isEditable: mode == .normal,
                 typingEffect: settings.typingEffect,
+                showsInlineCalculations: settings.inlineCalculations,
                 font: editorFont,
                 textColor: document.theme.autoTextColor,
                 insertionPointColor: document.theme.autoTextColor,
