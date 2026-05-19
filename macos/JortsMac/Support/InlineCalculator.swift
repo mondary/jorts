@@ -53,7 +53,7 @@ private struct Value: Equatable {
 }
 
 private enum UnitKind {
-    case length, mass, duration, temperature
+    case length, mass, duration, temperature, volume
 }
 
 private struct UnitSpec: Equatable {
@@ -69,6 +69,7 @@ private enum UnitRegistry {
         if let u = mass[s] { return u }
         if let u = duration[s] { return u }
         if let u = temperature[s] { return u }
+        if let u = volume[s] { return u }
         return nil
     }
 
@@ -114,6 +115,15 @@ private enum UnitRegistry {
         "f": .init(kind: .temperature, unit: UnitTemperature.fahrenheit, display: "°F"),
         "°f": .init(kind: .temperature, unit: UnitTemperature.fahrenheit, display: "°F"),
         "k": .init(kind: .temperature, unit: UnitTemperature.kelvin, display: "K")
+    ]
+
+    private static let volume: [String: UnitSpec] = [
+        "ml": .init(kind: .volume, unit: UnitVolume.milliliters, display: "mL"),
+        "milliliter": .init(kind: .volume, unit: UnitVolume.milliliters, display: "mL"),
+        "milliliters": .init(kind: .volume, unit: UnitVolume.milliliters, display: "mL"),
+        "l": .init(kind: .volume, unit: UnitVolume.liters, display: "L"),
+        "liter": .init(kind: .volume, unit: UnitVolume.liters, display: "L"),
+        "liters": .init(kind: .volume, unit: UnitVolume.liters, display: "L")
     ]
 }
 

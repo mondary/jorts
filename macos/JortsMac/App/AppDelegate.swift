@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import Carbon.HIToolbox
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let settings = AppSettings()
@@ -9,6 +10,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var commandPaletteWindowController: CommandPaletteWindowController?
     private var statusMenuController: StatusMenuController?
     private var cancellables: Set<AnyCancellable> = []
+    private var globalHotKeyRef: EventHotKeyRef?
+    private var globalHotKeyHandlerRef: EventHandlerRef?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         FontRegistrar.registerBundledFonts()
@@ -17,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         manager.onShowList = { [weak self] in self?.showNotesList(nil) }
         manager.launch()
         buildStatusMenu()
+        registerGlobalHotKey()
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -108,6 +112,54 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func newNote(_ sender: Any?) {
         manager.createNote()
+    }
+
+    private func registerGlobalHotKey() {
+        // Shift+Space anywhere -> new note.
+        // Warning: this can conflict with some input source shortcuts.
+        let hotKeyID = EventHotKeyID(signature: OSType("JRTS".fourCharCodeValue), id: 1)
+        let modifiers: UInt32 = UInt32(shiftKey)
+        let keyCode: UInt32 = UInt32(kVK_Space)
+
+        let status = RegisterEventHotKey(keyCode, modifiers, hotKeyID, GetApplicationEventTarget(), 0, &globalHotKeyRef)
+        guard status == noErr else { return }
+
+        var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
+        let handler: EventHandlerUPP = { _, eventRef, userData in
+            guard let userData else { return noErr }
+            let delegate = Unmanaged<AppDelegate>.fromOpaque(userData).takeUnretainedValue()
+            delegate.handleGlobalHotKey(eventRef)
+            return noErr
+        }
+
+        InstallEventHandler(
+            GetApplicationEventTarget(),
+            handler,
+            1,
+            &eventType,
+            UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque()),
+            &globalHotKeyHandlerRef
+        )
+    }
+
+    private func handleGlobalHotKey(_ event: EventRef?) {
+        guard let event else { return }
+        var hotKeyID = EventHotKeyID()
+        let status = GetEventParameter(
+            event,
+            EventParamName(kEventParamDirectObject),
+            EventParamType(typeEventHotKeyID),
+            nil,
+            MemoryLayout<EventHotKeyID>.size,
+            nil,
+            &hotKeyID
+        )
+        guard status == noErr else { return }
+        guard hotKeyID.signature == OSType("JRTS".fourCharCodeValue), hotKeyID.id == 1 else { return }
+
+        DispatchQueue.main.async { [weak self] in
+            self?.manager.createNote()
+        }
     }
 
     @objc private func saveAll(_ sender: Any?) {
@@ -348,5 +400,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
         item.target = nil
         return item
+    }
+}
+
+private extension String {
+    var fourCharCodeValue: UInt32 {
+        var result: UInt32 = 0
+        for scalar in unicodeScalars.prefix(4) {
+            result = (result << 8) + scalar.value
+        }
+        return result
     }
 }

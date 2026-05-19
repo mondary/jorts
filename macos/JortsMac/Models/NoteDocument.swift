@@ -76,6 +76,13 @@ final class NoteDocument: ObservableObject, Identifiable {
         }
     }
 
+    @Published var pinned: Bool {
+        didSet {
+            guard pinned != oldValue else { return }
+            markChanged()
+        }
+    }
+
     @Published var isFocused = true
     @Published var listToggleRequestToken = 0
     @Published var versions: [NoteVersion]
@@ -98,6 +105,7 @@ final class NoteDocument: ObservableObject, Identifiable {
         size = CGSize(width: data.width, height: data.height)
         position = data.x != nil && data.y != nil ? CGPoint(x: data.x!, y: data.y!) : nil
         versions = data.versions
+        pinned = data.pinned
     }
 
     var windowTitle: String {
@@ -129,7 +137,8 @@ final class NoteDocument: ObservableObject, Identifiable {
             x: position.map { Double($0.x) },
             y: position.map { Double($0.y) }
             ,
-            versions: versions
+            versions: versions,
+            pinned: pinned
         )
     }
 

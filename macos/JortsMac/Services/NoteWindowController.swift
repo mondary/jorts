@@ -97,6 +97,14 @@ final class NoteWindowController: NSWindowController, NSWindowDelegate {
                 window?.backgroundColor = theme.backgroundNSColor
             }
             .store(in: &cancellables)
+
+        document.$pinned
+            .sink { [weak self] pinned in
+                self?.applyPinned(pinned)
+            }
+            .store(in: &cancellables)
+
+        applyPinned(document.pinned)
     }
 
     required init?(coder: NSCoder) {
@@ -140,6 +148,17 @@ final class NoteWindowController: NSWindowController, NSWindowDelegate {
     private func syncWindowFromDocument() {
         window?.title = noteDocument.windowTitle
         window?.backgroundColor = noteDocument.theme.backgroundNSColor
+    }
+
+    private func applyPinned(_ pinned: Bool) {
+        guard let window else { return }
+        if pinned {
+            window.level = .floating
+            window.collectionBehavior.insert(.canJoinAllSpaces)
+        } else {
+            window.level = .normal
+            window.collectionBehavior.remove(.canJoinAllSpaces)
+        }
     }
 
     private static func constrainedFrame(_ frame: NSRect) -> NSRect {

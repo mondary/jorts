@@ -151,6 +151,13 @@ final class NoteManager {
         document.monospace.toggle()
     }
 
+    func togglePinForActiveNote() {
+        guard let document = activeController()?.noteDocument else {
+            return
+        }
+        document.pinned.toggle()
+    }
+
     func zoomActiveNote(by delta: Int) {
         guard let document = activeController()?.noteDocument else {
             return

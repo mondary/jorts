@@ -433,7 +433,7 @@ final class EffectOverlayView: NSView {
         emitter.emitterShape = .point
         emitter.renderMode = .additive
         emitter.beginTime = CACurrentMediaTime()
-        emitter.lifetime = 0.5
+        emitter.lifetime = 0.22
 
         let colors: [CGColor] = [
             NSColor.systemPink.cgColor,
@@ -448,9 +448,9 @@ final class EffectOverlayView: NSView {
 
         emitter.emitterCells = (0..<10).map { _ in
             let cell = CAEmitterCell()
-            cell.birthRate = 90
-            cell.lifetime = 0.6
-            cell.lifetimeRange = 0.2
+            cell.birthRate = 55
+            cell.lifetime = 0.26
+            cell.lifetimeRange = 0.10
             cell.velocity = 110
             cell.velocityRange = 80
             cell.emissionRange = .pi * 2
@@ -458,7 +458,7 @@ final class EffectOverlayView: NSView {
             cell.scaleRange = 0.12
             cell.spin = 3
             cell.spinRange = 5
-            cell.alphaSpeed = -1.6
+            cell.alphaSpeed = -3.0
             cell.color = colors.randomElement()
             cell.contents = NSImage(systemSymbolName: "sparkle", accessibilityDescription: nil)?
                 .withSymbolConfiguration(.init(pointSize: 12, weight: .regular))?
@@ -467,7 +467,7 @@ final class EffectOverlayView: NSView {
         }
 
         layer.addSublayer(emitter)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak emitter] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak emitter] in
             emitter?.removeFromSuperlayer()
         }
     }
@@ -480,7 +480,7 @@ final class EffectOverlayView: NSView {
         emitter.emitterSize = CGSize(width: 10, height: 10)
         emitter.renderMode = .additive
         emitter.beginTime = CACurrentMediaTime()
-        emitter.lifetime = 0.35
+        emitter.lifetime = 0.18
 
         let colors: [CGColor] = [
             NSColor.systemRed.cgColor,
@@ -496,9 +496,9 @@ final class EffectOverlayView: NSView {
 
         emitter.emitterCells = (0..<5).map { i in
             let cell = CAEmitterCell()
-            cell.birthRate = i == 0 ? 520 : 220
-            cell.lifetime = 0.35
-            cell.lifetimeRange = 0.18
+            cell.birthRate = i == 0 ? 320 : 140
+            cell.lifetime = 0.20
+            cell.lifetimeRange = 0.10
             cell.velocity = i == 0 ? 290 : 220
             cell.velocityRange = 180
             cell.emissionRange = .pi * 2
@@ -511,7 +511,7 @@ final class EffectOverlayView: NSView {
         }
 
         layer.addSublayer(emitter)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) { [weak emitter] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) { [weak emitter] in
             emitter?.removeFromSuperlayer()
         }
     }
@@ -789,16 +789,24 @@ final class InlineCalcResultsView: NSView {
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = .right
         paragraph.lineBreakMode = .byClipping
+        paragraph.minimumLineHeight = font.defaultLineHeight(for: font)
+        paragraph.maximumLineHeight = font.defaultLineHeight(for: font)
 
         let attributed = NSAttributedString(
             string: resultsText,
             attributes: [
-                .font: NSFont.monospacedSystemFont(ofSize: font.pointSize, weight: .regular),
+                .font: font,
                 .foregroundColor: color.withAlphaComponent(0.55),
                 .paragraphStyle: paragraph
             ]
         )
         textLayer.string = attributed
         needsLayout = true
+    }
+}
+
+private extension NSFont {
+    func defaultLineHeight(for font: NSFont) -> CGFloat {
+        font.ascender - font.descender + font.leading
     }
 }
