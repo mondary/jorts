@@ -65,6 +65,13 @@ swift build -c release
 
 **Note:** A distributable app bundle (`.app`) and proper installer are planned for future releases. For now, use the built executable or Xcode to run the app.
 
+### Inline calculations (macOS)
+
+Type simple math in a note to see results in a subtle right-side column.
+
+- Units: `10 km in m`, `5kg + 200g`, `32 f in c`
+- Variables (per render, top-to-bottom): `tax=1.2` then `100*tax`
+
 
 ## Storage
 
