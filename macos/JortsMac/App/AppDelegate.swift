@@ -102,6 +102,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .applicationVersion: "4.2.0 macOS port",
             .credits: credits
         ])
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     @objc private func newNote(_ sender: Any?) {

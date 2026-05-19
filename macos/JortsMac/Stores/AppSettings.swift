@@ -27,7 +27,10 @@ final class AppSettings: ObservableObject {
     }
 
     @Published var selectedLanguage: AppLanguage {
-        didSet { defaults.set(selectedLanguage.rawValue, forKey: Keys.selectedLanguage) }
+        didSet {
+            defaults.set(selectedLanguage.rawValue, forKey: Keys.selectedLanguage)
+            applyLanguagePreference()
+        }
     }
 
     @Published private(set) var shortcuts: [ShortcutAction: KeyboardShortcutSetting]
@@ -68,6 +71,16 @@ final class AppSettings: ObservableObject {
         randomizeNewNotePosition = defaults.bool(forKey: Keys.randomizeNewNotePosition)
         let effectRaw = defaults.string(forKey: Keys.typingEffect) ?? TypingEffect.off.rawValue
         typingEffect = TypingEffect(rawValue: effectRaw) ?? .off
+
+        applyLanguagePreference()
+    }
+
+    private func applyLanguagePreference() {
+        LocalizationController.shared.setLanguage(code: selectedLanguage.rawValue)
+
+        // Best-effort: also update system localization preferences for formatters, etc.
+        defaults.set([selectedLanguage.rawValue], forKey: "AppleLanguages")
+        defaults.set(selectedLanguage.rawValue, forKey: "AppleLocale")
     }
 
     func resetListPrefix() {

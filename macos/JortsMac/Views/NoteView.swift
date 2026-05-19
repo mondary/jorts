@@ -8,6 +8,7 @@ struct NoteView: View {
     @State private var fontSearchText = ""
     @State private var historyCursor = 0
     @State private var editorFocusRequestToken = 0
+    @State private var didApplyInitialEditorFocus = false
 
     let onNew: () -> Void
     let onDelete: () -> Void
@@ -55,6 +56,12 @@ struct NoteView: View {
         .frame(minWidth: 240, minHeight: 240)
         .background(document.theme.backgroundColor)
         .foregroundStyle(document.theme.autoTextColorColor)
+        .onAppear {
+            guard !didApplyInitialEditorFocus else { return }
+            didApplyInitialEditorFocus = true
+            focus = .editor
+            editorFocusRequestToken += 1
+        }
     }
 
     private var titleBar: some View {

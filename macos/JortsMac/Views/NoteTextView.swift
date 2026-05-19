@@ -370,6 +370,10 @@ final class EffectOverlayView: NSView {
         nil
     }
 
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        nil
+    }
+
     func emit(effect: TypingEffect, at point: CGPoint) {
         switch effect {
         case .off:
