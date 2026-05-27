@@ -13,14 +13,6 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         self.settings = settings
         self.clipboard = clipboard
 
-        self.hostingController = NSHostingController(rootView: ClipboardView(
-            clipboard: clipboard,
-            onCreateNoteFromItem: { [weak manager] item in
-                manager?.createNote(prefillContent: ClipboardWindowController.noteContent(from: item))
-            },
-            onCopyItem: { [weak clipboard] item in clipboard?.copyToPasteboard(item) }
-        ))
-
         let panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: 980, height: 380),
             styleMask: [.nonactivatingPanel, .titled, .closable, .fullSizeContentView],
@@ -48,6 +40,17 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
 
         super.init(window: panel)
         panel.delegate = self
+
+        // Hosting controller must be initialized after super.init so we can safely capture self.
+        self.hostingController = NSHostingController(rootView: ClipboardView(
+            clipboard: clipboard,
+            onCreateNoteFromItem: { [weak manager] item in
+                manager?.createNote(prefillContent: ClipboardWindowController.noteContent(from: item))
+            },
+            onCopyItem: { [weak clipboard] item in clipboard?.copyToPasteboard(item) },
+            onDismiss: { [weak self] in self?.dismissAnimated() }
+        ))
+        panel.contentViewController = self.hostingController
     }
 
     required init?(coder: NSCoder) { nil }

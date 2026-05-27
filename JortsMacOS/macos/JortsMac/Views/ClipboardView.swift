@@ -4,6 +4,7 @@ struct ClipboardView: View {
     @ObservedObject var clipboard: ClipboardManager
     let onCreateNoteFromItem: (ClipboardManager.Item) -> Void
     let onCopyItem: (ClipboardManager.Item) -> Void
+    let onDismiss: () -> Void
 
     @State private var query: String = ""
     @State private var selectedSource: String? = nil
@@ -16,6 +17,8 @@ struct ClipboardView: View {
     @State private var showExportPanel: Bool = false
     @State private var lightboxImage: NSImage?
     @State private var quickLookURLs: [URL] = []
+    @FocusState private var searchFocused: Bool
+    @State private var keyMonitor: Any?
 
     var body: some View {
         ZStack {
@@ -31,6 +34,8 @@ struct ClipboardView: View {
             .padding(.bottom, 14)
         }
         .frame(minWidth: 900, minHeight: 420)
+        .onAppear { installKeyMonitorIfNeeded() }
+        .onDisappear { removeKeyMonitorIfNeeded() }
     }
 
     private var topRow: some View {
@@ -98,6 +103,7 @@ struct ClipboardView: View {
             TextField(localizedString("search"), text: $query)
                 .textFieldStyle(.roundedBorder)
                 .frame(maxWidth: 360)
+                .focused($searchFocused)
 
             Picker("", selection: $kind) {
                 Text(localizedString("filter_all")).tag(ClipboardManager.Query.KindFilter.all)
@@ -176,6 +182,75 @@ struct ClipboardView: View {
             recentWindowMinutes: recentMinutes
         )
         return clipboard.filteredItems(q)
+    }
+
+    private func installKeyMonitorIfNeeded() {
+        guard keyMonitor == nil else { return }
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
+            handleKeyDown(event) ? nil : event
+        }
+    }
+
+    private func removeKeyMonitorIfNeeded() {
+        if let keyMonitor {
+            NSEvent.removeMonitor(keyMonitor)
+            self.keyMonitor = nil
+        }
+    }
+
+    private func handleKeyDown(_ event: NSEvent) -> Bool {
+        // Only handle when the clipboard drawer is frontmost.
+        guard NSApp.isActive else { return false }
+
+        // Esc closes.
+        if event.keyCode == 53 { // kVK_Escape
+            onDismiss()
+            return true
+        }
+
+        // Cmd+F focuses search.
+        if event.modifierFlags.contains(.command),
+           event.charactersIgnoringModifiers?.lowercased() == "f"
+        {
+            searchFocused = true
+            return true
+        }
+
+        let items = filteredItems
+        guard !items.isEmpty else { return false }
+
+        if selectedID == nil {
+            selectedID = items.first?.id
+        }
+
+        // Left / Right arrows.
+        if event.keyCode == 123 || event.keyCode == 124 { // left/right
+            let delta = (event.keyCode == 123) ? -1 : 1
+            moveSelection(delta: delta, items: items)
+            return true
+        }
+
+        // Enter / Return: copy. Cmd+Enter: convert to note.
+        if event.keyCode == 36 || event.keyCode == 76 { // return / enter
+            guard let id = selectedID, let item = items.first(where: { $0.id == id }) else { return true }
+            if event.modifierFlags.contains(.command) {
+                onCreateNoteFromItem(item)
+            } else {
+                onCopyItem(item)
+            }
+            return true
+        }
+
+        return false
+    }
+
+    private func moveSelection(delta: Int, items: [ClipboardManager.Item]) {
+        guard let id = selectedID, let idx = items.firstIndex(where: { $0.id == id }) else {
+            selectedID = items.first?.id
+            return
+        }
+        let next = max(0, min(items.count - 1, idx + delta))
+        selectedID = items[next].id
     }
 }
 
