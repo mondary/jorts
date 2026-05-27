@@ -81,6 +81,7 @@
   - New note: `jortsmacos://new`
   - Reopen last note: `jortsmacos://last`
   - Show notes list: `jortsmacos://list`
+  - Open clipboard: `jortsmacos://clipboard`
 - Default storage folder: `~/Documents/JortsMacOS/`
 
 ## ⚙️ Settings

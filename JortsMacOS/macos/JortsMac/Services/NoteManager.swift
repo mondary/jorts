@@ -40,6 +40,26 @@ final class NoteManager {
         createNote(note, activate: true, scheduleSave: true)
     }
 
+    func createNote(prefillContent: String, activate: Bool = true) {
+        let base = RandomContent.newNoteData(skipping: latestTheme)
+        let note = NoteData(
+            title: base.title,
+            theme: base.theme,
+            content: prefillContent,
+            monospace: base.monospace,
+            fontFamily: base.fontFamily,
+            zoom: base.zoom,
+            width: base.width,
+            height: base.height,
+            x: base.x,
+            y: base.y,
+            macFrameVersion: base.macFrameVersion,
+            versions: base.versions,
+            pinned: base.pinned
+        )
+        createNote(note, activate: activate, scheduleSave: true)
+    }
+
     func createNote(_ data: NoteData, activate: Bool = true, scheduleSave: Bool = true) {
         latestTheme = data.theme
         let document = NoteDocument(data: data)

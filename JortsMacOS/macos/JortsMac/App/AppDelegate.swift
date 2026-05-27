@@ -8,11 +8,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var preferencesWindowController: PreferencesWindowController?
     private var notesListWindowController: NotesListWindowController?
     private var commandPaletteWindowController: CommandPaletteWindowController?
+    private var clipboardWindowController: ClipboardWindowController?
     private var statusMenuController: StatusMenuController?
     private var cancellables: Set<AnyCancellable> = []
     private var globalHotKeyNewRef: EventHotKeyRef?
     private var globalHotKeyLastRef: EventHotKeyRef?
     private var globalHotKeyHandlerRef: EventHandlerRef?
+    private lazy var clipboard = ClipboardManager()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         FontRegistrar.registerBundledFonts()
@@ -23,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         buildStatusMenu()
         registerGlobalHotKey()
         donateSpotlightActivities()
+        clipboard.start()
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -373,6 +376,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    @objc private func showClipboard(_ sender: Any?) {
+        if clipboardWindowController == nil {
+            clipboardWindowController = ClipboardWindowController(manager: manager, settings: settings, clipboard: clipboard)
+        }
+        clipboardWindowController?.showWindow(nil)
+        clipboardWindowController?.window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     private func observeSettings() {
         settings.$shortcuts
             .dropFirst()
@@ -459,6 +471,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         windowMenuItem.submenu = windowMenu
         windowMenu.addItem(menuItem(localizedString("show_all_notes"), action: #selector(showAllNotes(_:)), shortcut: .showAllNotes))
         windowMenu.addItem(menuItem(localizedString("show_notes_list"), action: #selector(showNotesList(_:)), shortcut: .showNotesList))
+        windowMenu.addItem(menuItem(localizedString("clipboard"), action: #selector(showClipboard(_:)), key: "v", modifiers: [.command, .shift]))
         windowMenu.addItem(.separator())
         windowMenu.addItem(menuItem(localizedString("command_palette"), action: #selector(showCommandPalette(_:)), key: "k", modifiers: [.command]))
         windowMenu.addItem(.separator())
@@ -518,6 +531,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case new
         case last
         case list
+        case clipboard
     }
 
     private func handleExternalURL(_ url: URL) {
@@ -552,6 +566,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             performExternalAction(.list)
             return true
         }
+        if type.hasSuffix(".clipboard") {
+            performExternalAction(.clipboard)
+            return true
+        }
         return false
     }
 
@@ -564,6 +582,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             manager.focusLastFocusedNote()
         case .list:
             showNotesList(nil)
+        case .clipboard:
+            showClipboard(nil)
         }
     }
 
@@ -575,7 +595,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let activities: [(id: String, titleKey: String)] = [
             ("\(bundleID).newNote", "new_note"),
             ("\(bundleID).lastNote", "reopen_last_note"),
-            ("\(bundleID).notesList", "show_notes_list")
+            ("\(bundleID).notesList", "show_notes_list"),
+            ("\(bundleID).clipboard", "clipboard")
         ]
 
         for (id, titleKey) in activities {

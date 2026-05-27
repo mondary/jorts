@@ -160,6 +160,11 @@
 "minimize" = "Minimize";
 "zoom" = "Zoom";
 "show_notes_list" = "Show Notes List";
+"clipboard" = "Clipboard";
+"clipboard_capture" = "Capture";
+"all_sources" = "All sources";
+"unknown_source" = "Unknown";
+"convert_to_note" = "Convert to note";
 "insert_emoji" = "Insert emoji";
 "change_color" = "Change color";
 "history_restore" = "History (restore previous versions)";

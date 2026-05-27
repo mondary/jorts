@@ -160,6 +160,11 @@
 "minimize" = "Réduire";
 "zoom" = "Zoom";
 "show_notes_list" = "Afficher la liste des notes";
+"clipboard" = "Presse-papiers";
+"clipboard_capture" = "Capture";
+"all_sources" = "Toutes les sources";
+"unknown_source" = "Inconnu";
+"convert_to_note" = "Convertir en note";
 "insert_emoji" = "Insérer un emoji";
 "change_color" = "Changer la couleur";
 "history_restore" = "Historique (restaurer une version précédente)";

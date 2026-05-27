@@ -159,6 +159,11 @@
 "minimize" = "Minimizza";
 "zoom" = "Zoom";
 "show_notes_list" = "Mostra lista note";
+"clipboard" = "Appunti";
+"clipboard_capture" = "Acquisizione";
+"all_sources" = "Tutte le sorgenti";
+"unknown_source" = "Sconosciuto";
+"convert_to_note" = "Converti in nota";
 "insert_emoji" = "Inserisci emoji";
 "change_color" = "Cambia colore";
 "history_restore" = "Cronologia (ripristina versioni precedenti)";

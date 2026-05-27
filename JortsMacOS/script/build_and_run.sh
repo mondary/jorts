@@ -113,6 +113,7 @@ cat >"$INFO_PLIST" <<PLIST
     <string>$BUNDLE_ID.newNote</string>
     <string>$BUNDLE_ID.lastNote</string>
     <string>$BUNDLE_ID.notesList</string>
+    <string>$BUNDLE_ID.clipboard</string>
   </array>
   <key>NSHighResolutionCapable</key>
   <true/>
