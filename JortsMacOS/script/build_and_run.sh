@@ -52,8 +52,8 @@ chmod +x "$APP_BINARY"
 
 find "$BUILD_DIR" -maxdepth 1 -name '*.bundle' -exec cp -R {} "$APP_RESOURCES/" \;
 
-ICON_SOURCE="$ROOT_DIR/data/icons/default/hicolor/512.png"
-STATUS_ICON_SOURCE="$ROOT_DIR/data/icons/default/hicolor/24.png"
+ICON_SOURCE="$REPO_ROOT/submodules/jorts/data/icons/default/hicolor/512.png"
+STATUS_ICON_SOURCE="$REPO_ROOT/submodules/jorts/data/icons/default/hicolor/24.png"
 ICONSET="$DIST_DIR/Jorts.iconset"
 ICON_FILE="$APP_RESOURCES/Jorts.icns"
 STATUS_ICON_FILE="$APP_RESOURCES/JortsStatus.png"
