@@ -13,8 +13,8 @@ dist
 JortsMacOS/dist
 JortsMacOS/.build
 .build
-releases/dev/
-releases/dev/*.app
+releases/
+releases/*.app
 DerivedData
 *.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
