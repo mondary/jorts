@@ -171,6 +171,10 @@
 "position_left" = "Left";
 "position_right" = "Right";
 "clipboard_position_hint" = "Choose where the clipboard drawer appears.";
+"characters" = "characters";
+"files" = "files";
+"image" = "Image";
+"link" = "Link";
 "insert_emoji" = "Insert emoji";
 "change_color" = "Change color";
 "history_restore" = "History (restore previous versions)";

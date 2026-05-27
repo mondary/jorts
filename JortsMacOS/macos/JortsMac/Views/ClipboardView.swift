@@ -7,80 +7,92 @@ struct ClipboardView: View {
 
     @State private var query: String = ""
     @State private var selectedSource: String? = nil
+    @State private var selectedID: UUID?
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            content
+        ZStack {
+            VibrancyBackground()
+                .ignoresSafeArea()
+
+            VStack(spacing: 18) {
+                topRow
+                bottomBar
+            }
+            .padding(.top, 18)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 14)
         }
-        .frame(minWidth: 720, minHeight: 320)
-        .background(Color(NSColor.windowBackgroundColor))
+        .frame(minWidth: 900, minHeight: 320)
     }
 
-    private var header: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 10) {
-                Text(localizedString("clipboard"))
-                    .font(.title2.weight(.semibold))
-
-                Spacer()
-
-                Toggle(isOn: Binding(
-                    get: { !clipboard.isPaused },
-                    set: { clipboard.isPaused = !$0 }
-                )) {
-                    Text(localizedString("clipboard_capture"))
-                        .font(.subheadline)
-                }
-                .toggleStyle(.switch)
-
-                Button {
-                    clipboard.clear()
-                } label: {
-                    Image(systemName: "trash")
-                        .frame(width: 28, height: 28)
-                }
-                .buttonStyle(.plain)
-                .help(localizedString("clear"))
-            }
-
-            HStack(spacing: 10) {
-                TextField(localizedString("search"), text: $query)
-                    .textFieldStyle(.roundedBorder)
-
-                Picker("", selection: $selectedSource) {
-                    Text(localizedString("all_sources")).tag(String?.none)
-                    ForEach(sources, id: \.self) { src in
-                        Text(src).tag(String?.some(src))
-                    }
-                }
-                .frame(width: 220)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Color(NSColor.controlBackgroundColor))
-    }
-
-    private var content: some View {
-        ScrollView {
-            LazyVGrid(columns: columns, spacing: 10) {
+    private var topRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            LazyHStack(spacing: 16) {
                 ForEach(filteredItems) { item in
-                    ClipboardCard(
+                    DeckCard(
                         item: item,
+                        isSelected: selectedID == item.id,
+                        onSelect: { selectedID = item.id },
                         onCopy: { onCopyItem(item) },
                         onMakeNote: { onCreateNoteFromItem(item) }
                     )
                 }
             }
-            .padding(12)
+            .padding(.horizontal, 2)
+            .padding(.bottom, 4)
+        }
+        .frame(maxWidth: .infinity)
+        .onAppear {
+            if selectedID == nil {
+                selectedID = filteredItems.first?.id
+            }
         }
     }
 
-    private var columns: [GridItem] {
-        [
-            GridItem(.adaptive(minimum: 240, maximum: 360), spacing: 10, alignment: .top)
-        ]
+    private var bottomBar: some View {
+        HStack(spacing: 12) {
+            Toggle(isOn: Binding(
+                get: { !clipboard.isPaused },
+                set: { clipboard.isPaused = !$0 }
+            )) {
+                Text(localizedString("clipboard_capture"))
+                    .font(.subheadline.weight(.medium))
+            }
+            .toggleStyle(.switch)
+
+            TextField(localizedString("search"), text: $query)
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 360)
+
+            Picker("", selection: $selectedSource) {
+                Text(localizedString("all_sources")).tag(String?.none)
+                ForEach(sources, id: \.self) { src in
+                    Text(src).tag(String?.some(src))
+                }
+            }
+            .frame(width: 220)
+
+            Spacer()
+
+            Button {
+                clipboard.clear()
+            } label: {
+                Image(systemName: "trash")
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .help(localizedString("clear"))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.white.opacity(0.20))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                )
+        )
     }
 
     private var sources: [String] {
@@ -97,64 +109,74 @@ struct ClipboardView: View {
     }
 }
 
-private struct ClipboardCard: View {
+private struct DeckCard: View {
     let item: ClipboardManager.Item
+    let isSelected: Bool
+    let onSelect: () -> Void
     let onCopy: () -> Void
     let onMakeNote: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
                 AppIconView(bundleID: item.sourceBundleID)
-                    .frame(width: 18, height: 18)
-
-                Image(systemName: iconName)
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-                Text(item.sourceAppName ?? localizedString("unknown_source"))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
+                    .frame(width: 22, height: 22)
+                Text("⌘1")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Color(red: 0/255, green: 122/255, blue: 255/255))
                 Spacer()
                 Text(relativeTime(item.createdAt))
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(.secondary)
             }
 
             preview
 
             Text(item.previewText)
-                .font(.system(.body, design: .default))
-                .lineLimit(item.kind == .image ? 2 : 5)
+                .font(.system(size: 15, weight: .regular))
+                .foregroundStyle(Color(NSColor.labelColor))
+                .lineLimit(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(spacing: 8) {
+            Spacer(minLength: 0)
+
+            HStack(spacing: 10) {
+                Text(metaText)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                Spacer()
                 Button(action: onCopy) {
                     Image(systemName: "doc.on.doc")
-                        .frame(width: 28, height: 28)
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(width: 34, height: 34)
                 }
                 .buttonStyle(.plain)
                 .help(localizedString("copy"))
 
                 Button(action: onMakeNote) {
                     Image(systemName: "note.text.badge.plus")
-                        .frame(width: 28, height: 28)
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(width: 34, height: 34)
                 }
                 .buttonStyle(.plain)
                 .help(localizedString("convert_to_note"))
-
-                Spacer()
             }
         }
-        .padding(12)
+        .padding(18)
+        .frame(width: 320, height: 370)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(NSColor.textBackgroundColor).opacity(0.65))
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.white)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color(NSColor.separatorColor).opacity(0.35), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(isSelected ? Color(red: 0/255, green: 122/255, blue: 255/255) : Color(NSColor.separatorColor).opacity(0.25), lineWidth: isSelected ? 3 : 1)
         )
+        .shadow(color: Color.black.opacity(isSelected ? 0.10 : 0.04), radius: isSelected ? 18 : 14, x: 0, y: 8)
+        .contentShape(RoundedRectangle(cornerRadius: 20))
+        .onTapGesture {
+            onSelect()
+        }
     }
 
     @ViewBuilder
@@ -217,6 +239,19 @@ private struct ClipboardCard: View {
         }
     }
 
+    private var metaText: String {
+        switch item.payload {
+        case .text(let t):
+            return "\(t.count) \(localizedString("characters"))"
+        case .url:
+            return localizedString("link")
+        case .imageData:
+            return localizedString("image")
+        case .fileURLs(let urls):
+            return "\(urls.count) \(localizedString("files"))"
+        }
+    }
+
     private func relativeTime(_ date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short
@@ -264,4 +299,16 @@ private struct FileIconView: View {
             .aspectRatio(contentMode: .fit)
             .clipShape(RoundedRectangle(cornerRadius: 4))
     }
+}
+
+private struct VibrancyBackground: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let v = NSVisualEffectView()
+        v.material = .hudWindow
+        v.blendingMode = .behindWindow
+        v.state = .active
+        return v
+    }
+
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
 }
