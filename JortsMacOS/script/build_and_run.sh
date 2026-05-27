@@ -8,7 +8,9 @@ BUNDLE_ID="io.github.ellycode.jorts.macos"
 MIN_SYSTEM_VERSION="13.0"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DIST_DIR="$ROOT_DIR/dist"
+REPO_ROOT="$(cd "$ROOT_DIR/.." && pwd)"
+DIST_DIR="$REPO_ROOT/releases/dev"
+LEGACY_DIST_LINK="$ROOT_DIR/dist"
 APP_BUNDLE="$DIST_DIR/$BUNDLE_NAME.app"
 APP_CONTENTS="$APP_BUNDLE/Contents"
 APP_MACOS="$APP_CONTENTS/MacOS"
@@ -34,6 +36,15 @@ swift build
 BUILD_DIR="$(swift build --show-bin-path)"
 BUILD_BINARY="$BUILD_DIR/$APP_NAME"
 
+# Keep legacy path for older docs/scripts: JortsMacOS/dist -> ../releases/dev
+if [[ -e "$LEGACY_DIST_LINK" && ! -L "$LEGACY_DIST_LINK" ]]; then
+  rm -rf "$LEGACY_DIST_LINK"
+fi
+if [[ ! -L "$LEGACY_DIST_LINK" ]]; then
+  ln -s "../releases/dev" "$LEGACY_DIST_LINK" || true
+fi
+
+mkdir -p "$DIST_DIR"
 rm -rf "$APP_BUNDLE"
 mkdir -p "$APP_MACOS" "$APP_RESOURCES"
 cp "$BUILD_BINARY" "$APP_BINARY"
