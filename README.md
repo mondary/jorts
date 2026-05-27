@@ -29,6 +29,10 @@
   - variables par lignes
   - conversions d’unités
   - parsing d’expressions dans l’éditeur
+- Icônes inline automatiques:
+  - intégration du catalogue `developer-icons`
+  - insertion d’icône à la fin d’un mot reconnu
+  - plus de 300 icônes techniques disponibles
 - Options de calcul inline activables/désactivables dans les réglages.
 - Moteur de saisie texte enrichi:
   - toggle listes
@@ -63,6 +67,7 @@
 - Refactor repo:
   - `JortsMacOS/` pour le code app
   - `submodules/jorts` pour la source d’inspiration
+  - `submodules/developer-icons` pour la source des icônes techniques
   - `releases/` dédié artefacts
 
 ## 🧠 Utilisation
@@ -88,6 +93,7 @@
 - Non utilisé pour ce projet actuellement.
 
 ## 🧾 Changelog
+- `182f57a` : ajout icônes inline dans les notes.
 - `d06eea4` : refactor structure repo (`JortsMacOS/`, `submodules/jorts`, `releases`).
 - `f9c95c5` : shortcuts globaux configurables + unification run dev + stockage par défaut.
 - `45a7297` : nouveaux raccourcis + traduction.

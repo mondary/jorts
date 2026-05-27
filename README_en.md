@@ -29,6 +29,10 @@
   - per-line variables
   - unit conversions
   - expression parsing inside editor
+- Automatic inline icons:
+  - `developer-icons` catalog integration
+  - icon insertion after recognized words
+  - 300+ technical icons available
 - Inline calculator toggle in settings.
 - Enhanced editing engine:
   - list toggle
@@ -63,6 +67,7 @@
 - Repository refactor:
   - `JortsMacOS/` for app source
   - `submodules/jorts` for upstream inspiration
+  - `submodules/developer-icons` for technical icon source assets
   - `releases/` for artifacts
 
 ## 🧠 Usage
@@ -88,6 +93,7 @@
 - Not used for this project at this stage.
 
 ## 🧾 Changelog
+- `182f57a`: inline icons added to notes.
 - `d06eea4`: major repository layout refactor (`JortsMacOS/`, `submodules/jorts`, `releases`).
 - `f9c95c5`: configurable global shortcuts + unified dev run + default storage updates.
 - `45a7297`: new shortcuts + translation updates.

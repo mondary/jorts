@@ -1,3 +1,6 @@
 [submodule "submodules/jorts"]
 	path = submodules/jorts
 	url = https://github.com/elly-code/jorts.git
+[submodule "submodules/developer-icons"]
+	path = submodules/developer-icons
+	url = https://github.com/xandemon/developer-icons.git
