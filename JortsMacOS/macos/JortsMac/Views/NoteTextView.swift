@@ -72,6 +72,10 @@ struct NoteTextView: NSViewRepresentable {
             textView.setSelectedRange(selectedRange.clamped(toLength: (text as NSString).length))
         }
 
+        // Ensure brand icons are present even when a note is reopened (text is reloaded from storage).
+        // This only affects the displayed attributed string; stored text remains plain via sanitization.
+        context.coordinator.applyBrandIconsIfNeeded(in: textView)
+
         host.updateInlineCalculations(noteText: textView.string, font: font, color: textColor)
 
         if context.coordinator.lastToggleListRequestToken != toggleListRequestToken {
@@ -205,7 +209,8 @@ struct NoteTextView: NSViewRepresentable {
                 }
             }
 
-            parent.text = textView.string
+            // Never persist NSTextAttachment placeholders (U+FFFC) into storage.
+            parent.text = sanitizedPlainText(from: textView)
         }
 
         func textViewDidChangeSelection(_ notification: Notification) {
@@ -295,9 +300,65 @@ struct NoteTextView: NSViewRepresentable {
                 textView.insertText(" \(badge.title)\(replacement)", replacementRange: range)
             }
             isApplyingChange = false
-            parent.text = textView.string
+            parent.text = sanitizedPlainText(from: textView)
             textView.didChangeText()
             return true
+        }
+
+        func applyBrandIconsIfNeeded(in textView: NSTextView) {
+            guard parent.showsInlineBrandIcons else { return }
+            guard !isApplyingChange else { return }
+            guard let storage = textView.textStorage else { return }
+
+            // We regenerate icons from the plain text. This keeps storage clean and makes reopen deterministic.
+            let plain = sanitizedPlainText(from: textView)
+            let ns = plain as NSString
+            if ns.length == 0 { return }
+
+            // Apply only if the displayed string is currently plain (no attachments). This avoids rework.
+            if textView.string.contains("\u{FFFC}") {
+                return
+            }
+
+            let fullRange = NSRange(location: 0, length: ns.length)
+            var rangesToReplace: [(tokenRange: NSRange, badge: InlineBrandIcons.Badge)] = []
+
+            ns.enumerateSubstrings(in: fullRange, options: [.byWords, .localized]) { substring, substringRange, _, _ in
+                guard let token = substring else { return }
+                guard let badge = InlineBrandIcons.badge(for: token) else { return }
+                rangesToReplace.append((substringRange, badge))
+            }
+
+            guard !rangesToReplace.isEmpty else { return }
+
+            // Replace from end to start so ranges stay valid.
+            isApplyingChange = true
+            storage.beginEditing()
+            for item in rangesToReplace.reversed() {
+                let tokenEnd = item.tokenRange.location + item.tokenRange.length
+                if tokenEnd < ns.length {
+                    let nextChar = ns.substring(with: NSRange(location: tokenEnd, length: 1))
+                    // If there's already a space after the token, keep it; we'll still insert icon after that.
+                    _ = nextChar
+                }
+
+                guard let attachment = BrandIconAttachment.make(for: item.badge, font: parent.font) else { continue }
+                let insert = NSMutableAttributedString(string: " ")
+                insert.append(NSAttributedString(attachment: attachment))
+                storage.insert(insert, at: tokenEnd)
+            }
+            storage.endEditing()
+            isApplyingChange = false
+        }
+
+        private func sanitizedPlainText(from textView: NSTextView) -> String {
+            // NSTextAttachment appears as U+FFFC in string. We also remove the leading space we insert before icons.
+            // This keeps persisted notes clean and stable.
+            let raw = textView.string
+            if !raw.contains("\u{FFFC}") { return raw }
+            var out = raw.replacingOccurrences(of: " \u{FFFC}", with: "")
+            out = out.replacingOccurrences(of: "\u{FFFC}", with: "")
+            return out
         }
 
         private func caretPoint(in textView: NSTextView) -> CGPoint? {
