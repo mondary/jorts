@@ -121,6 +121,7 @@ struct NoteTextView: NSViewRepresentable {
         private var lastEffectAt: TimeInterval = 0
         private var lastCaretHostPoint: CGPoint?
         private var lastCaretAt: TimeInterval = 0
+        private var suppressBrandIconsUntil: TimeInterval = 0
 
         init(_ parent: NoteTextView) {
             self.parent = parent
@@ -176,6 +177,10 @@ struct NoteTextView: NSViewRepresentable {
                   let textView = notification.object as? NSTextView else {
                 return
             }
+
+            // When the user is actively editing (especially backspace), do not auto-reinject brand icons.
+            // Otherwise the user cannot delete the icon because it immediately comes back on SwiftUI refresh.
+            suppressBrandIconsUntil = Date().timeIntervalSinceReferenceDate + 0.35
 
             maybeEmitTypingEffect(from: textView)
 
@@ -309,6 +314,8 @@ struct NoteTextView: NSViewRepresentable {
             guard parent.showsInlineBrandIcons else { return }
             guard !isApplyingChange else { return }
             guard let storage = textView.textStorage else { return }
+            let now = Date().timeIntervalSinceReferenceDate
+            guard now >= suppressBrandIconsUntil else { return }
 
             // We regenerate icons from the plain text. This keeps storage clean and makes reopen deterministic.
             let plain = sanitizedPlainText(from: textView)

@@ -111,6 +111,12 @@ cat >"$INFO_PLIST" <<PLIST
 </plist>
 PLIST
 
+# Ensure LaunchServices registers the URL scheme for the freshly built bundle.
+LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+if [[ -x "$LSREGISTER" ]]; then
+  "$LSREGISTER" -f "$APP_BUNDLE" >/dev/null 2>&1 || true
+fi
+
 open_app() {
   /usr/bin/open -n "$APP_BUNDLE"
 }
