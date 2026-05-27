@@ -13,8 +13,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var cancellables: Set<AnyCancellable> = []
     private var globalHotKeyNewRef: EventHotKeyRef?
     private var globalHotKeyLastRef: EventHotKeyRef?
+    private var globalHotKeyClipboardRef: EventHotKeyRef?
     private var globalHotKeyHandlerRef: EventHandlerRef?
-    private lazy var clipboard = ClipboardManager()
+    private lazy var clipboard = ClipboardManager(
+        persistence: ClipboardPersistence(baseDirectory: manager.storageURL.deletingLastPathComponent())
+    )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         FontRegistrar.registerBundledFonts()
@@ -169,6 +172,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         if newStatus != noErr { globalHotKeyLastRef = nil }
 
+        // Clipboard drawer (fixed global shortcut for now)
+        let clipboardID = EventHotKeyID(signature: signature, id: 3)
+        let clipboardStatus = RegisterEventHotKey(
+            UInt32(kVK_ANSI_V),
+            UInt32(cmdKey | shiftKey),
+            clipboardID,
+            GetApplicationEventTarget(),
+            0,
+            &globalHotKeyClipboardRef
+        )
+        if clipboardStatus != noErr { globalHotKeyClipboardRef = nil }
+
         installGlobalHotKeyHandlerIfNeeded()
     }
 
@@ -180,6 +195,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let globalHotKeyLastRef {
             UnregisterEventHotKey(globalHotKeyLastRef)
             self.globalHotKeyLastRef = nil
+        }
+        if let globalHotKeyClipboardRef {
+            UnregisterEventHotKey(globalHotKeyClipboardRef)
+            self.globalHotKeyClipboardRef = nil
         }
     }
 
@@ -267,6 +286,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.manager.focusLastFocusedNote()
             case 2:
                 self.manager.createNote()
+            case 3:
+                self.showClipboard(nil)
             default:
                 break
             }

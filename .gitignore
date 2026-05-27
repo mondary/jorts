@@ -26,6 +26,8 @@ DerivedData
 repo
 .vscode
 deploy
+.design
+design/
 .agent
 /AGENT.md
 /AGENTS.md
