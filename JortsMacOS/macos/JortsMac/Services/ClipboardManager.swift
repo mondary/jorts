@@ -50,6 +50,15 @@ final class ClipboardManager: ObservableObject {
         self.lastChangeCount = pasteboard.changeCount
         self.items = persistence.load()
         purgeIfNeeded()
+        fetchMissingMetadata()
+    }
+
+    private func fetchMissingMetadata() {
+        for item in items where item.kind == .url && item.metadataTitle == nil {
+            Task {
+                await fetchMetadata(for: item.id)
+            }
+        }
     }
 
     func start() {
@@ -189,22 +198,39 @@ final class ClipboardManager: ObservableObject {
         if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL],
            !urls.isEmpty
         {
-            let preview = urls.first?.lastPathComponent ?? "Files"
-            append(Item(
-                id: UUID(),
-                createdAt: Date(),
-                sourceBundleID: bundleID,
-                sourceAppName: appName,
-                kind: .fileURLs,
-                previewText: preview,
-                payload: .fileURLs(urls),
-                isPinned: false,
-                isLocked: false,
-                metadataTitle: nil,
-                metadataFaviconName: nil
-            ))
-            return
+            // If user copied an image file from Finder, prefer an actual image preview.
+            if urls.count == 1, let data = tryLoadImageFileDataIfPossible(urls[0]) {
+                append(Item(
+                    id: UUID(),
+                    createdAt: Date(),
+                    sourceBundleID: bundleID,
+                    sourceAppName: appName,
+                    kind: .image,
+                    previewText: urls[0].lastPathComponent,
+                    payload: .imageData(data),
+                    isPinned: false,
+                    isLocked: false,
+                    metadataTitle: nil,
+                    metadataFaviconName: nil
+                ))
+            } else {
+                let preview = urls.first?.lastPathComponent ?? "Files"
+                append(Item(
+                    id: UUID(),
+                    createdAt: Date(),
+                    sourceBundleID: bundleID,
+                    sourceAppName: appName,
+                    kind: .fileURLs,
+                    previewText: preview,
+                    payload: .fileURLs(urls),
+                    isPinned: false,
+                    isLocked: false,
+                    metadataTitle: nil,
+                    metadataFaviconName: nil
+                ))
             }
+            return
+        }
 
         // Images: robust extraction across apps (web, design tools, Finder, etc.)
         if let imageData = extractImageData(from: pasteboard) {
@@ -301,6 +327,16 @@ final class ClipboardManager: ObservableObject {
     private func frontmostAppIdentity() -> (bundleID: String?, name: String?) {
         let app = NSWorkspace.shared.frontmostApplication
         return (app?.bundleIdentifier, app?.localizedName)
+    }
+
+    private func tryLoadImageFileDataIfPossible(_ url: URL) -> Data? {
+        let ext = url.pathExtension.lowercased()
+        let likelyImage = ["png", "jpg", "jpeg", "gif", "webp", "tiff", "heic", "heif"].contains(ext)
+        guard likelyImage else { return nil }
+        if let img = NSImage(contentsOf: url), let tiff = img.tiffRepresentation, !tiff.isEmpty {
+            return tiff
+        }
+        return nil
     }
 
     private func extractImageData(from pasteboard: NSPasteboard) -> Data? {
@@ -415,8 +451,34 @@ final class ClipboardPersistence {
         do {
             try fm.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             try data.write(to: url, options: [.atomic])
+            cleanupOrphanedFiles(
+                validImageNames: Set(stored.compactMap { $0.payloadImageName }),
+                validFaviconNames: Set(stored.compactMap { $0.metadataFaviconName })
+            )
         } catch {
             NSLog("JortsMac: failed to persist clipboard: \(error)")
+        }
+    }
+
+    private func cleanupOrphanedFiles(validImageNames: Set<String>, validFaviconNames: Set<String>) {
+        DispatchQueue.global(qos: .background).async { [weak self] in
+            guard let self = self else { return }
+            
+            if let imagesDir = self.imagesDir(), let files = try? self.fm.contentsOfDirectory(at: imagesDir, includingPropertiesForKeys: nil) {
+                for file in files {
+                    if !validImageNames.contains(file.lastPathComponent) {
+                        try? self.fm.removeItem(at: file)
+                    }
+                }
+            }
+            
+            if let faviconsDir = self.faviconsDir(), let files = try? self.fm.contentsOfDirectory(at: faviconsDir, includingPropertiesForKeys: nil) {
+                for file in files {
+                    if !validFaviconNames.contains(file.lastPathComponent) {
+                        try? self.fm.removeItem(at: file)
+                    }
+                }
+            }
         }
     }
 
