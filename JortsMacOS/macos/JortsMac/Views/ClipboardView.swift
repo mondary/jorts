@@ -5,6 +5,7 @@ struct ClipboardView: View {
     let onCreateNoteFromItem: (ClipboardManager.Item) -> Void
     let onCopyItem: (ClipboardManager.Item) -> Void
     let onDismiss: () -> Void
+    let onPaste: () -> Void
 
     @State private var query: String = ""
     @State private var selectedSource: String? = nil
@@ -53,7 +54,8 @@ struct ClipboardView: View {
                         onTogglePin: { clipboard.togglePin(item.id) },
                         onToggleLock: { clipboard.toggleLock(item.id) },
                         onQuickLook: { urls in quickLookURLs = urls },
-                        onLightbox: { img in lightboxImage = img }
+                        onLightbox: { img in lightboxImage = img },
+                        onLoadFavicon: { name in clipboard.loadFaviconData(named: name) }
                     )
                 }
             }
@@ -260,6 +262,7 @@ struct ClipboardView: View {
                 onCreateNoteFromItem(item)
             } else {
                 onCopyItem(item)
+                onPaste()
             }
             return true
         }
@@ -337,6 +340,7 @@ private struct DeckCard: View {
     let onToggleLock: (() -> Void)?
     let onQuickLook: (([URL]) -> Void)?
     let onLightbox: ((NSImage) -> Void)?
+    let onLoadFavicon: (String) -> Data?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -364,11 +368,27 @@ private struct DeckCard: View {
 
             preview
 
-            Text(item.previewText)
-                .font(.system(size: 15 * scale, weight: .regular))
-                .foregroundStyle(Color(NSColor.labelColor))
-                .lineLimit(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            if item.kind != .url {
+                Text(item.metadataTitle ?? item.previewText)
+                    .font(.system(size: 15 * scale, weight: item.metadataTitle != nil ? .medium : .regular))
+                    .foregroundStyle(Color(NSColor.labelColor))
+                    .lineLimit(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if item.metadataTitle != nil {
+                    Text(item.previewText)
+                        .font(.system(size: 12 * scale, weight: .regular))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            } else if item.metadataTitle == nil && item.metadataFaviconName == nil {
+                Text(item.previewText)
+                    .font(.system(size: 15 * scale, weight: .regular))
+                    .foregroundStyle(Color(NSColor.labelColor))
+                    .lineLimit(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
 
             Spacer(minLength: 0)
 
@@ -494,6 +514,54 @@ private struct DeckCard: View {
             .onTapGesture {
                 onQuickLook?(urls)
             }
+        case .url(let url):
+            HStack(spacing: 12) {
+                if let faviconName = item.metadataFaviconName,
+                   let faviconData = onLoadFavicon(faviconName),
+                   let image = NSImage(data: faviconData) {
+                    Image(nsImage: image)
+                        .resizable()
+                        .interpolation(.high)
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 32 * scale, height: 32 * scale)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                } else {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color(NSColor.controlBackgroundColor))
+                        Image(systemName: "globe")
+                            .font(.system(size: 16 * scale))
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(width: 32 * scale, height: 32 * scale)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color(NSColor.separatorColor).opacity(0.2), lineWidth: 1)
+                    )
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.metadataTitle ?? url.host ?? localizedString("link"))
+                        .font(.system(size: 14 * scale, weight: .semibold))
+                        .foregroundColor(Color(NSColor.labelColor))
+                        .lineLimit(2)
+
+                    Text(url.host ?? url.absoluteString)
+                        .font(.system(size: 11 * scale))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            .padding(12 * scale)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(NSColor.controlBackgroundColor).opacity(0.3))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color(NSColor.separatorColor).opacity(0.1), lineWidth: 1)
+            )
         default:
             EmptyView()
         }

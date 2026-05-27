@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import SwiftUI
 
 final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
@@ -7,6 +8,7 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
     private let clipboard: ClipboardManager
     private var hostingController: NSHostingController<ClipboardView>?
     private var lastKnownVisibleFrame: NSRect?
+    private var lastFrontmostApp: NSRunningApplication?
 
     init(manager: NoteManager, settings: AppSettings, clipboard: ClipboardManager) {
         self.manager = manager
@@ -48,7 +50,8 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
                 manager?.createNote(prefillContent: ClipboardWindowController.noteContent(from: item))
             },
             onCopyItem: { [weak clipboard] item in clipboard?.copyToPasteboard(item) },
-            onDismiss: { [weak self] in self?.dismissAnimated() }
+            onDismiss: { [weak self] in self?.dismissAnimated() },
+            onPaste: { [weak self] in self?.pasteActiveSelection() }
         ))
         panel.contentViewController = self.hostingController
     }
@@ -60,6 +63,8 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         if window.isVisible {
             dismissAnimated()
         } else {
+            // Remember the app that was active before we showed the drawer.
+            lastFrontmostApp = NSWorkspace.shared.frontmostApplication
             presentAnimated()
         }
     }
@@ -106,6 +111,29 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
             window.orderOut(nil)
             window.alphaValue = 1
         }
+    }
+
+    func pasteActiveSelection() {
+        // Try to paste into the app that was active before the drawer opened.
+        guard let app = lastFrontmostApp else {
+            dismissAnimated()
+            return
+        }
+
+        app.activate(options: [.activateIgnoringOtherApps])
+
+        // Best-effort: simulate Cmd+V. This typically requires Accessibility permission.
+        let src = CGEventSource(stateID: .combinedSessionState)
+        let vKey = CGKeyCode(kVK_ANSI_V)
+        let vDown = CGEvent(keyboardEventSource: src, virtualKey: vKey, keyDown: true)
+        vDown?.flags = CGEventFlags.maskCommand
+        let vUp = CGEvent(keyboardEventSource: src, virtualKey: vKey, keyDown: false)
+        vUp?.flags = CGEventFlags.maskCommand
+
+        vDown?.post(tap: CGEventTapLocation.cghidEventTap)
+        vUp?.post(tap: CGEventTapLocation.cghidEventTap)
+
+        dismissAnimated()
     }
 
     func windowDidResignKey(_ notification: Notification) {
