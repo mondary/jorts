@@ -13,7 +13,7 @@ struct ClipboardView: View {
             header
             content
         }
-        .frame(minWidth: 520, minHeight: 380)
+        .frame(minWidth: 720, minHeight: 320)
         .background(Color(NSColor.windowBackgroundColor))
     }
 
@@ -166,4 +166,3 @@ private struct ClipboardCard: View {
         return formatter.localizedString(for: date, relativeTo: Date())
     }
 }
-

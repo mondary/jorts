@@ -22,7 +22,7 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         ))
 
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 980, height: 360),
+            contentRect: NSRect(x: 0, y: 0, width: 980, height: 380),
             styleMask: [.nonactivatingPanel, .titled, .closable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -38,7 +38,9 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         panel.level = .floating
         panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
         panel.standardWindowButton(.zoomButton)?.isHidden = true
-        panel.minSize = NSSize(width: 720, height: 280)
+        panel.isMovable = false
+        panel.minSize = NSSize(width: 720, height: 320)
+        panel.maxSize = NSSize(width: 100000, height: 520)
         panel.contentViewController = self.hostingController
         panel.isOpaque = false
         panel.backgroundColor = .clear
@@ -66,10 +68,12 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         let visible = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
         lastKnownVisibleFrame = visible
 
-        let targetWidth = min(max(820, window.frame.width), visible.width - 80)
-        let targetHeight = min(max(300, window.frame.height), min(visible.height * 0.55, 520))
-        let marginBottom: CGFloat = 22
-        let x = visible.midX - targetWidth / 2
+        // Full width drawer (like Deck): span visible width with a small horizontal inset.
+        let insetX: CGFloat = 10
+        let marginBottom: CGFloat = 10
+        let targetWidth = max(640, visible.width - insetX * 2)
+        let targetHeight = min(max(340, window.frame.height), min(visible.height * 0.48, 520))
+        let x = visible.minX + insetX
         let y = visible.minY + marginBottom
         let target = NSRect(x: x, y: y, width: targetWidth, height: targetHeight)
 
