@@ -114,6 +114,7 @@
 "shortcut_create_new_note_global" = "Créer une nouvelle note (global)";
 "modifier_shift" = "Maj";
 "modifier_command" = "Commande";
+"modifier_control_shift" = "Contrôle + Maj";
 "modifier_command_shift" = "Commande + Maj";
 "modifier_command_option" = "Commande + Option";
 "modifier_command_control" = "Commande + Contrôle";

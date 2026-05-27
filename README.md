@@ -74,6 +74,9 @@
 - Lancement dev: `./JortsMacOS/run-dev.sh`
 - Ouvrir la palette: `Cmd+K`
 - Préférences: `Cmd+,`
+- Raccourcis globaux (par défaut, configurables):
+  - `Cmd+Shift+Space` : rouvrir / focus la dernière note
+  - `Ctrl+Shift+Space` : créer une nouvelle note
 - Dossier de stockage par défaut: `~/Documents/JortsMacOS/`
 
 ## ⚙️ Réglages

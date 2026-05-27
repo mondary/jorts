@@ -113,6 +113,7 @@
 "shortcut_create_new_note_global" = "Neue Notiz erstellen (global)";
 "modifier_shift" = "Umschalt";
 "modifier_command" = "Befehl";
+"modifier_control_shift" = "Steuerung + Umschalt";
 "modifier_command_shift" = "Befehl + Umschalt";
 "modifier_command_option" = "Befehl + Option";
 "modifier_command_control" = "Befehl + Steuerung";

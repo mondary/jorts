@@ -4,6 +4,7 @@ import Foundation
 
 enum ShortcutModifierPreset: String, CaseIterable, Codable, Identifiable {
     case shift
+    case controlShift
     case command
     case commandShift
     case commandOption
@@ -15,6 +16,7 @@ enum ShortcutModifierPreset: String, CaseIterable, Codable, Identifiable {
     var displayName: String {
         switch self {
         case .shift: localizedString("modifier_shift")
+        case .controlShift: localizedString("modifier_control_shift")
         case .command: localizedString("modifier_command")
         case .commandShift: localizedString("modifier_command_shift")
         case .commandOption: localizedString("modifier_command_option")
@@ -26,6 +28,7 @@ enum ShortcutModifierPreset: String, CaseIterable, Codable, Identifiable {
     var symbolPrefix: String {
         switch self {
         case .shift: "⇧"
+        case .controlShift: "⌃⇧"
         case .command: "⌘"
         case .commandShift: "⇧⌘"
         case .commandOption: "⌥⌘"
@@ -37,6 +40,7 @@ enum ShortcutModifierPreset: String, CaseIterable, Codable, Identifiable {
     var flags: NSEvent.ModifierFlags {
         switch self {
         case .shift: [.shift]
+        case .controlShift: [.control, .shift]
         case .command: [.command]
         case .commandShift: [.command, .shift]
         case .commandOption: [.command, .option]
@@ -48,6 +52,7 @@ enum ShortcutModifierPreset: String, CaseIterable, Codable, Identifiable {
     var carbonFlags: UInt32 {
         switch self {
         case .shift: return UInt32(shiftKey)
+        case .controlShift: return UInt32(controlKey | shiftKey)
         case .command: return UInt32(cmdKey)
         case .commandShift: return UInt32(cmdKey | shiftKey)
         case .commandOption: return UInt32(cmdKey | optionKey)
@@ -130,8 +135,12 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
 
     var defaultShortcut: KeyboardShortcutSetting {
         switch self {
-        case .focusLastNoteGlobal: KeyboardShortcutSetting(key: "space", modifier: .shift)
-        case .newNoteGlobal: KeyboardShortcutSetting(key: "space", modifier: .commandShift)
+        // Avoid Shift+Space: too easy to trigger while typing.
+        // Keep global shortcuts close to each other without conflicting with common macOS shortcuts.
+        // Cmd+Shift+Space: focus last note
+        // Ctrl+Shift+Space: create new note
+        case .focusLastNoteGlobal: KeyboardShortcutSetting(key: "space", modifier: .commandShift)
+        case .newNoteGlobal: KeyboardShortcutSetting(key: "space", modifier: .controlShift)
         case .newStickyNote: KeyboardShortcutSetting(key: "n", modifier: .command)
         case .showAllNotes: KeyboardShortcutSetting(key: "l", modifier: .shift)
         case .showNotesList: KeyboardShortcutSetting(key: "l", modifier: .commandShift)

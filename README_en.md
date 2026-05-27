@@ -74,6 +74,9 @@
 - Dev run: `./JortsMacOS/run-dev.sh`
 - Open command palette: `Cmd+K`
 - Open preferences: `Cmd+,`
+- Global shortcuts (defaults, configurable):
+  - `Cmd+Shift+Space`: focus last note
+  - `Ctrl+Shift+Space`: create new note
 - Default storage folder: `~/Documents/JortsMacOS/`
 
 ## ⚙️ Settings

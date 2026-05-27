@@ -113,6 +113,7 @@
 "shortcut_create_new_note_global" = "Crear nueva nota (global)";
 "modifier_shift" = "Mayús";
 "modifier_command" = "Comando";
+"modifier_control_shift" = "Control + Mayús";
 "modifier_command_shift" = "Comando + Mayús";
 "modifier_command_option" = "Comando + Opción";
 "modifier_command_control" = "Comando + Control";
