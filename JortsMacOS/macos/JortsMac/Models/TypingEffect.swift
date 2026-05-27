@@ -13,14 +13,13 @@ enum TypingEffect: String, CaseIterable, Codable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .off: "Off"
-        case .confetti: "Confetti"
-        case .doom: "Doom"
-        case .typewriter: "Typewriter"
-        case .wave: "Wave"
-        case .pop: "Pop"
-        case .glow: "Glow"
+        case .off: localizedString("typing_effect_off")
+        case .confetti: localizedString("typing_effect_confetti")
+        case .doom: localizedString("typing_effect_doom")
+        case .typewriter: localizedString("typing_effect_typewriter")
+        case .wave: localizedString("typing_effect_wave")
+        case .pop: localizedString("typing_effect_pop")
+        case .glow: localizedString("typing_effect_glow")
         }
     }
 }
-

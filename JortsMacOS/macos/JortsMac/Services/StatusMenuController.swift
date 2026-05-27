@@ -103,7 +103,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         let notes = manager?.menuEntries() ?? []
 
         if notes.isEmpty {
-            let emptyItem = NSMenuItem(title: "No notes", action: nil, keyEquivalent: "")
+            let emptyItem = NSMenuItem(title: localizedString("no_notes"), action: nil, keyEquivalent: "")
             emptyItem.isEnabled = false
             menu.addItem(emptyItem)
         } else {
@@ -121,14 +121,14 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         }
 
         menu.addItem(.separator())
-        menu.addItem(actionItem("New Note", action: #selector(newNote(_:)), shortcut: .newStickyNote))
-        menu.addItem(actionItem("Show All Notes", action: #selector(showAllNotes(_:)), shortcut: .showAllNotes))
-        menu.addItem(actionItem("Show List", action: #selector(showList(_:)), shortcut: .showNotesList))
+        menu.addItem(actionItem(localizedString("new_note"), action: #selector(newNote(_:)), shortcut: .newStickyNote))
+        menu.addItem(actionItem(localizedString("show_all_notes"), action: #selector(showAllNotes(_:)), shortcut: .showAllNotes))
+        menu.addItem(actionItem(localizedString("show_list"), action: #selector(showList(_:)), shortcut: .showNotesList))
         menu.addItem(.separator())
-        menu.addItem(actionItem("Settings…", action: #selector(showSettings(_:)), shortcut: .preferences, systemImage: "gearshape"))
-        menu.addItem(actionItem("About JortsMacOS", action: #selector(showAbout(_:)), keyEquivalent: ""))
-        menu.addItem(actionItem("Restart JortsMacOS", action: #selector(restart(_:)), keyEquivalent: ""))
-        menu.addItem(actionItem("Quit JortsMacOS", action: #selector(quit(_:)), keyEquivalent: "q"))
+        menu.addItem(actionItem(localizedString("settings"), action: #selector(showSettings(_:)), shortcut: .preferences, systemImage: "gearshape"))
+        menu.addItem(actionItem(localizedString("about_jortsmacos"), action: #selector(showAbout(_:)), keyEquivalent: ""))
+        menu.addItem(actionItem(localizedString("restart_jortsmacos"), action: #selector(restart(_:)), keyEquivalent: ""))
+        menu.addItem(actionItem(localizedString("quit_jortsmacos"), action: #selector(quit(_:)), keyEquivalent: "q"))
     }
 
     private func actionItem(

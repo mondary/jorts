@@ -1,0 +1,175 @@
+/*
+  JortsMac - Spanish localization
+*/
+
+/* Preferences */
+"preferences_title" = "Preferencias para tus Jorts";
+"general" = "General";
+"list_item_prefix" = "Prefijo de elemento de lista";
+"list_item_prefix_hint" = "Si se deja vacío, el botón de lista se oculta.";
+"reset" = "Restablecer";
+"scribble_mode" = "Texto garabato de notas no enfocadas";
+"hide_action_bar" = "Ocultar barra de acciones inferior";
+"storage" = "Almacenamiento";
+"close" = "Cerrar";
+"language" = "Idioma";
+"display_options" = "Opciones de visualización";
+
+/* About */
+"app_name" = "Jorts_MacOS";
+"app_version" = "Versión 4.2.0 port macOS";
+"about_header" = "Jorts_MacOS";
+"about_description" = "Porte nativo macOS en Swift";
+"links" = "Enlaces";
+"original_project" = "Proyecto original";
+"original_project_repo" = "elly-code/jorts";
+"macos_fork" = "fork macOS";
+"macos_fork_repo" = "clm-tmp/JORTS_macos";
+"support" = "Soporte";
+"original_developer" = "Desarrollador original";
+"original_developer_url" = "ko-fi.com/teamcons";
+"macos_fork_developer" = "Desarrollador del fork macOS";
+"macos_fork_developer_url" = "ko-fi.com/pouark";
+"support_developer" = "☕ Apoya al desarrollador original: ";
+
+/* Menu Bar */
+"no_notes" = "Sin notas";
+"new_note" = "Nueva nota";
+"show_all_notes" = "Mostrar todas las notas";
+"save_all_notes" = "Guardar todas las notas";
+"settings" = "Configuración…";
+"about" = "Acerca de Jorts";
+"restart" = "Reiniciar Jorts";
+"quit" = "Salir de Jorts";
+"show_list" = "Mostrar lista";
+
+/* Note Window */
+"untitled" = "Sin título";
+"title_placeholder" = "Título";
+"save" = "Guardar todas las notas";
+"new_sticky_note" = "Nueva nota adhesiva";
+"delete_sticky_note" = "Eliminar nota adhesiva";
+"close_note_window" = "Cerrar ventana de nota";
+"toggle_list" = "Alternar lista";
+"toggle_monospace" = "Alternar monoespaciado";
+"zoom_in" = "Acercar";
+"zoom_out" = "Alejar";
+"actual_size" = "Tamaño real";
+"emoji_symbols" = "Emoji & Símbolos";
+"preferences_note" = "Preferencias para esta nota adhesiva";
+
+/* Theme colors */
+"color" = "Color";
+"blueberry" = "Arándano";
+"mint" = "Menta";
+"lime" = "Lima";
+"banana" = "Plátano";
+"orange" = "Naranja";
+"strawberry" = "Fresa";
+"bubblegum" = "Chicle";
+"grape" = "Uva";
+"cocoa" = "Cacao";
+"slate" = "Pizarra";
+"latte" = "Latte";
+"hot_pink" = "Rosa intenso";
+"electric_blue" = "Azul eléctrico";
+"neon_green" = "Verde neón";
+"crimson" = "Carmesí";
+"sunshine" = "Sol";
+"violet" = "Violeta";
+"tangerine" = "Mandarina";
+
+/* Status Menu */
+"jorts_tooltip" = "Jorts";
+
+"preferences" = "Preferencias…";
+"shortcuts" = "Atajos";
+"about_section" = "Acerca de";
+"change" = "Cambiar…";
+"restart_required" = "Reinicio requerido";
+"new_notes" = "Nuevas notas";
+"randomize_new_note_position" = "Posición aleatoria para nuevas notas";
+"randomize_new_note_position_hint" = "Si está activado, las nuevas notas aparecen en una posición ligeramente aleatoria en vez de siempre centradas.";
+"typing_effects" = "Efectos de escritura";
+"effect" = "Efecto";
+"typing_effects_hint" = "Añade un efecto visual por cada carácter escrito.";
+"inline_calculations" = "Cálculos inline";
+"show_results_while_typing" = "Mostrar resultados al escribir";
+"show_brand_icons_while_typing" = "Mostrar iconos de marca al escribir";
+"inline_calculations_hint" = "Muestra resultados matemáticos simples en una columna derecha sutil (estilo Numi).";
+"import_export" = "Importar / Exportar";
+"export" = "Exportar…";
+"import" = "Importar…";
+"import_export_hint" = "La importación reemplaza tu archivo actual de notas y requiere reiniciar.";
+"cleanup" = "Limpieza";
+"archive_duplicates_backups" = "Archivar duplicados / copias…";
+"archive_duplicates_backups_hint" = "Mueve duplicados y copias de seguridad a una carpeta Archivo.";
+"choose" = "Elegir";
+"choose_color" = "Elegir color";
+"key" = "Tecla";
+"shortcut_group_app" = "App";
+"shortcut_group_note" = "Nota";
+"shortcut_focus_last_note_global" = "Enfocar última nota (global)";
+"shortcut_create_new_note_global" = "Crear nueva nota (global)";
+"modifier_shift" = "Mayús";
+"modifier_command" = "Comando";
+"modifier_command_shift" = "Comando + Mayús";
+"modifier_command_option" = "Comando + Opción";
+"modifier_command_control" = "Comando + Control";
+"modifier_command_option_shift" = "Comando + Opción + Mayús";
+"typing_effect_off" = "Desactivado";
+"typing_effect_confetti" = "Confeti";
+"typing_effect_doom" = "Doom";
+"typing_effect_typewriter" = "Máquina de escribir";
+"typing_effect_wave" = "Onda";
+"typing_effect_pop" = "Pop";
+"typing_effect_glow" = "Brillo";
+"create_new_note" = "Crear nueva nota";
+"about_jorts" = "Acerca de Jorts";
+"about_jortsmacos" = "Acerca de JortsMacOS";
+"restart_jortsmacos" = "Reiniciar JortsMacOS";
+"quit_jortsmacos" = "Salir de JortsMacOS";
+"search_notes_or_commands" = "Buscar notas o comandos…";
+"untitled_note" = "Nota sin título";
+"system_command" = "Comando del sistema";
+"no_results_for" = "Sin resultados para «%@»";
+"try_searching_note" = "Prueba buscar un título o contenido de nota";
+"results_count" = "%d resultados";
+"navigate" = "Navegar";
+"open" = "Abrir";
+"open_notes_folder" = "Abrir carpeta de notas en Finder";
+"restore_trash" = "Restaurar / Papelera";
+"create_first_note" = "Crea tu primera nota para empezar";
+"trash_empty" = "La papelera está vacía";
+"services" = "Servicios";
+"hide_jortsmacos" = "Ocultar JortsMacOS";
+"hide_others" = "Ocultar otros";
+"show_all" = "Mostrar todo";
+"file" = "Archivo";
+"edit" = "Editar";
+"window" = "Ventana";
+"undo" = "Deshacer";
+"redo" = "Rehacer";
+"cut" = "Cortar";
+"copy" = "Copiar";
+"paste" = "Pegar";
+"select_all" = "Seleccionar todo";
+"command_palette" = "Paleta de comandos…";
+"minimize" = "Minimizar";
+"zoom" = "Zoom";
+"show_notes_list" = "Mostrar lista de notas";
+"insert_emoji" = "Insertar emoji";
+"change_color" = "Cambiar color";
+"history_restore" = "Historial (restaurar versiones anteriores)";
+"restore" = "Restaurar";
+"delete" = "Eliminar";
+"preferences_title_short" = "Preferencias";
+"search_fonts" = "Buscar fuentes";
+"system" = "Sistema";
+"standard_fonts" = "Fuentes estándar";
+"nerd_fonts" = "Nerd Fonts";
+"history" = "Historial";
+"no_versions_yet" = "Aún no hay versiones.";
+"apply" = "Aplicar";
+"empty_note" = "(Nota vacía)";
+"system_monospace" = "Monoespaciado del sistema";

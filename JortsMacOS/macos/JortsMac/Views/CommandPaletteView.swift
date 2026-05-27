@@ -28,9 +28,9 @@ enum CommandPaletteItem: Identifiable {
 
         var title: String {
             switch self {
-            case .newNote: return "Create New Note"
-            case .settings: return "Preferences"
-            case .about: return "About Jorts"
+            case .newNote: return localizedString("create_new_note")
+            case .settings: return localizedString("preferences")
+            case .about: return localizedString("about_jorts")
             }
         }
 
@@ -98,7 +98,7 @@ struct CommandPaletteView: View {
                     .foregroundStyle(.secondary)
 
                 TextField(
-                    "Search notes or commands…",
+                    localizedString("search_notes_or_commands"),
                     text: Binding(
                         get: { state.query },
                         set: { state.query = $0 }
@@ -251,7 +251,7 @@ struct CommandPaletteView: View {
 
     private func title(for item: CommandPaletteItem) -> String {
         switch item {
-        case .note(let doc): return doc.title.isEmpty ? "Untitled Note" : doc.title
+        case .note(let doc): return doc.title.isEmpty ? localizedString("untitled_note") : doc.title
         case .action(let action): return action.title
         }
     }
@@ -261,7 +261,7 @@ struct CommandPaletteView: View {
         case .note(let doc):
             let content = doc.content.trimmingCharacters(in: .whitespacesAndNewlines)
             return content.isEmpty ? nil : content
-        case .action: return "System Command"
+        case .action: return localizedString("system_command")
         }
     }
 
@@ -272,11 +272,11 @@ struct CommandPaletteView: View {
                 .font(.system(size: 48))
                 .foregroundStyle(.tertiary)
 
-            Text("No results for \"\(state.query)\"")
+            Text(localizedString("no_results_for", state.query))
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(.secondary)
 
-            Text("Try searching for a note title or content")
+            Text(localizedString("try_searching_note"))
                 .font(.system(size: 13))
                 .foregroundStyle(.tertiary)
             Spacer()
@@ -290,15 +290,15 @@ struct CommandPaletteView: View {
                 .opacity(0.1)
 
             HStack {
-                Text("\(results.count) results")
+                Text(localizedString("results_count", results.count))
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
 
                 Spacer()
 
                 HStack(spacing: 12) {
-                    footerHint(key: "↑↓", label: "Navigate")
-                    footerHint(key: "↵", label: "Open")
+                    footerHint(key: "↑↓", label: localizedString("navigate"))
+                    footerHint(key: "↵", label: localizedString("open"))
                 }
             }
             .padding(.horizontal, 20)

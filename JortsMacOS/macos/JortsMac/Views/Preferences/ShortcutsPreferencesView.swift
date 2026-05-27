@@ -14,8 +14,8 @@ struct ShortcutsPreferencesView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                shortcutSection("App", actions: appActions)
-                shortcutSection("Note", actions: noteActions)
+                shortcutSection(localizedString("shortcut_group_app"), actions: appActions)
+                shortcutSection(localizedString("shortcut_group_note"), actions: noteActions)
             }
             .padding(24)
         }
@@ -64,12 +64,12 @@ private struct ShortcutRow: View {
             .labelsHidden()
             .frame(width: 190)
 
-            TextField("Key", text: keyBinding)
+            TextField(localizedString("key"), text: keyBinding)
                 .textFieldStyle(.roundedBorder)
                 .font(.body.monospaced())
                 .frame(width: 72)
 
-            Button("Reset") {
+            Button(localizedString("reset")) {
                 settings.resetShortcut(for: action)
             }
             .frame(width: 64)

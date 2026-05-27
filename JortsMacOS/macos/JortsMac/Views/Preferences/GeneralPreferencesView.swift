@@ -40,13 +40,13 @@ struct GeneralPreferencesView: View {
                         .textSelection(.enabled)
 
                     HStack {
-                        Button("Change…") {
+                        Button(localizedString("change")) {
                             chooseStorageDirectory()
                         }
 
                         Spacer()
 
-                        Text("Restart required")
+                        Text(localizedString("restart_required"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -56,13 +56,13 @@ struct GeneralPreferencesView: View {
             Divider()
 
             VStack(alignment: .leading, spacing: 10) {
-                Text("New Notes")
+                Text(localizedString("new_notes"))
                     .font(.headline)
 
-                Toggle("Randomize new note position", isOn: $settings.randomizeNewNotePosition)
+                Toggle(localizedString("randomize_new_note_position"), isOn: $settings.randomizeNewNotePosition)
                     .toggleStyle(.switch)
 
-                Text("When enabled, new notes appear at a slightly random position instead of always centered.")
+                Text(localizedString("randomize_new_note_position_hint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -70,17 +70,17 @@ struct GeneralPreferencesView: View {
             Divider()
 
             VStack(alignment: .leading, spacing: 10) {
-                Text("Typing Effects")
+                Text(localizedString("typing_effects"))
                     .font(.headline)
 
-                Picker("Effect", selection: $settings.typingEffect) {
+                Picker(localizedString("effect"), selection: $settings.typingEffect) {
                     ForEach(TypingEffect.allCases) { effect in
                         Text(effect.displayName).tag(effect)
                     }
                 }
                 .pickerStyle(.segmented)
 
-                Text("Adds a visual effect for each typed character.")
+                Text(localizedString("typing_effects_hint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -88,15 +88,15 @@ struct GeneralPreferencesView: View {
             Divider()
 
             VStack(alignment: .leading, spacing: 10) {
-                Text("Inline Calculations")
+                Text(localizedString("inline_calculations"))
                     .font(.headline)
 
-                Toggle("Show results while typing", isOn: $settings.inlineCalculations)
+                Toggle(localizedString("show_results_while_typing"), isOn: $settings.inlineCalculations)
                     .toggleStyle(.switch)
-                Toggle("Show brand icons while typing", isOn: $settings.inlineBrandIcons)
+                Toggle(localizedString("show_brand_icons_while_typing"), isOn: $settings.inlineBrandIcons)
                     .toggleStyle(.switch)
 
-                Text("Shows simple math results in a subtle right-side column (Numi-style).")
+                Text(localizedString("inline_calculations_hint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -105,16 +105,16 @@ struct GeneralPreferencesView: View {
 
             // Import/Export
             VStack(alignment: .leading, spacing: 10) {
-                Text("Import / Export")
+                Text(localizedString("import_export"))
                     .font(.headline)
 
                 HStack(spacing: 10) {
-                    Button("Export…") { exportNotes() }
-                    Button("Import…") { importNotes() }
+                    Button(localizedString("export")) { exportNotes() }
+                    Button(localizedString("import")) { importNotes() }
                     Spacer()
                 }
 
-                Text("Import replaces your current notes file and requires a restart.")
+                Text(localizedString("import_export_hint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -122,14 +122,14 @@ struct GeneralPreferencesView: View {
             Divider()
 
             VStack(alignment: .leading, spacing: 10) {
-                Text("Cleanup")
+                Text(localizedString("cleanup"))
                     .font(.headline)
 
-                Button("Archive Duplicates / Backups…") {
+                Button(localizedString("archive_duplicates_backups")) {
                     archiveDuplicatesAndBackups()
                 }
 
-                Text("Moves `Notes/Duplicates`, `Trash/Duplicates`, and `saved_state` backup files into an Archive folder (safe cleanup).")
+                Text(localizedString("archive_duplicates_backups_hint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -145,7 +145,7 @@ struct GeneralPreferencesView: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
-        panel.prompt = "Choose"
+        panel.prompt = localizedString("choose")
 
         let response = panel.runModal()
         guard response == .OK, let url = panel.url else {

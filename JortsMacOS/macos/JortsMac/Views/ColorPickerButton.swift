@@ -10,7 +10,7 @@ struct ColorGridView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Header
-            Text("Choose Color")
+            Text(localizedString("choose_color"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.top, 8)

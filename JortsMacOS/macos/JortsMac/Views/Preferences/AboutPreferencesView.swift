@@ -99,7 +99,7 @@ struct AboutPreferencesView: View {
                 .background(Color(NSColor.windowBackgroundColor), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Links")
+                    Text(localizedString("links"))
                         .font(.headline)
 
                     if let url = URL(string: "https://github.com/elly-code/jorts") {

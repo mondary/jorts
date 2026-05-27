@@ -374,76 +374,76 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mainMenu.addItem(appMenuItem)
         let appMenu = NSMenu()
         appMenuItem.submenu = appMenu
-        appMenu.addItem(menuItem("About JortsMacOS", action: #selector(showAbout(_:)), key: ""))
+        appMenu.addItem(menuItem(localizedString("about_jortsmacos"), action: #selector(showAbout(_:)), key: ""))
         appMenu.addItem(.separator())
-        appMenu.addItem(menuItem("Preferences…", action: #selector(showPreferences(_:)), shortcut: .preferences))
+        appMenu.addItem(menuItem(localizedString("preferences"), action: #selector(showPreferences(_:)), shortcut: .preferences))
         appMenu.addItem(.separator())
 
-        let servicesItem = NSMenuItem(title: "Services", action: nil, keyEquivalent: "")
-        let servicesMenu = NSMenu(title: "Services")
+        let servicesItem = NSMenuItem(title: localizedString("services"), action: nil, keyEquivalent: "")
+        let servicesMenu = NSMenu(title: localizedString("services"))
         servicesItem.submenu = servicesMenu
         appMenu.addItem(servicesItem)
         NSApp.servicesMenu = servicesMenu
 
         appMenu.addItem(.separator())
-        appMenu.addItem(NSMenuItem(title: "Hide JortsMacOS", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
+        appMenu.addItem(NSMenuItem(title: localizedString("hide_jortsmacos"), action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
         let hideOthers = NSMenuItem(
-            title: "Hide Others",
+            title: localizedString("hide_others"),
             action: #selector(NSApplication.hideOtherApplications(_:)),
             keyEquivalent: "h"
         )
         hideOthers.keyEquivalentModifierMask = [.command, .option]
         appMenu.addItem(hideOthers)
-        appMenu.addItem(NSMenuItem(title: "Show All", action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: ""))
+        appMenu.addItem(NSMenuItem(title: localizedString("show_all"), action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: ""))
         appMenu.addItem(.separator())
-        appMenu.addItem(NSMenuItem(title: "Quit JortsMacOS", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        appMenu.addItem(NSMenuItem(title: localizedString("quit_jortsmacos"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
 
         let fileMenuItem = NSMenuItem()
         mainMenu.addItem(fileMenuItem)
-        let fileMenu = NSMenu(title: "File")
+        let fileMenu = NSMenu(title: localizedString("file"))
         fileMenuItem.submenu = fileMenu
-        fileMenu.addItem(menuItem("New Sticky Note", action: #selector(newNote(_:)), shortcut: .newStickyNote))
-        fileMenu.addItem(menuItem("Save All Notes", action: #selector(saveAll(_:)), shortcut: .saveAllNotes))
+        fileMenu.addItem(menuItem(localizedString("new_sticky_note"), action: #selector(newNote(_:)), shortcut: .newStickyNote))
+        fileMenu.addItem(menuItem(localizedString("save_all_notes"), action: #selector(saveAll(_:)), shortcut: .saveAllNotes))
         fileMenu.addItem(.separator())
-        fileMenu.addItem(menuItem("Close Note Window", action: #selector(closeCurrentNoteWindow(_:)), shortcut: .closeNoteWindow))
-        fileMenu.addItem(menuItem("Delete Sticky Note", action: #selector(deleteCurrentNote(_:)), shortcut: .deleteStickyNote))
+        fileMenu.addItem(menuItem(localizedString("close_note_window"), action: #selector(closeCurrentNoteWindow(_:)), shortcut: .closeNoteWindow))
+        fileMenu.addItem(menuItem(localizedString("delete_sticky_note"), action: #selector(deleteCurrentNote(_:)), shortcut: .deleteStickyNote))
 
         let editMenuItem = NSMenuItem()
         mainMenu.addItem(editMenuItem)
-        let editMenu = NSMenu(title: "Edit")
+        let editMenu = NSMenu(title: localizedString("edit"))
         editMenuItem.submenu = editMenu
-        editMenu.addItem(responderItem("Undo", action: Selector(("undo:")), key: "z"))
-        editMenu.addItem(responderItem("Redo", action: Selector(("redo:")), key: "Z"))
+        editMenu.addItem(responderItem(localizedString("undo"), action: Selector(("undo:")), key: "z"))
+        editMenu.addItem(responderItem(localizedString("redo"), action: Selector(("redo:")), key: "Z"))
         editMenu.addItem(.separator())
-        editMenu.addItem(responderItem("Cut", action: #selector(NSText.cut(_:)), key: "x"))
-        editMenu.addItem(responderItem("Copy", action: #selector(NSText.copy(_:)), key: "c"))
-        editMenu.addItem(responderItem("Paste", action: #selector(NSText.paste(_:)), key: "v"))
-        editMenu.addItem(responderItem("Select All", action: #selector(NSText.selectAll(_:)), key: "a"))
+        editMenu.addItem(responderItem(localizedString("cut"), action: #selector(NSText.cut(_:)), key: "x"))
+        editMenu.addItem(responderItem(localizedString("copy"), action: #selector(NSText.copy(_:)), key: "c"))
+        editMenu.addItem(responderItem(localizedString("paste"), action: #selector(NSText.paste(_:)), key: "v"))
+        editMenu.addItem(responderItem(localizedString("select_all"), action: #selector(NSText.selectAll(_:)), key: "a"))
         editMenu.addItem(.separator())
-        editMenu.addItem(menuItem("Toggle List", action: #selector(toggleCurrentList(_:)), shortcut: .toggleList))
-        editMenu.addItem(menuItem("Emoji & Symbols", action: #selector(showCharacterPalette(_:)), shortcut: .emojiSymbols))
+        editMenu.addItem(menuItem(localizedString("toggle_list"), action: #selector(toggleCurrentList(_:)), shortcut: .toggleList))
+        editMenu.addItem(menuItem(localizedString("emoji_symbols"), action: #selector(showCharacterPalette(_:)), shortcut: .emojiSymbols))
 
         let noteMenuItem = NSMenuItem()
         mainMenu.addItem(noteMenuItem)
-        let noteMenu = NSMenu(title: "Note")
+        let noteMenu = NSMenu(title: localizedString("shortcut_group_note"))
         noteMenuItem.submenu = noteMenu
-        noteMenu.addItem(menuItem("Toggle Monospace", action: #selector(toggleCurrentMonospace(_:)), shortcut: .toggleMonospace))
+        noteMenu.addItem(menuItem(localizedString("toggle_monospace"), action: #selector(toggleCurrentMonospace(_:)), shortcut: .toggleMonospace))
         noteMenu.addItem(.separator())
-        noteMenu.addItem(menuItem("Zoom In", action: #selector(zoomIn(_:)), shortcut: .zoomIn))
-        noteMenu.addItem(menuItem("Zoom Out", action: #selector(zoomOut(_:)), shortcut: .zoomOut))
-        noteMenu.addItem(menuItem("Actual Size", action: #selector(zoomDefault(_:)), shortcut: .actualSize))
+        noteMenu.addItem(menuItem(localizedString("zoom_in"), action: #selector(zoomIn(_:)), shortcut: .zoomIn))
+        noteMenu.addItem(menuItem(localizedString("zoom_out"), action: #selector(zoomOut(_:)), shortcut: .zoomOut))
+        noteMenu.addItem(menuItem(localizedString("actual_size"), action: #selector(zoomDefault(_:)), shortcut: .actualSize))
 
         let windowMenuItem = NSMenuItem()
         mainMenu.addItem(windowMenuItem)
-        let windowMenu = NSMenu(title: "Window")
+        let windowMenu = NSMenu(title: localizedString("window"))
         windowMenuItem.submenu = windowMenu
-        windowMenu.addItem(menuItem("Show All Notes", action: #selector(showAllNotes(_:)), shortcut: .showAllNotes))
-        windowMenu.addItem(menuItem("Show Notes List", action: #selector(showNotesList(_:)), shortcut: .showNotesList))
+        windowMenu.addItem(menuItem(localizedString("show_all_notes"), action: #selector(showAllNotes(_:)), shortcut: .showAllNotes))
+        windowMenu.addItem(menuItem(localizedString("show_notes_list"), action: #selector(showNotesList(_:)), shortcut: .showNotesList))
         windowMenu.addItem(.separator())
-        windowMenu.addItem(menuItem("Command Palette…", action: #selector(showCommandPalette(_:)), key: "k", modifiers: [.command]))
+        windowMenu.addItem(menuItem(localizedString("command_palette"), action: #selector(showCommandPalette(_:)), key: "k", modifiers: [.command]))
         windowMenu.addItem(.separator())
-        windowMenu.addItem(responderItem("Minimize", action: #selector(NSWindow.miniaturize(_:)), key: "m"))
-        windowMenu.addItem(responderItem("Zoom", action: #selector(NSWindow.performZoom(_:)), key: ""))
+        windowMenu.addItem(responderItem(localizedString("minimize"), action: #selector(NSWindow.miniaturize(_:)), key: "m"))
+        windowMenu.addItem(responderItem(localizedString("zoom"), action: #selector(NSWindow.performZoom(_:)), key: ""))
         NSApp.windowsMenu = windowMenu
     }
 

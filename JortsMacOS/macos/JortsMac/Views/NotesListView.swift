@@ -40,21 +40,21 @@ struct NotesListView: View {
                         .frame(width: 28, height: 28)
                 }
                 .buttonStyle(.plain)
-                .help("New note")
+                .help(localizedString("new_note"))
 
                 Button(action: onShowPreferences) {
                     Image(systemName: "gearshape")
                         .frame(width: 28, height: 28)
                 }
                 .buttonStyle(.plain)
-                .help("Preferences")
+                .help(localizedString("preferences"))
 
                 Button(action: onOpenFinder) {
                     Image(systemName: "folder")
                         .frame(width: 28, height: 28)
                 }
                 .buttonStyle(.plain)
-                .help("Open notes folder in Finder")
+                .help(localizedString("open_notes_folder"))
 
                 Button {
                     selection = (selection == .trash) ? .notes : .trash
@@ -63,7 +63,7 @@ struct NotesListView: View {
                         .frame(width: 28, height: 28)
                 }
                 .buttonStyle(.plain)
-                .help("Restore / Trash")
+                .help(localizedString("restore_trash"))
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -81,7 +81,7 @@ struct NotesListView: View {
                 .font(.title3)
                 .foregroundColor(.secondary)
 
-            Text("Create your first note to get started")
+            Text(localizedString("create_first_note"))
                 .font(.body)
                 .foregroundColor(.secondary)
         }
@@ -94,7 +94,7 @@ struct NotesListView: View {
                 .font(.system(size: 48))
                 .foregroundColor(.secondary)
 
-            Text("Poubelle vide")
+            Text(localizedString("trash_empty"))
                 .font(.title3)
                 .foregroundColor(.secondary)
         }

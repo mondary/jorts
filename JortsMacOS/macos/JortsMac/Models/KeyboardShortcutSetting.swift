@@ -14,12 +14,12 @@ enum ShortcutModifierPreset: String, CaseIterable, Codable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .shift: "Shift"
-        case .command: "Command"
-        case .commandShift: "Command + Shift"
-        case .commandOption: "Command + Option"
-        case .commandControl: "Command + Control"
-        case .commandOptionShift: "Command + Option + Shift"
+        case .shift: localizedString("modifier_shift")
+        case .command: localizedString("modifier_command")
+        case .commandShift: localizedString("modifier_command_shift")
+        case .commandOption: localizedString("modifier_command_option")
+        case .commandControl: localizedString("modifier_command_control")
+        case .commandOptionShift: localizedString("modifier_command_option_shift")
         }
     }
 
@@ -101,30 +101,30 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .focusLastNoteGlobal: "Focus Last Note (Global)"
-        case .newNoteGlobal: "Create New Note (Global)"
-        case .newStickyNote: "New Sticky Note"
-        case .showAllNotes: "Show All Notes"
-        case .showNotesList: "Show Notes List"
-        case .saveAllNotes: "Save All Notes"
-        case .preferences: "Preferences"
-        case .closeNoteWindow: "Close Note Window"
-        case .deleteStickyNote: "Delete Sticky Note"
-        case .toggleList: "Toggle List"
-        case .emojiSymbols: "Emoji & Symbols"
-        case .toggleMonospace: "Toggle Monospace"
-        case .zoomIn: "Zoom In"
-        case .zoomOut: "Zoom Out"
-        case .actualSize: "Actual Size"
+        case .focusLastNoteGlobal: localizedString("shortcut_focus_last_note_global")
+        case .newNoteGlobal: localizedString("shortcut_create_new_note_global")
+        case .newStickyNote: localizedString("new_sticky_note")
+        case .showAllNotes: localizedString("show_all_notes")
+        case .showNotesList: localizedString("show_notes_list")
+        case .saveAllNotes: localizedString("save_all_notes")
+        case .preferences: localizedString("preferences")
+        case .closeNoteWindow: localizedString("close_note_window")
+        case .deleteStickyNote: localizedString("delete_sticky_note")
+        case .toggleList: localizedString("toggle_list")
+        case .emojiSymbols: localizedString("emoji_symbols")
+        case .toggleMonospace: localizedString("toggle_monospace")
+        case .zoomIn: localizedString("zoom_in")
+        case .zoomOut: localizedString("zoom_out")
+        case .actualSize: localizedString("actual_size")
         }
     }
 
     var group: String {
         switch self {
         case .focusLastNoteGlobal, .newNoteGlobal, .newStickyNote, .showAllNotes, .showNotesList, .saveAllNotes, .preferences:
-            "App"
+            localizedString("shortcut_group_app")
         case .closeNoteWindow, .deleteStickyNote, .toggleList, .emojiSymbols, .toggleMonospace, .zoomIn, .zoomOut, .actualSize:
-            "Note"
+            localizedString("shortcut_group_note")
         }
     }
 

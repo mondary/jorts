@@ -17,8 +17,8 @@ struct PreferencesView: View {
                     .padding(.bottom, 18)
 
                 sidebarButton(.general, title: localizedString("general"), systemImage: "gearshape")
-                sidebarButton(.shortcuts, title: "Shortcuts", systemImage: "keyboard")
-                sidebarButton(.about, title: "About", systemImage: "info.circle")
+                sidebarButton(.shortcuts, title: localizedString("shortcuts"), systemImage: "keyboard")
+                sidebarButton(.about, title: localizedString("about_section"), systemImage: "info.circle")
 
                 Spacer()
             }
@@ -82,8 +82,8 @@ private enum PreferencesSection: Hashable {
     var title: String {
         switch self {
         case .general: localizedString("general")
-        case .shortcuts: "Shortcuts"
-        case .about: "About"
+        case .shortcuts: localizedString("shortcuts")
+        case .about: localizedString("about_section")
         }
     }
 }

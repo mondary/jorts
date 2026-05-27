@@ -75,7 +75,7 @@ struct NoteView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(document.theme.autoTextColorColor.opacity(0.72))
-                .help("Save all notes")
+                .help(localizedString("save_all_notes"))
             }
             .frame(width: 44, alignment: .leading)
 
@@ -101,17 +101,17 @@ struct NoteView: View {
 
     private var actionBar: some View {
         HStack(spacing: 10) {
-            iconButton("plus", help: "New sticky note", action: onNew)
-            iconButton("trash", role: .destructive, help: "Delete sticky note", action: onDelete)
-            iconButton("note.text", help: "Show notes list", action: onShowList)
+            iconButton("plus", help: localizedString("new_sticky_note"), action: onNew)
+            iconButton("trash", role: .destructive, help: localizedString("delete_sticky_note"), action: onDelete)
+            iconButton("note.text", help: localizedString("show_notes_list"), action: onShowList)
 
             Spacer()
 
             if !settings.listItemPrefix.isEmpty {
-                iconButton("list.bullet", help: "Toggle list", action: document.toggleList)
+                iconButton("list.bullet", help: localizedString("toggle_list"), action: document.toggleList)
             }
 
-            iconButton("face.smiling", help: "Insert emoji", action: onShowEmoji)
+            iconButton("face.smiling", help: localizedString("insert_emoji"), action: onShowEmoji)
 
             // Dedicated color button with brush icon
             Button {
@@ -122,7 +122,7 @@ struct NoteView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(document.theme.autoTextColorColor.opacity(0.78))
-            .help("Change color")
+            .help(localizedString("change_color"))
 
             Button {
                 isPreferencesPopoverPresented.toggle()
@@ -136,7 +136,7 @@ struct NoteView: View {
             .popover(isPresented: $isPreferencesPopoverPresented, arrowEdge: .bottom) {
                 notePreferencesPopover
             }
-            .help("Preferences for this sticky note")
+            .help(localizedString("preferences_note"))
 
             Button {
                 isHistoryPopoverPresented.toggle()
@@ -150,7 +150,7 @@ struct NoteView: View {
             .popover(isPresented: $isHistoryPopoverPresented, arrowEdge: .bottom) {
                 noteHistoryPopover
             }
-            .help("History (restore previous versions)")
+            .help(localizedString("history_restore"))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -165,14 +165,14 @@ struct NoteView: View {
                 onRestoreFromTrash?()
             }
             label: {
-                Label("Restaurer", systemImage: "arrow.uturn.backward")
+                Label(localizedString("restore"), systemImage: "arrow.uturn.backward")
             }
             .keyboardShortcut(.defaultAction)
 
             Button(role: .destructive) {
                 onDeletePermanently?()
             } label: {
-                Label("Supprimer", systemImage: "trash")
+                Label(localizedString("delete"), systemImage: "trash")
             }
         }
         .padding(.horizontal, 12)
@@ -182,27 +182,27 @@ struct NoteView: View {
 
     private var notePreferencesPopover: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Preferences")
+            Text(localizedString("preferences_title_short"))
                 .font(.headline)
                 .foregroundColor(Color(NSColor.labelColor))
 
-            TextField("Search fonts", text: $fontSearchText)
+            TextField(localizedString("search_fonts"), text: $fontSearchText)
                 .textFieldStyle(.roundedBorder)
                 .foregroundColor(Color(NSColor.labelColor))
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 4) {
-                    fontSection("System", fonts: [], includesSystemMonospace: true)
+                    fontSection(localizedString("system"), fonts: [], includesSystemMonospace: true)
 
                     Divider()
                         .padding(.vertical, 4)
 
-                    fontSection("Standard Fonts", fonts: filteredStandardFonts)
+                    fontSection(localizedString("standard_fonts"), fonts: filteredStandardFonts)
 
                     if !filteredNerdFonts.isEmpty {
                         Divider()
                             .padding(.vertical, 4)
-                        fontSection("Nerd Fonts", fonts: filteredNerdFonts)
+                        fontSection(localizedString("nerd_fonts"), fonts: filteredNerdFonts)
                     }
                 }
                 .padding(.vertical, 2)
@@ -217,21 +217,21 @@ struct NoteView: View {
                 } label: {
                     Image(systemName: "minus.magnifyingglass")
                 }
-                .help("Zoom Out")
+                .help(localizedString("zoom_out"))
 
                 Button {
                     document.resetZoom()
                 } label: {
                     Image(systemName: "1.magnifyingglass")
                 }
-                .help("Actual Size")
+                .help(localizedString("actual_size"))
 
                 Button {
                     document.zoomIn()
                 } label: {
                     Image(systemName: "plus.magnifyingglass")
                 }
-                .help("Zoom In")
+                .help(localizedString("zoom_in"))
             }
             .buttonStyle(.borderless)
 
@@ -246,12 +246,12 @@ struct NoteView: View {
 
     private var noteHistoryPopover: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("History")
+            Text(localizedString("history"))
                 .font(.headline)
                 .foregroundColor(Color(NSColor.labelColor))
 
             if document.versions.isEmpty {
-                Text("No versions yet.")
+                Text(localizedString("no_versions_yet"))
                     .font(.callout)
                     .foregroundColor(Color(NSColor.secondaryLabelColor))
                     .frame(maxWidth: .infinity, minHeight: 140, alignment: .center)
@@ -289,7 +289,7 @@ struct NoteView: View {
                 .disabled(clampedCursor >= versions.count - 1)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(current.title.isEmpty ? "Untitled" : current.title)
+                    Text(current.title.isEmpty ? localizedString("untitled") : current.title)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(Color(NSColor.labelColor))
                         .lineLimit(1)
@@ -300,7 +300,7 @@ struct NoteView: View {
 
                 Spacer()
 
-                Button("Apply") {
+                Button(localizedString("apply")) {
                     restore(current)
                 }
                 .keyboardShortcut(.defaultAction)
@@ -318,7 +318,7 @@ struct NoteView: View {
                             .textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     } else {
-                        Text("(Empty note)")
+                        Text(localizedString("empty_note"))
                             .font(.system(size: 12))
                             .foregroundColor(Color(NSColor.secondaryLabelColor))
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -361,7 +361,7 @@ struct NoteView: View {
                     document.monospace = true
                 } label: {
                     HStack(spacing: 8) {
-                        Text("System Monospace")
+                        Text(localizedString("system_monospace"))
                             .font(.system(size: 13))
                             .foregroundColor(Color(NSColor.labelColor))
                             .lineLimit(1)
