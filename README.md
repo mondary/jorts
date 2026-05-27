@@ -1,120 +1,102 @@
 # JortsMacOS
 
-Native macOS notes app inspired by [Jorts](https://github.com/elly-code/jorts).
+![Project icon](icon.png)
 
-This repository keeps a dedicated macOS implementation while tracking upstream Jorts separately.
+[🇫🇷 FR](README.md) · [🇬🇧 EN](README_en.md)
 
-## Repository Layout
+✨ Application de notes native macOS inspirée de Jorts, avec calcul inline, palette de commandes et gestion avancée des raccourcis.
 
-- `submodules/jorts` — upstream Jorts source (Git submodule)
-- `submodules/numi` — placeholder for future Numi source integration
-- `JortsMacOS` — macOS app code (SwiftUI/AppKit)
-- `releases` — release artifacts
+![Aperçu Jorts](https://github.com/elly-code/jorts/blob/main/data/screenshots/spread.png)
+![Preferences Light](https://github.com/elly-code/jorts/blob/main/data/screenshots/preferences-light.png)
+![Preferences Dark](https://github.com/elly-code/jorts/blob/main/data/screenshots/preferences-dark.png)
+![Default Theme](https://github.com/elly-code/jorts/blob/main/data/screenshots/default.png)
 
-## Build & Run (macOS)
+## ✅ Fonctionnalités
+- Port natif macOS (SwiftUI/AppKit) inspiré de Jorts.
+- Palette de commandes (`Cmd+K`) avec:
+  - recherche titre/contenu
+  - navigation clavier
+  - ouverture note
+  - création note
+  - ouverture Préférences / À propos
+- Raccourcis clavier éditables dans les préférences (modificateurs + touche).
+- Deux raccourcis globaux configurables:
+  - focus dernière note
+  - création nouvelle note
+- Rechargement dynamique des raccourcis dans les menus.
+- Calcul inline dans les notes:
+  - évaluation en direct
+  - variables par lignes
+  - conversions d’unités
+  - parsing d’expressions dans l’éditeur
+- Options de calcul inline activables/désactivables dans les réglages.
+- Moteur de saisie texte enrichi:
+  - toggle listes
+  - toggle monospace
+  - zoom in/out/reset
+  - effets de frappe
+- Fenêtre liste des notes (notes actives + corbeille).
+- Restauration des notes depuis corbeille.
+- Gestion couleurs/thèmes:
+  - sélecteur couleur
+  - contraste texte auto
+  - prévisualisation des couleurs
+- Persistance et stockage:
+  - stockage Markdown par note
+  - JSON d’historique de versions
+  - migration JSON legacy -> Markdown
+  - consolidation des doublons
+  - canonicalisation/cleanup
+- Opérations données:
+  - import/export
+  - archivage doublons/backups
+  - ouverture dossier de stockage dans Finder
+- Internationalisation:
+  - ressources localisées
+  - changement de langue via préférences
+- Gestion fenêtres:
+  - comportement natif palette flottante
+  - restauration focus fenêtre après palette
+- Menubar native:
+  - actions rapides
+  - accès settings/about/restart/quit
+- Refactor repo:
+  - `JortsMacOS/` pour le code app
+  - `submodules/jorts` pour la source d’inspiration
+  - `releases/` dédié artefacts
 
-```bash
-./JortsMacOS/run-dev.sh
-```
+## 🧠 Utilisation
+- Lancement dev: `./JortsMacOS/run-dev.sh`
+- Ouvrir la palette: `Cmd+K`
+- Préférences: `Cmd+,`
+- Dossier de stockage par défaut: `~/Documents/JortsMacOS/`
 
-## Storage (default)
+## ⚙️ Réglages
+- Préférences générales (langue, stockage, import/export).
+- Préférences raccourcis (modificateurs + touche).
+- Activation/désactivation du calcul inline.
 
-Notes are stored in:
+## 🧾 Commandes
+- `./JortsMacOS/run-dev.sh` : build + package + run
+- `swift build` : build SwiftPM
 
-```bash
-~/Documents/JortsMacOS/
-```
+## 📦 Build & Package
+- Le script `JortsMacOS/script/build_and_run.sh` reconstruit le bundle `.app` local.
+- La cible SwiftPM pointe sur `JortsMacOS/macos/JortsMac`.
 
-## What Is Added Beyond Original Jorts
+## 🧪 Installation (Antigravity)
+- Non utilisé pour ce projet actuellement.
 
-This fork includes much more than a straight macOS port.
+## 🧾 Changelog
+- `d06eea4` : refactor structure repo (`JortsMacOS/`, `submodules/jorts`, `releases`).
+- `f9c95c5` : shortcuts globaux configurables + unification run dev + stockage par défaut.
+- `45a7297` : nouveaux raccourcis + traduction.
+- `8e97ab3` : ajout palette de commandes.
+- `0aedc51` : ajouts calcul inline.
 
-### Platform + UX
-
-- Native SwiftUI/AppKit app lifecycle
-- Native menu bar status item + dynamic menu entries
-- Native preferences window with sections
-- Native notes list window (active notes + trash)
-- Native command palette window (`Cmd+K`)
-- Native About panel wiring
-- Restart action from UI
-
-### Shortcut System
-
-- Editable shortcut settings UI (modifiers + key)
-- Shortcut persistence in app settings
-- Menu shortcuts rebuilt live when settings change
-- Two global system hotkeys:
-  - Focus last note
-  - Create new note
-- Global hotkeys wired to settings (not hardcoded)
-
-### Command Palette
-
-- Search over note title/content
-- Command actions in palette:
-  - Create note
-  - Open preferences
-  - Open about
-- Keyboard navigation (up/down, enter, esc)
-- Selection state handling + close/focus behavior
-
-### Note Editing Features
-
-- Inline calculations column
-- Unit conversion and expression parsing support
-- Typing visual effects engine (multiple effect modes)
-- List toggle behavior in text editor
-- Monospace toggle support
-- Font selection and previews
-- Pin/unpin behavior
-- Zoom in/out/reset note content
-
-### Data Model + Persistence
-
-- Markdown-first storage (`Notes/`, `Trash/`)
-- Sidecar JSON for note version history
-- Legacy JSON import/migration support
-- Seed JSON migration support
-- Duplicate markdown consolidation
-- Canonicalization + cleanup passes
-- Trash restore flow
-- Versioning + restore workflow
-- Autosave scheduling + immediate save paths
-
-### Data Operations
-
-- Export notes flow
-- Import notes flow
-- Archive duplicates/backups flow
-- Open storage directory in Finder flow
-
-### Theming + Visuals
-
-- Expanded color theme set
-- Auto text color contrast handling
-- Color picker popover/grid
-- Theme previews in note surfaces
-- Custom macOS menu bar icon handling
-
-### Internationalization
-
-- Localization controller for runtime language selection
-- Bundled multi-language resources for macOS build
-
-### Window Management
-
-- Remember/reapply note window state behavior
-- Dedicated floating behavior for command palette
-- Focus restoration logic when palette closes
-
-### Dev/Repo Operations
-
-- Single dev launcher script for macOS app bundle refresh + run
-- Repository refactor toward external-source submodules
-
-## Upstream Relationship
-
-- Upstream inspiration/source: `elly-code/jorts`
-- macOS fork implementation lives in `JortsMacOS`
-- Upstream code tracking lives in `submodules/jorts`
+## 🔗 Liens
+- Repo source d’inspiration (Jorts): https://github.com/elly-code/jorts
+- Inspirations calcul:
+  - https://github.com/bornova/numara-calculator
+  - https://github.com/teamxenox/caligator
+- README EN: [README_en.md](README_en.md)
