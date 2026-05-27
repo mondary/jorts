@@ -380,9 +380,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if clipboardWindowController == nil {
             clipboardWindowController = ClipboardWindowController(manager: manager, settings: settings, clipboard: clipboard)
         }
-        clipboardWindowController?.showWindow(nil)
-        clipboardWindowController?.window?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        clipboardWindowController?.toggle()
     }
 
     private func observeSettings() {

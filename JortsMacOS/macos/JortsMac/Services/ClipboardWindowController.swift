@@ -6,6 +6,7 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
     private let settings: AppSettings
     private let clipboard: ClipboardManager
     private var hostingController: NSHostingController<ClipboardView>?
+    private var lastKnownVisibleFrame: NSRect?
 
     init(manager: NoteManager, settings: AppSettings, clipboard: ClipboardManager) {
         self.manager = manager
@@ -20,25 +21,97 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
             onCopyItem: { [weak clipboard] item in clipboard?.copyToPasteboard(item) }
         ))
 
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 760, height: 520),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 980, height: 360),
+            styleMask: [.nonactivatingPanel, .titled, .closable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
-        window.title = "Clipboard - JortsMacOS"
-        window.titleVisibility = .hidden
-        window.titlebarAppearsTransparent = true
-        window.isMovableByWindowBackground = true
-        window.minSize = NSSize(width: 520, height: 380)
-        window.contentViewController = self.hostingController
+        panel.title = "Clipboard - JortsMacOS"
+        panel.titleVisibility = .hidden
+        panel.titlebarAppearsTransparent = true
+        panel.isMovableByWindowBackground = true
+        panel.isFloatingPanel = true
+        panel.hidesOnDeactivate = false
+        panel.isReleasedWhenClosed = false
+        panel.collectionBehavior = [.moveToActiveSpace, .transient, .fullScreenAuxiliary]
+        panel.level = .floating
+        panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
+        panel.standardWindowButton(.zoomButton)?.isHidden = true
+        panel.minSize = NSSize(width: 720, height: 280)
+        panel.contentViewController = self.hostingController
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
 
-        super.init(window: window)
-        window.delegate = self
-        window.center()
+        super.init(window: panel)
+        panel.delegate = self
     }
 
     required init?(coder: NSCoder) { nil }
+
+    func toggle() {
+        guard let window else { return }
+        if window.isVisible {
+            dismissAnimated()
+        } else {
+            presentAnimated()
+        }
+    }
+
+    private func presentAnimated() {
+        guard let window else { return }
+
+        // We want it to behave like a drawer: bottom anchored, centered, quick slide up.
+        let visible = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
+        lastKnownVisibleFrame = visible
+
+        let targetWidth = min(max(820, window.frame.width), visible.width - 80)
+        let targetHeight = min(max(300, window.frame.height), min(visible.height * 0.55, 520))
+        let marginBottom: CGFloat = 22
+        let x = visible.midX - targetWidth / 2
+        let y = visible.minY + marginBottom
+        let target = NSRect(x: x, y: y, width: targetWidth, height: targetHeight)
+
+        // Start slightly below (off-screen-ish) then animate up.
+        var start = target
+        start.origin.y = visible.minY - targetHeight - 8
+        window.setFrame(start, display: false)
+
+        window.alphaValue = 0
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.16
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            window.animator().alphaValue = 1
+            window.animator().setFrame(target, display: true)
+        }
+    }
+
+    private func dismissAnimated() {
+        guard let window else { return }
+        let visible = window.screen?.visibleFrame ?? lastKnownVisibleFrame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
+
+        var end = window.frame
+        end.origin.y = visible.minY - end.height - 8
+
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.14
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            window.animator().alphaValue = 0
+            window.animator().setFrame(end, display: true)
+        } completionHandler: {
+            window.orderOut(nil)
+            window.alphaValue = 1
+        }
+    }
+
+    func windowDidResignKey(_ notification: Notification) {
+        // Drawer-like behavior: hide when focus leaves.
+        dismissAnimated()
+    }
 
     private static func noteContent(from item: ClipboardManager.Item) -> String {
         switch item.payload {
@@ -50,4 +123,3 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         }
     }
 }
-
