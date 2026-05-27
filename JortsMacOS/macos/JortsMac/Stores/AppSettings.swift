@@ -12,6 +12,7 @@ final class AppSettings: ObservableObject {
         static let typingEffect = "typing-effect"
         static let inlineCalculations = "inline-calculations"
         static let inlineBrandIcons = "inline-brand-icons"
+        static let clipboardDrawerEdge = "clipboard-drawer-edge"
     }
 
     private let defaults: UserDefaults
@@ -57,6 +58,10 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(inlineBrandIcons, forKey: Keys.inlineBrandIcons) }
     }
 
+    @Published var clipboardDrawerEdge: ClipboardDrawerEdge {
+        didSet { defaults.set(clipboardDrawerEdge.rawValue, forKey: Keys.clipboardDrawerEdge) }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         defaults.register(defaults: [
@@ -69,7 +74,8 @@ final class AppSettings: ObservableObject {
             ,
             Keys.typingEffect: TypingEffect.off.rawValue,
             Keys.inlineCalculations: true,
-            Keys.inlineBrandIcons: true
+            Keys.inlineBrandIcons: true,
+            Keys.clipboardDrawerEdge: ClipboardDrawerEdge.top.rawValue
         ])
 
         scribblyModeActive = defaults.bool(forKey: Keys.scribblyModeActive)
@@ -85,6 +91,8 @@ final class AppSettings: ObservableObject {
         typingEffect = TypingEffect(rawValue: effectRaw) ?? .off
         inlineCalculations = defaults.bool(forKey: Keys.inlineCalculations)
         inlineBrandIcons = defaults.bool(forKey: Keys.inlineBrandIcons)
+        let edgeRaw = defaults.string(forKey: Keys.clipboardDrawerEdge) ?? ClipboardDrawerEdge.top.rawValue
+        clipboardDrawerEdge = ClipboardDrawerEdge(rawValue: edgeRaw) ?? .top
 
         applyLanguagePreference()
     }
@@ -145,4 +153,13 @@ final class AppSettings: ObservableObject {
         guard !trimmed.isEmpty else { return nil }
         return URL(fileURLWithPath: trimmed, isDirectory: true)
     }
+}
+
+enum ClipboardDrawerEdge: String, CaseIterable, Identifiable {
+    case top
+    case bottom
+    case left
+    case right
+
+    var id: String { rawValue }
 }

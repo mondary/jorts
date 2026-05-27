@@ -64,22 +64,16 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
     private func presentAnimated() {
         guard let window else { return }
 
-        // We want it to behave like a drawer: bottom anchored, centered, quick slide up.
+        // Drawer behavior: anchored on a screen edge, with a short slide-in animation.
         let visible = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
         lastKnownVisibleFrame = visible
 
-        // Full width drawer (like Deck): span visible width with a small horizontal inset.
-        let insetX: CGFloat = 10
-        let marginBottom: CGFloat = 10
-        let targetWidth = max(640, visible.width - insetX * 2)
-        let targetHeight = min(max(340, window.frame.height), min(visible.height * 0.48, 520))
-        let x = visible.minX + insetX
-        let y = visible.minY + marginBottom
-        let target = NSRect(x: x, y: y, width: targetWidth, height: targetHeight)
+        let inset: CGFloat = 10
+        let target = targetFrame(in: visible, inset: inset, edge: settings.clipboardDrawerEdge, current: window.frame.size)
 
-        // Start slightly below (off-screen-ish) then animate up.
+        // Start just outside the chosen edge.
         var start = target
-        start.origin.y = visible.minY - targetHeight - 8
+        start = offscreenFrame(for: target, in: visible, edge: settings.clipboardDrawerEdge)
         window.setFrame(start, display: false)
 
         window.alphaValue = 0
@@ -98,8 +92,7 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         guard let window else { return }
         let visible = window.screen?.visibleFrame ?? lastKnownVisibleFrame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
 
-        var end = window.frame
-        end.origin.y = visible.minY - end.height - 8
+        let end = offscreenFrame(for: window.frame, in: visible, edge: settings.clipboardDrawerEdge)
 
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.14
@@ -115,6 +108,39 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
     func windowDidResignKey(_ notification: Notification) {
         // Drawer-like behavior: hide when focus leaves.
         dismissAnimated()
+    }
+
+    private func targetFrame(in visible: NSRect, inset: CGFloat, edge: ClipboardDrawerEdge, current: CGSize) -> NSRect {
+        switch edge {
+        case .top, .bottom:
+            let width = max(640, visible.width - inset * 2)
+            let height = min(max(340, current.height), min(visible.height * 0.48, 520))
+            let x = visible.minX + inset
+            let y: CGFloat = (edge == .top) ? (visible.maxY - inset - height) : (visible.minY + inset)
+            return NSRect(x: x, y: y, width: width, height: height)
+        case .left, .right:
+            let height = max(320, visible.height - inset * 2)
+            let width = min(max(420, current.width), min(visible.width * 0.46, 720))
+            let y = visible.minY + inset
+            let x: CGFloat = (edge == .left) ? (visible.minX + inset) : (visible.maxX - inset - width)
+            return NSRect(x: x, y: y, width: width, height: height)
+        }
+    }
+
+    private func offscreenFrame(for target: NSRect, in visible: NSRect, edge: ClipboardDrawerEdge) -> NSRect {
+        let pad: CGFloat = 10
+        var start = target
+        switch edge {
+        case .bottom:
+            start.origin.y = visible.minY - target.height - pad
+        case .top:
+            start.origin.y = visible.maxY + pad
+        case .left:
+            start.origin.x = visible.minX - target.width - pad
+        case .right:
+            start.origin.x = visible.maxX + pad
+        }
+        return start
     }
 
     private static func noteContent(from item: ClipboardManager.Item) -> String {

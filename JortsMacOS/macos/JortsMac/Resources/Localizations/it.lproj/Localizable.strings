@@ -164,6 +164,12 @@
 "all_sources" = "Tutte le sorgenti";
 "unknown_source" = "Sconosciuto";
 "convert_to_note" = "Converti in nota";
+"position" = "Posizione";
+"position_top" = "In alto";
+"position_bottom" = "In basso";
+"position_left" = "Sinistra";
+"position_right" = "Destra";
+"clipboard_position_hint" = "Scegli dove appare il pannello degli appunti.";
 "insert_emoji" = "Inserisci emoji";
 "change_color" = "Cambia colore";
 "history_restore" = "Cronologia (ripristina versioni precedenti)";

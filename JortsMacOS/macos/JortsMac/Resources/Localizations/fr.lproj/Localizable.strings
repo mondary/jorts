@@ -165,6 +165,12 @@
 "all_sources" = "Toutes les sources";
 "unknown_source" = "Inconnu";
 "convert_to_note" = "Convertir en note";
+"position" = "Position";
+"position_top" = "Haut";
+"position_bottom" = "Bas";
+"position_left" = "Gauche";
+"position_right" = "Droite";
+"clipboard_position_hint" = "Choisissez ou le drawer du presse-papiers apparait.";
 "insert_emoji" = "Insérer un emoji";
 "change_color" = "Changer la couleur";
 "history_restore" = "Historique (restaurer une version précédente)";

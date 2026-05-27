@@ -164,6 +164,12 @@
 "all_sources" = "Todas las fuentes";
 "unknown_source" = "Desconocido";
 "convert_to_note" = "Convertir en nota";
+"position" = "Posicion";
+"position_top" = "Arriba";
+"position_bottom" = "Abajo";
+"position_left" = "Izquierda";
+"position_right" = "Derecha";
+"clipboard_position_hint" = "Elige donde aparece el panel del portapapeles.";
 "insert_emoji" = "Insertar emoji";
 "change_color" = "Cambiar color";
 "history_restore" = "Historial (restaurar versiones anteriores)";

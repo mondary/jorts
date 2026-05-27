@@ -165,6 +165,12 @@
 "all_sources" = "All sources";
 "unknown_source" = "Unknown";
 "convert_to_note" = "Convert to note";
+"position" = "Position";
+"position_top" = "Top";
+"position_bottom" = "Bottom";
+"position_left" = "Left";
+"position_right" = "Right";
+"clipboard_position_hint" = "Choose where the clipboard drawer appears.";
 "insert_emoji" = "Insert emoji";
 "change_color" = "Change color";
 "history_restore" = "History (restore previous versions)";

@@ -164,6 +164,12 @@
 "all_sources" = "Alle Quellen";
 "unknown_source" = "Unbekannt";
 "convert_to_note" = "In Notiz umwandeln";
+"position" = "Position";
+"position_top" = "Oben";
+"position_bottom" = "Unten";
+"position_left" = "Links";
+"position_right" = "Rechts";
+"clipboard_position_hint" = "Wahlen Sie, wo die Zwischenablage-Leiste erscheint.";
 "insert_emoji" = "Emoji einfügen";
 "change_color" = "Farbe ändern";
 "history_restore" = "Verlauf (frühere Versionen wiederherstellen)";

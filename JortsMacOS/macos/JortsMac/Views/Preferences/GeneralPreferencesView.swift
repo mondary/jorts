@@ -103,6 +103,25 @@ struct GeneralPreferencesView: View {
 
             Divider()
 
+            VStack(alignment: .leading, spacing: 10) {
+                Text(localizedString("clipboard"))
+                    .font(.headline)
+
+                Picker(localizedString("position"), selection: $settings.clipboardDrawerEdge) {
+                    Text(localizedString("position_top")).tag(ClipboardDrawerEdge.top)
+                    Text(localizedString("position_bottom")).tag(ClipboardDrawerEdge.bottom)
+                    Text(localizedString("position_left")).tag(ClipboardDrawerEdge.left)
+                    Text(localizedString("position_right")).tag(ClipboardDrawerEdge.right)
+                }
+                .pickerStyle(.segmented)
+
+                Text(localizedString("clipboard_position_hint"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Divider()
+
             // Import/Export
             VStack(alignment: .leading, spacing: 10) {
                 Text(localizedString("import_export"))
