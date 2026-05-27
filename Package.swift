@@ -17,6 +17,7 @@ let package = Package(
             path: "JortsMacOS/macos/JortsMac",
             resources: [
                 .copy("Resources/RedactedScript-Regular.ttf"),
+                .copy("Resources/BrandIcons"),
                 .process("Resources/Localizations")
             ]
         )

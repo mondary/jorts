@@ -8,6 +8,7 @@ struct NoteTextView: NSViewRepresentable {
     let isEditable: Bool
     let typingEffect: TypingEffect
     let showsInlineCalculations: Bool
+    let showsInlineBrandIcons: Bool
 
     let font: NSFont
     let textColor: NSColor
@@ -123,8 +124,15 @@ struct NoteTextView: NSViewRepresentable {
 
         func textView(_ textView: NSTextView, shouldChangeTextIn affectedCharRange: NSRange, replacementString: String?) -> Bool {
             guard !isApplyingChange,
-                  let replacementString,
-                  !parent.listPrefix.isEmpty else {
+                  let replacementString else {
+                return true
+            }
+
+            if completeBrandBadgeIfNeeded(in: textView, range: affectedCharRange, replacement: replacementString) {
+                return false
+            }
+
+            guard !parent.listPrefix.isEmpty else {
                 return true
             }
 
@@ -248,6 +256,50 @@ struct NoteTextView: NSViewRepresentable {
             host.emit(effect: parent.typingEffect, at: pointInHost, direction: direction)
         }
 
+        private func completeBrandBadgeIfNeeded(in textView: NSTextView, range: NSRange, replacement: String) -> Bool {
+            guard parent.showsInlineBrandIcons,
+                  range.length == 0,
+                  InlineBrandIcons.shouldComplete(after: replacement) else {
+                return false
+            }
+
+            let original = textView.string as NSString
+            guard range.location <= original.length else { return false }
+
+            var start = range.location
+            while start > 0 {
+                let prev = Character(original.substring(with: NSRange(location: start - 1, length: 1)))
+                guard prev.isLetter || prev.isNumber else { break }
+                start -= 1
+            }
+
+            guard start < range.location else { return false }
+            let tokenRange = NSRange(location: start, length: range.location - start)
+            let token = original.substring(with: tokenRange)
+            guard let badge = InlineBrandIcons.badge(for: token) else { return false }
+
+            if range.location + 1 <= original.length {
+                let existing = original.substring(with: NSRange(location: range.location, length: 1))
+                if existing == " " {
+                    return false
+                }
+            }
+
+            isApplyingChange = true
+            if let attachment = BrandIconAttachment.make(for: badge, font: parent.font) {
+                let attributed = NSMutableAttributedString(string: " ")
+                attributed.append(NSAttributedString(attachment: attachment))
+                attributed.append(NSAttributedString(string: replacement))
+                textView.textStorage?.replaceCharacters(in: range, with: attributed)
+            } else {
+                textView.insertText(" \(badge.title)\(replacement)", replacementRange: range)
+            }
+            isApplyingChange = false
+            parent.text = textView.string
+            textView.didChangeText()
+            return true
+        }
+
         private func caretPoint(in textView: NSTextView) -> CGPoint? {
             let stringLength = (textView.string as NSString).length
             let caretLocation = min(max(0, textView.selectedRange().location), stringLength)
@@ -356,6 +408,32 @@ struct NoteTextView: NSViewRepresentable {
             let actualPrefix = string.substring(with: NSRange(location: lineRange.location, length: prefixLength))
             return actualPrefix == prefix
         }
+    }
+}
+
+private enum BrandIconAttachment {
+    private static var cache: [String: NSImage] = [:]
+
+    static func make(for badge: InlineBrandIcons.Badge, font: NSFont) -> NSTextAttachment? {
+        guard let iconFile = badge.iconFile,
+              let image = image(named: iconFile) else {
+            return nil
+        }
+        let size = max(13, min(18, font.pointSize + 1))
+        let attachment = NSTextAttachment()
+        attachment.image = image
+        attachment.bounds = NSRect(x: 0, y: (font.descender + 1), width: size, height: size)
+        return attachment
+    }
+
+    private static func image(named name: String) -> NSImage? {
+        if let cached = cache[name] { return cached }
+        guard let url = Bundle.module.url(forResource: name, withExtension: "svg", subdirectory: "BrandIcons"),
+              let image = NSImage(contentsOf: url) else {
+            return nil
+        }
+        cache[name] = image
+        return image
     }
 }
 

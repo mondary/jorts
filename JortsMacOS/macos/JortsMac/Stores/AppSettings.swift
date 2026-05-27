@@ -11,6 +11,7 @@ final class AppSettings: ObservableObject {
         static let randomizeNewNotePosition = "randomize-new-note-position"
         static let typingEffect = "typing-effect"
         static let inlineCalculations = "inline-calculations"
+        static let inlineBrandIcons = "inline-brand-icons"
     }
 
     private let defaults: UserDefaults
@@ -52,6 +53,10 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(inlineCalculations, forKey: Keys.inlineCalculations) }
     }
 
+    @Published var inlineBrandIcons: Bool {
+        didSet { defaults.set(inlineBrandIcons, forKey: Keys.inlineBrandIcons) }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         defaults.register(defaults: [
@@ -63,7 +68,8 @@ final class AppSettings: ObservableObject {
             Keys.randomizeNewNotePosition: true
             ,
             Keys.typingEffect: TypingEffect.off.rawValue,
-            Keys.inlineCalculations: true
+            Keys.inlineCalculations: true,
+            Keys.inlineBrandIcons: true
         ])
 
         scribblyModeActive = defaults.bool(forKey: Keys.scribblyModeActive)
@@ -78,6 +84,7 @@ final class AppSettings: ObservableObject {
         let effectRaw = defaults.string(forKey: Keys.typingEffect) ?? TypingEffect.off.rawValue
         typingEffect = TypingEffect(rawValue: effectRaw) ?? .off
         inlineCalculations = defaults.bool(forKey: Keys.inlineCalculations)
+        inlineBrandIcons = defaults.bool(forKey: Keys.inlineBrandIcons)
 
         applyLanguagePreference()
     }

@@ -32,6 +32,7 @@ struct NoteView: View {
                 isEditable: mode == .normal,
                 typingEffect: settings.typingEffect,
                 showsInlineCalculations: settings.inlineCalculations,
+                showsInlineBrandIcons: settings.inlineBrandIcons,
                 font: editorFont,
                 textColor: document.theme.autoTextColor,
                 insertionPointColor: document.theme.autoTextColor,

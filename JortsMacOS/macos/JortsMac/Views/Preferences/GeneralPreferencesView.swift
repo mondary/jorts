@@ -93,6 +93,8 @@ struct GeneralPreferencesView: View {
 
                 Toggle("Show results while typing", isOn: $settings.inlineCalculations)
                     .toggleStyle(.switch)
+                Toggle("Show brand icons while typing", isOn: $settings.inlineBrandIcons)
+                    .toggleStyle(.switch)
 
                 Text("Shows simple math results in a subtle right-side column (Numi-style).")
                     .font(.caption)
