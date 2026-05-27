@@ -114,7 +114,7 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         switch edge {
         case .top, .bottom:
             let width = max(640, visible.width - inset * 2)
-            let height = min(max(340, current.height), min(visible.height * 0.48, 520))
+            let height = min(max(340, current.height), min(visible.height * 0.46, 520))
             let x = visible.minX + inset
             let y: CGFloat = (edge == .top) ? (visible.maxY - inset - height) : (visible.minY + inset)
             return NSRect(x: x, y: y, width: width, height: height)

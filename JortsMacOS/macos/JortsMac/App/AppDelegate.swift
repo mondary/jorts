@@ -415,6 +415,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.registerGlobalHotKey()
             }
             .store(in: &cancellables)
+
+        settings.$clipboardMaxItems
+            .combineLatest(settings.$clipboardMaxAgeDays, settings.$clipboardSourceMode, settings.$clipboardSourceList)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] maxItems, maxDays, mode, list in
+                self?.clipboard.setConfig(maxItems: maxItems, maxAgeDays: maxDays, sourceMode: mode, sourceList: list)
+            }
+            .store(in: &cancellables)
     }
 
     private func buildMainMenu() {

@@ -175,6 +175,15 @@
 "files" = "files";
 "image" = "Image";
 "link" = "Link";
+"filter_all" = "All";
+"filter_text" = "Text";
+"filter_url" = "URL";
+"filter_image" = "Image";
+"filter_files" = "Files";
+"pinned" = "Pinned";
+"recent" = "Recent";
+"pin" = "Pin";
+"lock" = "Lock";
 "insert_emoji" = "Insert emoji";
 "change_color" = "Change color";
 "history_restore" = "History (restore previous versions)";

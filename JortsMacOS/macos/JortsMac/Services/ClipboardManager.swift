@@ -17,6 +17,8 @@ final class ClipboardManager: ObservableObject {
         let kind: Kind
         let previewText: String
         let payload: Payload
+        var isPinned: Bool
+        var isLocked: Bool
 
         enum Payload: Equatable {
             case text(String)
@@ -29,6 +31,10 @@ final class ClipboardManager: ObservableObject {
     @Published private(set) var items: [Item] = []
 
     var isPaused: Bool = false
+    var maxItems: Int = 500
+    var maxAgeDays: Int = 30
+    var sourceMode: ClipboardSourceMode = .allowAll
+    var sourceList: Set<String> = []
 
     private let pasteboard: NSPasteboard
     private var lastChangeCount: Int
@@ -41,6 +47,7 @@ final class ClipboardManager: ObservableObject {
         self.persistence = persistence
         self.lastChangeCount = pasteboard.changeCount
         self.items = persistence.load()
+        purgeIfNeeded()
     }
 
     func start() {
@@ -60,6 +67,83 @@ final class ClipboardManager: ObservableObject {
     func clear() {
         items.removeAll()
         persistence.clear()
+    }
+
+    func setConfig(maxItems: Int, maxAgeDays: Int, sourceMode: ClipboardSourceMode, sourceList: [String]) {
+        self.maxItems = max(50, maxItems)
+        self.maxAgeDays = max(1, maxAgeDays)
+        self.sourceMode = sourceMode
+        self.sourceList = Set(sourceList)
+        purgeIfNeeded()
+    }
+
+    struct Query {
+        enum KindFilter: String, CaseIterable, Identifiable {
+            case all
+            case text
+            case url
+            case image
+            case file
+
+            var id: String { rawValue }
+        }
+
+        var text: String = ""
+        var kind: KindFilter = .all
+        var sourceBundleID: String? = nil
+        var pinnedOnly: Bool = false
+        var recentOnly: Bool = false
+        var recentWindowMinutes: Int = 60
+    }
+
+    func filteredItems(_ q: Query) -> [Item] {
+        let needle = q.text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let cutoff = Date().addingTimeInterval(-Double(q.recentWindowMinutes) * 60.0)
+
+        return items.filter { item in
+            if q.pinnedOnly && !item.isPinned { return false }
+            if q.recentOnly && item.createdAt < cutoff { return false }
+            if let source = q.sourceBundleID, item.sourceBundleID != source { return false }
+            switch q.kind {
+            case .all:
+                break
+            case .text:
+                if item.kind != .text { return false }
+            case .url:
+                if item.kind != .url { return false }
+            case .image:
+                if item.kind != .image { return false }
+            case .file:
+                if item.kind != .fileURLs { return false }
+            }
+            if needle.isEmpty { return true }
+            if item.previewText.lowercased().contains(needle) { return true }
+            if (item.sourceAppName?.lowercased().contains(needle) ?? false) { return true }
+            return false
+        }
+    }
+
+    func togglePin(_ id: UUID) {
+        guard let idx = items.firstIndex(where: { $0.id == id }) else { return }
+        items[idx].isPinned.toggle()
+        scheduleSave()
+    }
+
+    func toggleLock(_ id: UUID) {
+        guard let idx = items.firstIndex(where: { $0.id == id }) else { return }
+        items[idx].isLocked.toggle()
+        scheduleSave()
+    }
+
+    func delete(_ id: UUID) {
+        items.removeAll { $0.id == id }
+        scheduleSave()
+    }
+
+    func deleteAll(fromSourceBundleID bundleID: String?) {
+        guard let bundleID else { return }
+        items.removeAll { $0.sourceBundleID == bundleID && !$0.isLocked }
+        scheduleSave()
     }
 
     func copyToPasteboard(_ item: Item) {
@@ -91,6 +175,10 @@ final class ClipboardManager: ObservableObject {
     private func captureCurrentPasteboard() {
         let (bundleID, appName) = frontmostAppIdentity()
 
+        if shouldIgnoreSource(bundleID: bundleID) {
+            return
+        }
+
         // Prefer file URLs, then images, then string.
         if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL],
            !urls.isEmpty
@@ -103,7 +191,9 @@ final class ClipboardManager: ObservableObject {
                 sourceAppName: appName,
                 kind: .fileURLs,
                 previewText: preview,
-                payload: .fileURLs(urls)
+                payload: .fileURLs(urls),
+                isPinned: false,
+                isLocked: false
             ))
             return
         }
@@ -119,7 +209,9 @@ final class ClipboardManager: ObservableObject {
                 sourceAppName: appName,
                 kind: .image,
                 previewText: "Image",
-                payload: .imageData(tiff)
+                payload: .imageData(tiff),
+                isPinned: false,
+                isLocked: false
             ))
             return
         }
@@ -134,7 +226,9 @@ final class ClipboardManager: ObservableObject {
                     sourceAppName: appName,
                     kind: .url,
                     previewText: trimmed,
-                    payload: .url(url)
+                    payload: .url(url),
+                    isPinned: false,
+                    isLocked: false
                 ))
             } else {
                 append(Item(
@@ -144,7 +238,9 @@ final class ClipboardManager: ObservableObject {
                     sourceAppName: appName,
                     kind: .text,
                     previewText: String(trimmed.prefix(240)),
-                    payload: .text(s)
+                    payload: .text(s),
+                    isPinned: false,
+                    isLocked: false
                 ))
             }
         }
@@ -160,10 +256,10 @@ final class ClipboardManager: ObservableObject {
             return
         }
 
-        items.insert(item, at: 0)
-        if items.count > 500 {
-            items.removeLast(items.count - 500)
-        }
+        // Keep pinned items at the top, then newest items.
+        let insertionIndex = items.firstIndex(where: { !$0.isPinned }) ?? items.count
+        items.insert(item, at: insertionIndex)
+        purgeIfNeeded()
         scheduleSave()
     }
 
@@ -180,6 +276,37 @@ final class ClipboardManager: ObservableObject {
         }
         saveWorkItem = work
         DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 0.35, execute: work)
+    }
+
+    private func shouldIgnoreSource(bundleID: String?) -> Bool {
+        guard let bundleID else { return false }
+        switch sourceMode {
+        case .allowAll:
+            return false
+        case .blockList:
+            return sourceList.contains(bundleID)
+        case .allowList:
+            return !sourceList.contains(bundleID)
+        }
+    }
+
+    private func purgeIfNeeded() {
+        // 1) Age-based purge for non-locked items.
+        let cutoff = Date().addingTimeInterval(-Double(maxAgeDays) * 86400.0)
+        items.removeAll { item in
+            guard !item.isLocked else { return false }
+            return item.createdAt < cutoff
+        }
+
+        // 2) Count-based purge for non-pinned/non-locked oldest items.
+        if items.count > maxItems {
+            // Keep pinned + locked regardless.
+            var keep: [Item] = items.filter { $0.isPinned || $0.isLocked }
+            let rest = items.filter { !$0.isPinned && !$0.isLocked }
+            let remainingSlots = max(0, maxItems - keep.count)
+            keep.append(contentsOf: rest.prefix(remainingSlots))
+            items = keep
+        }
     }
 }
 
@@ -280,6 +407,8 @@ private struct StoredItem: Codable {
     let sourceAppName: String?
     let kind: ClipboardManager.Item.Kind
     let previewText: String
+    let isPinned: Bool
+    let isLocked: Bool
 
     let payloadText: String?
     let payloadURL: String?
@@ -293,6 +422,8 @@ private struct StoredItem: Codable {
         sourceAppName = item.sourceAppName
         kind = item.kind
         previewText = item.previewText
+        isPinned = item.isPinned
+        isLocked = item.isLocked
 
         switch item.payload {
         case .text(let t):
@@ -344,7 +475,9 @@ private struct StoredItem: Codable {
             sourceAppName: sourceAppName,
             kind: kind,
             previewText: previewText,
-            payload: payload
+            payload: payload,
+            isPinned: isPinned,
+            isLocked: isLocked
         )
     }
 }

@@ -13,6 +13,10 @@ final class AppSettings: ObservableObject {
         static let inlineCalculations = "inline-calculations"
         static let inlineBrandIcons = "inline-brand-icons"
         static let clipboardDrawerEdge = "clipboard-drawer-edge"
+        static let clipboardMaxItems = "clipboard-max-items"
+        static let clipboardMaxAgeDays = "clipboard-max-age-days"
+        static let clipboardSourceMode = "clipboard-source-mode"
+        static let clipboardSourceList = "clipboard-source-list"
     }
 
     private let defaults: UserDefaults
@@ -62,6 +66,26 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(clipboardDrawerEdge.rawValue, forKey: Keys.clipboardDrawerEdge) }
     }
 
+    @Published var clipboardMaxItems: Int {
+        didSet { defaults.set(clipboardMaxItems, forKey: Keys.clipboardMaxItems) }
+    }
+
+    @Published var clipboardMaxAgeDays: Int {
+        didSet { defaults.set(clipboardMaxAgeDays, forKey: Keys.clipboardMaxAgeDays) }
+    }
+
+    @Published var clipboardSourceMode: ClipboardSourceMode {
+        didSet { defaults.set(clipboardSourceMode.rawValue, forKey: Keys.clipboardSourceMode) }
+    }
+
+    @Published var clipboardSourceList: [String] {
+        didSet {
+            if let data = try? JSONEncoder().encode(clipboardSourceList) {
+                defaults.set(data, forKey: Keys.clipboardSourceList)
+            }
+        }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         defaults.register(defaults: [
@@ -75,7 +99,10 @@ final class AppSettings: ObservableObject {
             Keys.typingEffect: TypingEffect.off.rawValue,
             Keys.inlineCalculations: true,
             Keys.inlineBrandIcons: true,
-            Keys.clipboardDrawerEdge: ClipboardDrawerEdge.top.rawValue
+            Keys.clipboardDrawerEdge: ClipboardDrawerEdge.top.rawValue,
+            Keys.clipboardMaxItems: 500,
+            Keys.clipboardMaxAgeDays: 30,
+            Keys.clipboardSourceMode: ClipboardSourceMode.allowAll.rawValue
         ])
 
         scribblyModeActive = defaults.bool(forKey: Keys.scribblyModeActive)
@@ -93,6 +120,16 @@ final class AppSettings: ObservableObject {
         inlineBrandIcons = defaults.bool(forKey: Keys.inlineBrandIcons)
         let edgeRaw = defaults.string(forKey: Keys.clipboardDrawerEdge) ?? ClipboardDrawerEdge.top.rawValue
         clipboardDrawerEdge = ClipboardDrawerEdge(rawValue: edgeRaw) ?? .top
+        clipboardMaxItems = max(50, defaults.integer(forKey: Keys.clipboardMaxItems))
+        clipboardMaxAgeDays = max(1, defaults.integer(forKey: Keys.clipboardMaxAgeDays))
+        let sourceModeRaw = defaults.string(forKey: Keys.clipboardSourceMode) ?? ClipboardSourceMode.allowAll.rawValue
+        clipboardSourceMode = ClipboardSourceMode(rawValue: sourceModeRaw) ?? .allowAll
+        if let data = defaults.data(forKey: Keys.clipboardSourceList),
+           let list = try? JSONDecoder().decode([String].self, from: data) {
+            clipboardSourceList = list
+        } else {
+            clipboardSourceList = []
+        }
 
         applyLanguagePreference()
     }
@@ -160,6 +197,14 @@ enum ClipboardDrawerEdge: String, CaseIterable, Identifiable {
     case bottom
     case left
     case right
+
+    var id: String { rawValue }
+}
+
+enum ClipboardSourceMode: String, CaseIterable, Identifiable {
+    case allowAll
+    case blockList
+    case allowList
 
     var id: String { rawValue }
 }
