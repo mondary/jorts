@@ -369,18 +369,26 @@ private struct DeckCard: View {
             preview
 
             if item.kind != .url {
-                Text(item.metadataTitle ?? item.previewText)
-                    .font(.system(size: 15 * scale, weight: item.metadataTitle != nil ? .medium : .regular))
-                    .foregroundStyle(Color(NSColor.labelColor))
-                    .lineLimit(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                if item.metadataTitle != nil {
+                if item.kind == .image {
                     Text(item.previewText)
-                        .font(.system(size: 12 * scale, weight: .regular))
+                        .font(.system(size: 12 * scale, weight: .medium))
                         .foregroundStyle(.secondary)
-                        .lineLimit(2)
+                        .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Text(item.metadataTitle ?? item.previewText)
+                        .font(.system(size: 15 * scale, weight: item.metadataTitle != nil ? .medium : .regular))
+                        .foregroundStyle(Color(NSColor.labelColor))
+                        .lineLimit(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if item.metadataTitle != nil {
+                        Text(item.previewText)
+                            .font(.system(size: 12 * scale, weight: .regular))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
             } else if item.metadataTitle == nil && item.metadataFaviconName == nil {
                 Text(item.previewText)
@@ -470,9 +478,8 @@ private struct DeckCard: View {
                 GeometryReader { geo in
                     Image(nsImage: image)
                         .resizable()
-                        .scaledToFill()
-                        .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
-                        .clipped()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: geo.size.width, height: geo.size.height, alignment: .center)
                 }
                 .frame(height: 120 * scale)
                 .background(
