@@ -19,6 +19,8 @@ final class ClipboardManager: ObservableObject {
         let payload: Payload
         var isPinned: Bool
         var isLocked: Bool
+        var metadataTitle: String?
+        var metadataFaviconName: String?
 
         enum Payload: Equatable {
             case text(String)
@@ -193,31 +195,18 @@ final class ClipboardManager: ObservableObject {
                 previewText: preview,
                 payload: .fileURLs(urls),
                 isPinned: false,
-                isLocked: false
+                isLocked: false,
+                metadataTitle: nil,
+                metadataFaviconName: nil
             ))
             return
-        }
+            }
 
-        // Images: prefer raw pasteboard data so we can handle PNG copies that don't bridge to NSImage objects.
-        if let imageData = pasteboard.data(forType: .png) ?? pasteboard.data(forType: .tiff) {
-            append(Item(
-                id: UUID(),
-                createdAt: Date(),
-                sourceBundleID: bundleID,
-                sourceAppName: appName,
-                kind: .image,
-                previewText: "Image",
-                payload: .imageData(imageData),
-                isPinned: false,
-                isLocked: false
-            ))
-            return
-        }
-
-        if let images = pasteboard.readObjects(forClasses: [NSImage.self], options: nil) as? [NSImage],
-           let first = images.first,
-           let tiff = first.tiffRepresentation
-        {
+            // Images: some apps provide PNG/TIFF bytes directly, others only provide a bridgeable image.
+            // 1) Try a direct AppKit read (most robust).
+            if let img = NSImage(pasteboard: pasteboard),
+            let tiff = img.tiffRepresentation
+            {
             append(Item(
                 id: UUID(),
                 createdAt: Date(),
@@ -227,12 +216,61 @@ final class ClipboardManager: ObservableObject {
                 previewText: "Image",
                 payload: .imageData(tiff),
                 isPinned: false,
-                isLocked: false
+                isLocked: false,
+                metadataTitle: nil,
+                metadataFaviconName: nil
             ))
             return
-        }
+            }
 
-        if let s = pasteboard.string(forType: .string), !s.isEmpty {
+            // 2) Try raw bytes by type (covers some web copies).
+            let pngType = NSPasteboard.PasteboardType.png
+            let tiffType = NSPasteboard.PasteboardType.tiff
+            let publicPNG = NSPasteboard.PasteboardType(rawValue: "public.png")
+            let publicTIFF = NSPasteboard.PasteboardType(rawValue: "public.tiff")
+            if let imageData =
+            pasteboard.data(forType: pngType) ??
+            pasteboard.data(forType: publicPNG) ??
+            pasteboard.data(forType: tiffType) ??
+            pasteboard.data(forType: publicTIFF)
+            {
+            append(Item(
+                id: UUID(),
+                createdAt: Date(),
+                sourceBundleID: bundleID,
+                sourceAppName: appName,
+                kind: .image,
+                previewText: "Image",
+                payload: .imageData(imageData),
+                isPinned: false,
+                isLocked: false,
+                metadataTitle: nil,
+                metadataFaviconName: nil
+            ))
+            return
+            }
+
+            if let images = pasteboard.readObjects(forClasses: [NSImage.self], options: nil) as? [NSImage],
+            let first = images.first,
+            let tiff = first.tiffRepresentation
+            {
+            append(Item(
+                id: UUID(),
+                createdAt: Date(),
+                sourceBundleID: bundleID,
+                sourceAppName: appName,
+                kind: .image,
+                previewText: "Image",
+                payload: .imageData(tiff),
+                isPinned: false,
+                isLocked: false,
+                metadataTitle: nil,
+                metadataFaviconName: nil
+            ))
+            return
+            }
+
+            if let s = pasteboard.string(forType: .string), !s.isEmpty {
             let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
             if let url = URL(string: trimmed), url.scheme != nil, url.host != nil {
                 append(Item(
@@ -244,7 +282,9 @@ final class ClipboardManager: ObservableObject {
                     previewText: trimmed,
                     payload: .url(url),
                     isPinned: false,
-                    isLocked: false
+                    isLocked: false,
+                    metadataTitle: nil,
+                    metadataFaviconName: nil
                 ))
             } else {
                 append(Item(
@@ -256,12 +296,13 @@ final class ClipboardManager: ObservableObject {
                     previewText: String(trimmed.prefix(240)),
                     payload: .text(s),
                     isPinned: false,
-                    isLocked: false
+                    isLocked: false,
+                    metadataTitle: nil,
+                    metadataFaviconName: nil
                 ))
             }
-        }
-    }
-
+            }
+            }
     private func append(_ item: Item) {
         // De-dupe simple: if last item has same preview/kind/source, ignore.
         if let last = items.first,
@@ -277,6 +318,30 @@ final class ClipboardManager: ObservableObject {
         items.insert(item, at: insertionIndex)
         purgeIfNeeded()
         scheduleSave()
+
+        if item.kind == .url {
+            Task {
+                await fetchMetadata(for: item.id)
+            }
+        }
+    }
+
+    private func fetchMetadata(for id: UUID) async {
+        guard let item = items.first(where: { $0.id == id }),
+              case .url(let url) = item.payload else { return }
+
+        guard let metadata = await URLPreviewService.shared.fetchMetadata(for: url) else { return }
+
+        await MainActor.run {
+            guard let idx = items.firstIndex(where: { $0.id == id }) else { return }
+            var updatedItem = items[idx]
+            updatedItem.metadataTitle = metadata.title
+            if let faviconData = metadata.faviconData {
+                updatedItem.metadataFaviconName = persistence.saveFaviconData(faviconData, id: id)
+            }
+            items[idx] = updatedItem
+            scheduleSave()
+        }
     }
 
     private func frontmostAppIdentity() -> (bundleID: String?, name: String?) {
@@ -386,12 +451,36 @@ final class ClipboardPersistence {
         return try? Data(contentsOf: url)
     }
 
+    func saveFaviconData(_ data: Data, id: UUID) -> String? {
+        guard let dir = faviconsDir() else { return nil }
+        do {
+            try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+            let name = "\(id.uuidString).png"
+            let url = dir.appendingPathComponent(name)
+            try data.write(to: url, options: [.atomic])
+            return name
+        } catch {
+            NSLog("JortsMac: failed to save favicon: \(error)")
+            return nil
+        }
+    }
+
+    func loadFaviconData(named name: String) -> Data? {
+        guard let dir = faviconsDir() else { return nil }
+        let url = dir.appendingPathComponent(name)
+        return try? Data(contentsOf: url)
+    }
+
     private func stateURL() -> URL? {
         baseDir()?.appendingPathComponent("clipboard.json")
     }
 
     private func imagesDir() -> URL? {
         baseDir()?.appendingPathComponent("Images", isDirectory: true)
+    }
+
+    private func faviconsDir() -> URL? {
+        baseDir()?.appendingPathComponent("Favicons", isDirectory: true)
     }
 
     private func baseDir() -> URL? {
@@ -425,6 +514,8 @@ private struct StoredItem: Codable {
     let previewText: String
     let isPinned: Bool
     let isLocked: Bool
+    let metadataTitle: String?
+    let metadataFaviconName: String?
 
     let payloadText: String?
     let payloadURL: String?
@@ -440,6 +531,8 @@ private struct StoredItem: Codable {
         previewText = item.previewText
         isPinned = item.isPinned
         isLocked = item.isLocked
+        metadataTitle = item.metadataTitle
+        metadataFaviconName = item.metadataFaviconName
 
         switch item.payload {
         case .text(let t):
@@ -493,7 +586,9 @@ private struct StoredItem: Codable {
             previewText: previewText,
             payload: payload,
             isPinned: isPinned,
-            isLocked: isLocked
+            isLocked: isLocked,
+            metadataTitle: metadataTitle,
+            metadataFaviconName: metadataFaviconName
         )
     }
 }
