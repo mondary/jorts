@@ -198,6 +198,22 @@ final class ClipboardManager: ObservableObject {
             return
         }
 
+        // Images: prefer raw pasteboard data so we can handle PNG copies that don't bridge to NSImage objects.
+        if let imageData = pasteboard.data(forType: .png) ?? pasteboard.data(forType: .tiff) {
+            append(Item(
+                id: UUID(),
+                createdAt: Date(),
+                sourceBundleID: bundleID,
+                sourceAppName: appName,
+                kind: .image,
+                previewText: "Image",
+                payload: .imageData(imageData),
+                isPinned: false,
+                isLocked: false
+            ))
+            return
+        }
+
         if let images = pasteboard.readObjects(forClasses: [NSImage.self], options: nil) as? [NSImage],
            let first = images.first,
            let tiff = first.tiffRepresentation

@@ -19,8 +19,6 @@ struct ClipboardView: View {
     @State private var quickLookURLs: [URL] = []
     @FocusState private var searchFocused: Bool
     @State private var keyMonitor: Any?
-    @State private var collapsedSources: Set<String> = []
-    @State private var selectedSectionKey: String?
 
     var body: some View {
         ZStack {
@@ -41,48 +39,33 @@ struct ClipboardView: View {
     }
 
     private var topRow: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            LazyVStack(alignment: .leading, spacing: 16) {
-                ForEach(groupedSections, id: \.key) { section in
-                    VStack(alignment: .leading, spacing: 10) {
-                        sectionHeader(section)
-
-                        if !collapsedSources.contains(section.key) {
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                LazyHStack(spacing: 16) {
-                                    ForEach(section.items) { item in
-                                        DeckCard(
-                                            item: item,
-                                            isSelected: selectedID == item.id,
-                                            onSelect: {
-                                                selectedID = item.id
-                                                selectedSectionKey = section.key
-                                            },
-                                            onCopy: { onCopyItem(item) },
-                                            onMakeNote: { onCreateNoteFromItem(item) },
-                                            scale: deckScale,
-                                            onDelete: { clipboard.delete(item.id) },
-                                            onTogglePin: { clipboard.togglePin(item.id) },
-                                            onToggleLock: { clipboard.toggleLock(item.id) },
-                                            onQuickLook: { urls in quickLookURLs = urls },
-                                            onLightbox: { img in lightboxImage = img }
-                                        )
-                                    }
-                                }
-                                .padding(.horizontal, 2)
-                                .padding(.bottom, 4)
-                            }
-                            .frame(height: 390 * deckScale)
-                        }
-                    }
+        ScrollView(.horizontal, showsIndicators: false) {
+            LazyHStack(spacing: 16) {
+                ForEach(filteredItems) { item in
+                    DeckCard(
+                        item: item,
+                        isSelected: selectedID == item.id,
+                        onSelect: { selectedID = item.id },
+                        onCopy: { onCopyItem(item) },
+                        onMakeNote: { onCreateNoteFromItem(item) },
+                        scale: deckScale,
+                        onDelete: { clipboard.delete(item.id) },
+                        onTogglePin: { clipboard.togglePin(item.id) },
+                        onToggleLock: { clipboard.toggleLock(item.id) },
+                        onQuickLook: { urls in quickLookURLs = urls },
+                        onLightbox: { img in lightboxImage = img }
+                    )
                 }
             }
-            .padding(.top, 2)
+            .padding(.horizontal, 2)
+            .padding(.bottom, 4)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear { normalizeSelectionIfNeeded() }
-        .onChange(of: filteredItems.count) { _ in
-            normalizeSelectionIfNeeded()
+        .frame(maxWidth: .infinity)
+        .frame(height: 390 * deckScale)
+        .onAppear {
+            if selectedID == nil {
+                selectedID = filteredItems.first?.id
+            }
         }
         .sheet(isPresented: Binding(
             get: { !quickLookURLs.isEmpty },
@@ -104,49 +87,6 @@ struct ClipboardView: View {
                 .padding(20)
                 .frame(minWidth: 600, minHeight: 400)
         }
-    }
-
-    private func sectionHeader(_ section: ClipboardSection) -> some View {
-        Button {
-            if collapsedSources.contains(section.key) {
-                collapsedSources.remove(section.key)
-            } else {
-                collapsedSources.insert(section.key)
-            }
-            selectedSectionKey = section.key
-            normalizeSelectionIfNeeded()
-        } label: {
-            HStack(spacing: 10) {
-                AppIconView(bundleID: section.bundleID)
-                    .frame(width: 20, height: 20)
-
-                Text(section.name)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color(NSColor.labelColor))
-                    .lineLimit(1)
-
-                Text("\(section.items.count)")
-                    .font(.system(size: 11, weight: .regular))
-                    .foregroundStyle(.secondary)
-
-                Spacer()
-
-                Image(systemName: collapsedSources.contains(section.key) ? "chevron.down" : "chevron.up")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.white.opacity(0.14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.white.opacity(0.18), lineWidth: 1)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
     }
 
     private var bottomBar: some View {
@@ -174,13 +114,25 @@ struct ClipboardView: View {
             }
             .frame(width: 160)
 
-            Picker("", selection: $selectedSource) {
-                Text(localizedString("all_sources")).tag(String?.none)
-                ForEach(sources, id: \.self) { src in
-                    Text(src).tag(String?.some(src))
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    SourceChip(
+                        title: localizedString("all_sources"),
+                        isSelected: selectedSource == nil,
+                        icon: nil
+                    ) { selectedSource = nil }
+
+                    ForEach(sourceChips, id: \.bundleID) { chip in
+                        SourceChip(
+                            title: chip.name,
+                            isSelected: selectedSource == chip.name,
+                            icon: chip.icon
+                        ) { selectedSource = chip.name }
+                    }
                 }
+                .padding(.vertical, 2)
             }
-            .frame(width: 220)
+            .frame(maxWidth: 420)
 
             Toggle(localizedString("pinned"), isOn: $pinnedOnly)
                 .toggleStyle(.checkbox)
@@ -224,6 +176,19 @@ struct ClipboardView: View {
         Array(Set(clipboard.items.compactMap { $0.sourceAppName })).sorted()
     }
 
+    private var sourceChips: [SourceChipModel] {
+        let items = clipboard.items
+        var byBundle: [String: SourceChipModel] = [:]
+        for it in items {
+            guard let bid = it.sourceBundleID else { continue }
+            let name = it.sourceAppName ?? localizedString("unknown_source")
+            if byBundle[bid] == nil {
+                byBundle[bid] = SourceChipModel(bundleID: bid, name: name, icon: appIcon(bundleID: bid))
+            }
+        }
+        return Array(byBundle.values).sorted { $0.name.lowercased() < $1.name.lowercased() }
+    }
+
     private var filteredItems: [ClipboardManager.Item] {
         let sourceBundleID: String?
         if let selectedSource {
@@ -244,61 +209,6 @@ struct ClipboardView: View {
         return clipboard.filteredItems(q)
     }
 
-    private var groupedSections: [ClipboardSection] {
-        // Stable grouping: pinned/locked first inside section, newest first overall.
-        var dict: [String: ClipboardSection] = [:]
-        for item in filteredItems {
-            let key = item.sourceBundleID ?? "unknown"
-            if dict[key] == nil {
-                dict[key] = ClipboardSection(
-                    key: key,
-                    bundleID: item.sourceBundleID,
-                    name: item.sourceAppName ?? localizedString("unknown_source"),
-                    items: []
-                )
-            }
-            dict[key]?.items.append(item)
-        }
-
-        var sections = Array(dict.values)
-        sections.sort { a, b in
-            // Selected section first, then by most recent item.
-            if a.key == (selectedSectionKey ?? "") { return true }
-            if b.key == (selectedSectionKey ?? "") { return false }
-            let aDate = a.items.first?.createdAt ?? .distantPast
-            let bDate = b.items.first?.createdAt ?? .distantPast
-            return aDate > bDate
-        }
-
-        for i in sections.indices {
-            sections[i].items.sort { lhs, rhs in
-                if lhs.isPinned != rhs.isPinned { return lhs.isPinned && !rhs.isPinned }
-                if lhs.isLocked != rhs.isLocked { return lhs.isLocked && !rhs.isLocked }
-                return lhs.createdAt > rhs.createdAt
-            }
-        }
-        return sections
-    }
-
-    private func normalizeSelectionIfNeeded() {
-        let sections = groupedSections.filter { !collapsedSources.contains($0.key) }
-        if selectedSectionKey == nil {
-            selectedSectionKey = sections.first?.key
-        }
-        if selectedID == nil {
-            selectedID = sections.first?.items.first?.id
-            return
-        }
-        guard let currentSelectedID = selectedID else { return }
-        let stillVisible = sections.contains(where: { sec in sec.items.contains(where: { $0.id == currentSelectedID }) })
-        if !stillVisible {
-            selectedID = sections.first?.items.first?.id
-            selectedSectionKey = sections.first?.key
-        } else if selectedSectionKey == nil {
-            // Infer section key from selected item.
-            selectedSectionKey = sections.first(where: { $0.items.contains(where: { $0.id == currentSelectedID }) })?.key
-        }
-    }
 
     private func installKeyMonitorIfNeeded() {
         guard keyMonitor == nil else { return }
@@ -332,33 +242,20 @@ struct ClipboardView: View {
             return true
         }
 
-        normalizeSelectionIfNeeded()
-        let visibleSections = groupedSections.filter { !collapsedSources.contains($0.key) }
-        guard !visibleSections.isEmpty else { return false }
+        let items = filteredItems
+        guard !items.isEmpty else { return false }
+        if selectedID == nil { selectedID = items.first?.id }
 
-        // Left / Right arrows: move within current section.
+        // Left / Right arrows: move through the horizontal list.
         if event.keyCode == 123 || event.keyCode == 124 { // left/right
             let delta = (event.keyCode == 123) ? -1 : 1
-            if let sectionKey = selectedSectionKey,
-               let section = visibleSections.first(where: { $0.key == sectionKey })
-            {
-                moveSelection(delta: delta, items: section.items)
-            }
-            return true
-        }
-
-        // Up / Down arrows: change section (keep first item).
-        if event.keyCode == 125 || event.keyCode == 126 { // down/up
-            let delta = (event.keyCode == 125) ? 1 : -1
-            moveSection(delta: delta, sections: visibleSections)
+            moveSelection(delta: delta, items: items)
             return true
         }
 
         // Enter / Return: copy. Cmd+Enter: convert to note.
         if event.keyCode == 36 || event.keyCode == 76 { // return / enter
-            guard let id = selectedID,
-                  let item = visibleSections.lazy.flatMap({ $0.items }).first(where: { $0.id == id })
-            else { return true }
+            guard let id = selectedID, let item = items.first(where: { $0.id == id }) else { return true }
             if event.modifierFlags.contains(.command) {
                 onCreateNoteFromItem(item)
             } else {
@@ -378,22 +275,54 @@ struct ClipboardView: View {
         let next = max(0, min(items.count - 1, idx + delta))
         selectedID = items[next].id
     }
-
-    private func moveSection(delta: Int, sections: [ClipboardSection]) {
-        guard !sections.isEmpty else { return }
-        let currentKey = selectedSectionKey ?? sections.first!.key
-        let idx = sections.firstIndex(where: { $0.key == currentKey }) ?? 0
-        let next = max(0, min(sections.count - 1, idx + delta))
-        selectedSectionKey = sections[next].key
-        selectedID = sections[next].items.first?.id
-    }
 }
 
-private struct ClipboardSection {
-    let key: String
-    let bundleID: String?
+private struct SourceChipModel {
+    let bundleID: String
     let name: String
-    var items: [ClipboardManager.Item]
+    let icon: NSImage?
+}
+
+private func appIcon(bundleID: String) -> NSImage? {
+    if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
+        return NSWorkspace.shared.icon(forFile: url.path)
+    }
+    return nil
+}
+
+private struct SourceChip: View {
+    let title: String
+    let isSelected: Bool
+    let icon: NSImage?
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 6) {
+                if let icon {
+                    Image(nsImage: icon)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 16, height: 16)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                }
+                Text(title)
+                    .font(.system(size: 13, weight: .medium))
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(isSelected ? Color.white.opacity(0.55) : Color.white.opacity(0.22))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.white.opacity(isSelected ? 0.35 : 0.18), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
 }
 
 private struct DeckCard: View {
