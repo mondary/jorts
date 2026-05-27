@@ -172,6 +172,7 @@
 "clipboard_position_hint" = "Wahlen Sie, wo die Zwischenablage-Leiste erscheint.";
 "insert_emoji" = "Emoji einfügen";
 "change_color" = "Farbe ändern";
+"filter_color" = "Farbe";
 "history_restore" = "Verlauf (frühere Versionen wiederherstellen)";
 "restore" = "Wiederherstellen";
 "delete" = "Löschen";

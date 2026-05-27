@@ -172,6 +172,7 @@
 "clipboard_position_hint" = "Scegli dove appare il pannello degli appunti.";
 "insert_emoji" = "Inserisci emoji";
 "change_color" = "Cambia colore";
+"filter_color" = "Colore";
 "history_restore" = "Cronologia (ripristina versioni precedenti)";
 "restore" = "Ripristina";
 "delete" = "Elimina";

@@ -172,6 +172,7 @@
 "clipboard_position_hint" = "Elige donde aparece el panel del portapapeles.";
 "insert_emoji" = "Insertar emoji";
 "change_color" = "Cambiar color";
+"filter_color" = "Color";
 "history_restore" = "Historial (restaurar versiones anteriores)";
 "restore" = "Restaurar";
 "delete" = "Eliminar";

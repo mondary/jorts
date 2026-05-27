@@ -180,10 +180,12 @@
 "filter_url" = "URL";
 "filter_image" = "Image";
 "filter_files" = "Files";
+"filter_color" = "Color";
 "pinned" = "Pinned";
 "recent" = "Recent";
 "pin" = "Pin";
 "lock" = "Lock";
+"color" = "Color";
 "insert_emoji" = "Insert emoji";
 "change_color" = "Change color";
 "history_restore" = "History (restore previous versions)";

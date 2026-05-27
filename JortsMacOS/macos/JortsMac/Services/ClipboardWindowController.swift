@@ -181,6 +181,8 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         case .imageData: return "[Image]"
         case .fileURLs(let urls):
             return urls.map { $0.path }.joined(separator: "\n")
+        case .colorHex(let hex):
+            return hex
         }
     }
 }

@@ -45,6 +45,20 @@
   - color picker
   - automatic text contrast
   - color previews
+- Global clipboard drawer:
+  - captures text, URLs, images, files, and hex colors
+  - persistent history in the storage folder
+  - source app icon for each item
+  - instant search + type filters
+  - source, pinned, and recent filters
+  - pins, lock, per-item delete
+  - full keyboard navigation
+  - `Enter` pastes into the previous app
+  - `Cmd+Enter` converts the item to a note
+  - full image preview without crop + lightbox
+  - QuickLook for files
+  - smart color preview with Hex/RGB/HSL/OKLCH
+  - configurable drawer position: top, bottom, left, right
 - Persistence/storage:
   - Markdown-first per-note storage
   - JSON sidecar note version history
@@ -89,11 +103,18 @@
 - Navigation: left/right arrows
 - `Enter`: paste (best-effort) into previous app + close drawer
 - `Cmd+Enter`: convert to note
+- Filters: text, URL, image, file, color, source, pinned, recent
+- Colors: copying `#2C3861` creates a color card with:
+  - Hex: `#2C3861`
+  - RGB: `44, 56, 97`
+  - HSL: `226, 38, 28`
+  - OKLCH: computed automatically
 
 ## ⚙️ Settings
 - General preferences (language, storage, import/export).
 - Shortcut preferences (modifier + key).
 - Inline calculator on/off.
+- Clipboard drawer position.
 
 ## 🧾 Commands
 - `./JortsMacOS/run-dev.sh`: build + package + run
@@ -101,6 +122,8 @@
 
 ## 📦 Build & Package
 - `JortsMacOS/script/build_and_run.sh` rebuilds the local `.app` bundle.
+- The test bundle is generated at `releases/JortsMacOS.app`.
+- `JortsMacOS/dist` points to `../releases`.
 - SwiftPM target path: `JortsMacOS/macos/JortsMac`.
 
 ## 🧪 Install (Antigravity)

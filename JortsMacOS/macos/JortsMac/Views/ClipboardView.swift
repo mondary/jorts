@@ -10,7 +10,7 @@ struct ClipboardView: View {
     @State private var query: String = ""
     @State private var selectedSource: String? = nil
     @State private var selectedID: UUID?
-    private let deckScale: CGFloat = 0.70
+    private let deckScale: CGFloat = 0.82
     @State private var kind: ClipboardManager.Query.KindFilter = .all
     @State private var pinnedOnly: Bool = false
     @State private var recentOnly: Bool = false
@@ -63,7 +63,7 @@ struct ClipboardView: View {
             .padding(.bottom, 4)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 390 * deckScale)
+        .frame(height: 300)
         .onAppear {
             if selectedID == nil {
                 selectedID = filteredItems.first?.id
@@ -113,6 +113,7 @@ struct ClipboardView: View {
                 Text(localizedString("filter_url")).tag(ClipboardManager.Query.KindFilter.url)
                 Text(localizedString("filter_image")).tag(ClipboardManager.Query.KindFilter.image)
                 Text(localizedString("filter_files")).tag(ClipboardManager.Query.KindFilter.file)
+                Text(localizedString("filter_color")).tag(ClipboardManager.Query.KindFilter.color)
             }
             .frame(width: 160)
 
@@ -133,6 +134,7 @@ struct ClipboardView: View {
                     }
                 }
                 .padding(.vertical, 2)
+                .fixedSize(horizontal: true, vertical: false)
             }
             .frame(maxWidth: 420)
 
@@ -312,6 +314,7 @@ private struct SourceChip: View {
                 Text(title)
                     .font(.system(size: 13, weight: .medium))
                     .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
@@ -342,8 +345,11 @@ private struct DeckCard: View {
     let onLightbox: ((NSImage) -> Void)?
     let onLoadFavicon: (String) -> Data?
 
+    private let cardWidth: CGFloat = 300
+    private let cardHeight: CGFloat = 250
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 AppIconView(bundleID: item.sourceBundleID)
                     .frame(width: 22 * scale, height: 22 * scale)
@@ -368,12 +374,15 @@ private struct DeckCard: View {
 
             preview
 
-            if item.kind != .url {
+            if displayColorHex != nil {
+                EmptyView()
+            } else if item.kind != .url {
                 if item.kind == .image {
                     Text(item.previewText)
                         .font(.system(size: 12 * scale, weight: .medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
+                        .truncationMode(.middle)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
                     Text(item.metadataTitle ?? item.previewText)
@@ -400,18 +409,21 @@ private struct DeckCard: View {
 
             Spacer(minLength: 0)
 
-            HStack(spacing: 10) {
+            HStack(spacing: 6) {
                 Text(metaText)
                     .font(.system(size: 11 * scale))
                     .foregroundStyle(.secondary)
-                Spacer()
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(width: 48, alignment: .leading)
+                Spacer(minLength: 4)
 
                 Button {
                     onTogglePin?()
                 } label: {
                     Image(systemName: item.isPinned ? "pin.slash" : "pin")
                         .font(.system(size: 14 * scale, weight: .semibold))
-                        .frame(width: 34 * scale, height: 34 * scale)
+                        .frame(width: 24, height: 24)
                 }
                 .buttonStyle(.plain)
                 .help(localizedString("pin"))
@@ -421,7 +433,7 @@ private struct DeckCard: View {
                 } label: {
                     Image(systemName: item.isLocked ? "lock.open" : "lock")
                         .font(.system(size: 14 * scale, weight: .semibold))
-                        .frame(width: 34 * scale, height: 34 * scale)
+                        .frame(width: 24, height: 24)
                 }
                 .buttonStyle(.plain)
                 .help(localizedString("lock"))
@@ -429,7 +441,7 @@ private struct DeckCard: View {
                 Button(action: onCopy) {
                     Image(systemName: "doc.on.doc")
                         .font(.system(size: 14 * scale, weight: .semibold))
-                        .frame(width: 34 * scale, height: 34 * scale)
+                        .frame(width: 24, height: 24)
                 }
                 .buttonStyle(.plain)
                 .help(localizedString("copy"))
@@ -437,7 +449,7 @@ private struct DeckCard: View {
                 Button(action: onMakeNote) {
                     Image(systemName: "note.text.badge.plus")
                         .font(.system(size: 14 * scale, weight: .semibold))
-                        .frame(width: 34 * scale, height: 34 * scale)
+                        .frame(width: 24, height: 24)
                 }
                 .buttonStyle(.plain)
                 .help(localizedString("convert_to_note"))
@@ -447,14 +459,14 @@ private struct DeckCard: View {
                 } label: {
                     Image(systemName: "trash")
                         .font(.system(size: 14 * scale, weight: .semibold))
-                        .frame(width: 34 * scale, height: 34 * scale)
+                        .frame(width: 24, height: 24)
                 }
                 .buttonStyle(.plain)
                 .help(localizedString("delete"))
             }
         }
-        .padding(18 * scale)
-        .frame(width: 320 * scale, height: 370 * scale)
+        .padding(14)
+        .frame(width: cardWidth, height: cardHeight)
         .background(
             RoundedRectangle(cornerRadius: 20)
                 .fill(Color.white)
@@ -472,7 +484,10 @@ private struct DeckCard: View {
 
     @ViewBuilder
     private var preview: some View {
-        switch item.payload {
+        if let hex = displayColorHex {
+            ColorPreview(hex: hex, scale: scale)
+        } else {
+            switch item.payload {
         case .imageData(let data):
             if let image = NSImage(data: data) {
                 GeometryReader { geo in
@@ -481,7 +496,7 @@ private struct DeckCard: View {
                         .aspectRatio(contentMode: .fit)
                         .frame(width: geo.size.width, height: geo.size.height, alignment: .center)
                 }
-                .frame(height: 120 * scale)
+                .frame(height: 128)
                 .background(
                     RoundedRectangle(cornerRadius: 6)
                         .fill(Color(NSColor.controlBackgroundColor))
@@ -569,8 +584,11 @@ private struct DeckCard: View {
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(Color(NSColor.separatorColor).opacity(0.1), lineWidth: 1)
             )
+        case .colorHex(let hex):
+            ColorPreview(hex: hex, scale: scale)
         default:
             EmptyView()
+            }
         }
     }
 
@@ -580,26 +598,202 @@ private struct DeckCard: View {
         case .url: return "link"
         case .image: return "photo"
         case .fileURLs: return "doc"
+        case .color: return "paintpalette"
         }
     }
 
     private var metaText: String {
+        if displayColorHex != nil {
+            return localizedString("color")
+        }
+
         switch item.payload {
         case .text(let t):
             return "\(t.count) \(localizedString("characters"))"
         case .url:
             return localizedString("link")
         case .imageData:
-            return localizedString("image")
+            return "IMG"
         case .fileURLs(let urls):
             return "\(urls.count) \(localizedString("files"))"
+        case .colorHex:
+            return localizedString("color")
         }
+    }
+
+    private var displayColorHex: String? {
+        if case .colorHex(let hex) = item.payload {
+            return ColorInfo.normalizedHex(hex)
+        }
+        return ColorInfo.normalizedHex(item.previewText)
     }
 
     private func relativeTime(_ date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short
         return formatter.localizedString(for: date, relativeTo: Date())
+    }
+}
+
+private struct ColorPreview: View {
+    let hex: String
+    let scale: CGFloat
+
+    private var info: ColorInfo? {
+        ColorInfo(hex: hex)
+    }
+
+    var body: some View {
+        if let info {
+            VStack(alignment: .leading, spacing: 7) {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(info.color)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.black.opacity(0.10), lineWidth: 1)
+                    )
+                    .frame(height: 108)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    colorLine("Hex", info.hex)
+                    colorLine("RGB", "\(info.r), \(info.g), \(info.b)")
+                    colorLine("HSL", "\(info.hslH), \(info.hslS), \(info.hslL)")
+                    colorLine("OKLCH", info.oklch)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            Text(hex)
+                .font(.system(size: 14 * scale, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func colorLine(_ label: String, _ value: String) -> some View {
+        HStack(spacing: 8) {
+            Text(label)
+                .font(.system(size: 10 * scale, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 36, alignment: .leading)
+            Text(value)
+                .font(.system(size: 11 * scale, weight: .medium, design: .monospaced))
+                .foregroundStyle(Color(NSColor.labelColor))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+        }
+    }
+}
+
+private struct ColorInfo {
+    let hex: String
+    let r: Int
+    let g: Int
+    let b: Int
+    let color: Color
+    let hslH: Int
+    let hslS: Int
+    let hslL: Int
+    let oklch: String
+
+    init?(hex: String) {
+        guard let normalized = Self.normalizedHex(hex) else { return nil }
+        let raw = String(normalized.dropFirst())
+        guard raw.count == 6 || raw.count == 8,
+              let value = UInt64(raw.prefix(6), radix: 16)
+        else { return nil }
+
+        let r = Int((value >> 16) & 0xff)
+        let g = Int((value >> 8) & 0xff)
+        let b = Int(value & 0xff)
+
+        self.hex = "#\(raw.uppercased())"
+        self.r = r
+        self.g = g
+        self.b = b
+        self.color = Color(
+            red: Double(r) / 255.0,
+            green: Double(g) / 255.0,
+            blue: Double(b) / 255.0
+        )
+
+        let hsl = Self.hsl(r: r, g: g, b: b)
+        self.hslH = hsl.h
+        self.hslS = hsl.s
+        self.hslL = hsl.l
+        self.oklch = Self.oklch(r: r, g: g, b: b)
+    }
+
+    static func normalizedHex(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.hasPrefix("#") else { return nil }
+        let raw = String(trimmed.dropFirst())
+        switch raw.count {
+        case 3:
+            guard raw.allSatisfy(\.isHexDigit) else { return nil }
+            let expanded = raw.map { "\($0)\($0)" }.joined()
+            return "#\(expanded.uppercased())"
+        case 6, 8:
+            guard raw.allSatisfy(\.isHexDigit) else { return nil }
+            return "#\(raw.uppercased())"
+        default:
+            return nil
+        }
+    }
+
+    private static func hsl(r: Int, g: Int, b: Int) -> (h: Int, s: Int, l: Int) {
+        let rf = Double(r) / 255.0
+        let gf = Double(g) / 255.0
+        let bf = Double(b) / 255.0
+        let maxV = max(rf, gf, bf)
+        let minV = min(rf, gf, bf)
+        let l = (maxV + minV) / 2.0
+        let d = maxV - minV
+        guard d > 0 else { return (0, 0, Int((l * 100).rounded())) }
+
+        let s = d / (1.0 - abs(2.0 * l - 1.0))
+        let h: Double
+        if maxV == rf {
+            h = 60.0 * (((gf - bf) / d).truncatingRemainder(dividingBy: 6.0))
+        } else if maxV == gf {
+            h = 60.0 * (((bf - rf) / d) + 2.0)
+        } else {
+            h = 60.0 * (((rf - gf) / d) + 4.0)
+        }
+
+        let normalizedH = h < 0 ? h + 360.0 : h
+        return (
+            Int(normalizedH.rounded()),
+            Int((s * 100).rounded()),
+            Int((l * 100).rounded())
+        )
+    }
+
+    private static func oklch(r: Int, g: Int, b: Int) -> String {
+        func srgbToLinear(_ v: Double) -> Double {
+            v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4)
+        }
+
+        let r = srgbToLinear(Double(r) / 255.0)
+        let g = srgbToLinear(Double(g) / 255.0)
+        let b = srgbToLinear(Double(b) / 255.0)
+
+        let l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b
+        let m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b
+        let s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b
+
+        let l_ = cbrt(l)
+        let m_ = cbrt(m)
+        let s_ = cbrt(s)
+
+        let L = 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_
+        let a = 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_
+        let b2 = 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_
+
+        let c = sqrt(a * a + b2 * b2)
+        var h = atan2(b2, a) * 180.0 / Double.pi
+        if h < 0 { h += 360.0 }
+
+        return String(format: "%.2f, %.2f, %.0f", L, c, h)
     }
 }
 

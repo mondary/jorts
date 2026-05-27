@@ -180,10 +180,12 @@
 "filter_url" = "URL";
 "filter_image" = "Image";
 "filter_files" = "Fichiers";
+"filter_color" = "Couleur";
 "pinned" = "Epingles";
 "recent" = "Recent";
 "pin" = "Epingler";
 "lock" = "Verrouiller";
+"color" = "Couleur";
 "insert_emoji" = "Insérer un emoji";
 "change_color" = "Changer la couleur";
 "history_restore" = "Historique (restaurer une version précédente)";

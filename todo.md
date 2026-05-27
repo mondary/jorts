@@ -10,13 +10,15 @@ Status: in progress.
 - [x] Keyboard navigation + shortcuts (left/right, Enter, Cmd+Enter, Esc, Cmd+F)
 - [x] Persist clipboard history to disk (alongside notes storage)
 - [x] App icons per clipboard item (source pictos)
-- [x] Image thumbnails + lightbox
+- [x] Image thumbnails shown entirely (no crop) + lightbox
 - [x] File preview + QuickLook
-- [x] Image thumbnails (aspect-fill crop) + lightbox
-- [x] Search + basic type filters (All/Text/URL/Image/Files)
+- [x] Color clipboard cards for hex values (`#RGB`, `#RRGGBB`, `#RRGGBBAA`)
+- [x] Color previews with Hex/RGB/HSL/OKLCH values
+- [x] Search + basic type filters (All/Text/URL/Image/Files/Color)
 - [x] Pins + lock (non-expiring) + per-item delete actions
 - [x] Purge logic (max items + max age days), respecting pinned/locked
 - [x] Enter pastes into previous app (Cmd+V injection best-effort)
+- [x] One-line footer/actions/tags layout in drawer cards
 
 ## Remaining Features
 
@@ -39,17 +41,24 @@ Status: in progress.
    - Expose "purge now" action
 
 4. Rich previews
-   - URL preview:
+   - [x] Image preview:
+     - full image visible inside the card
+     - filename kept on one line
+   - [x] Color preview:
+     - large swatch
+     - Hex/RGB/HSL/OKLCH conversions
+     - legacy text clipboard items that are hex values render as color cards
+   - [ ] URL preview:
      - title
      - favicon
      - optional snippet
      - caching + async fetch
-   - Text preview:
+   - [ ] Text preview:
      - long text scroll
      - better truncation rules
-   - Images:
+   - [ ] Images:
       - lightbox polish (zoom/pan optional)
-   - Files:
+   - [ ] Files:
       - QuickLook polish (multi-file navigation)
 
 5. Export / Sync (optional)
@@ -72,7 +81,8 @@ Status: in progress.
 These are feature checklists from the 4 sources you cited, mapped into our TODO. Some are explicitly out-of-scope (license / cross-platform / heavy infra), but listed here so we don't forget them.
 
 ### Deck (yuzeguitarist/Deck)
-- [ ] Capture more types: colors, rich text, links (beyond our current set) citeturn1view0
+- [x] Capture colors from hex values (`#RGB`, `#RRGGBB`, `#RRGGBBAA`)
+- [ ] Capture more types: rich text, links beyond current URL metadata citeturn1view0
 - [ ] Advanced search:
   - regex search citeturn1view0
   - semantic search (on-device embeddings) citeturn1view0

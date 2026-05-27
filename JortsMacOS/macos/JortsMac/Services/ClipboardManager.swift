@@ -8,6 +8,7 @@ final class ClipboardManager: ObservableObject {
             case url
             case image
             case fileURLs
+            case color
         }
 
         let id: UUID
@@ -27,6 +28,7 @@ final class ClipboardManager: ObservableObject {
             case url(URL)
             case imageData(Data)
             case fileURLs([URL])
+            case colorHex(String)
         }
     }
 
@@ -95,6 +97,7 @@ final class ClipboardManager: ObservableObject {
             case url
             case image
             case file
+            case color
 
             var id: String { rawValue }
         }
@@ -126,6 +129,8 @@ final class ClipboardManager: ObservableObject {
                 if item.kind != .image { return false }
             case .file:
                 if item.kind != .fileURLs { return false }
+            case .color:
+                if item.kind != .color { return false }
             }
             if needle.isEmpty { return true }
             if item.previewText.lowercased().contains(needle) { return true }
@@ -176,6 +181,9 @@ final class ClipboardManager: ObservableObject {
         case .fileURLs(let urls):
             pasteboard.clearContents()
             pasteboard.writeObjects(urls as [NSURL])
+        case .colorHex(let hex):
+            pasteboard.clearContents()
+            pasteboard.setString(hex, forType: .string)
         }
     }
 
@@ -252,7 +260,21 @@ final class ClipboardManager: ObservableObject {
 
             if let s = pasteboard.string(forType: .string), !s.isEmpty {
             let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
-            if let url = URL(string: trimmed), url.scheme != nil, url.host != nil {
+            if let colorHex = Self.normalizedHexColor(trimmed) {
+                append(Item(
+                    id: UUID(),
+                    createdAt: Date(),
+                    sourceBundleID: bundleID,
+                    sourceAppName: appName,
+                    kind: .color,
+                    previewText: colorHex,
+                    payload: .colorHex(colorHex),
+                    isPinned: false,
+                    isLocked: false,
+                    metadataTitle: nil,
+                    metadataFaviconName: nil
+                ))
+            } else if let url = URL(string: trimmed), url.scheme != nil, url.host != nil {
                 append(Item(
                     id: UUID(),
                     createdAt: Date(),
@@ -337,6 +359,21 @@ final class ClipboardManager: ObservableObject {
             return tiff
         }
         return nil
+    }
+
+    private static func normalizedHexColor(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.hasPrefix("#") else { return nil }
+        let raw = String(trimmed.dropFirst())
+        guard raw.count == 3 || raw.count == 6 || raw.count == 8 else { return nil }
+        let allowed = CharacterSet(charactersIn: "0123456789abcdefABCDEF")
+        guard raw.unicodeScalars.allSatisfy({ allowed.contains($0) }) else { return nil }
+
+        if raw.count == 3 {
+            let expanded = raw.map { "\($0)\($0)" }.joined()
+            return "#\(expanded.uppercased())"
+        }
+        return "#\(raw.uppercased())"
     }
 
     private func extractImageData(from pasteboard: NSPasteboard) -> Data? {
@@ -579,6 +616,7 @@ private struct StoredItem: Codable {
     let payloadURL: String?
     let payloadImageName: String?
     let payloadFilePaths: [String]?
+    let payloadColorHex: String?
 
     init(from item: ClipboardManager.Item, using persistence: ClipboardPersistence) {
         id = item.id
@@ -598,21 +636,31 @@ private struct StoredItem: Codable {
             payloadURL = nil
             payloadImageName = nil
             payloadFilePaths = nil
+            payloadColorHex = nil
         case .url(let u):
             payloadText = nil
             payloadURL = u.absoluteString
             payloadImageName = nil
             payloadFilePaths = nil
+            payloadColorHex = nil
         case .imageData(let data):
             payloadText = nil
             payloadURL = nil
             payloadImageName = persistence.saveImageData(data, id: item.id)
             payloadFilePaths = nil
+            payloadColorHex = nil
         case .fileURLs(let urls):
             payloadText = nil
             payloadURL = nil
             payloadImageName = nil
             payloadFilePaths = urls.map { $0.path }
+            payloadColorHex = nil
+        case .colorHex(let hex):
+            payloadText = nil
+            payloadURL = nil
+            payloadImageName = nil
+            payloadFilePaths = nil
+            payloadColorHex = hex
         }
     }
 
@@ -633,6 +681,9 @@ private struct StoredItem: Codable {
             let urls = (payloadFilePaths ?? []).map { URL(fileURLWithPath: $0) }
             guard !urls.isEmpty else { return nil }
             payload = .fileURLs(urls)
+        case .color:
+            guard let payloadColorHex else { return nil }
+            payload = .colorHex(payloadColorHex)
         }
 
         return ClipboardManager.Item(
