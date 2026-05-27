@@ -119,16 +119,49 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Global shortcuts.
         // Warning: these can conflict with some input source / system shortcuts.
         let signature = OSType("JRTS".fourCharCodeValue)
-        let keyCode: UInt32 = UInt32(kVK_Space)
+        let focusLastShortcut = settings.shortcut(for: .focusLastNoteGlobal)
+        let newNoteShortcut = settings.shortcut(for: .newNoteGlobal)
 
-        // Shift+Space -> focus last note (or create if none)
+        // Focus last note (or create if none)
         let newID = EventHotKeyID(signature: signature, id: 1)
-        _ = RegisterEventHotKey(keyCode, UInt32(shiftKey), newID, GetApplicationEventTarget(), 0, &globalHotKeyNewRef)
+        let focusStatus = RegisterEventHotKey(
+            keyCode(for: focusLastShortcut.key),
+            focusLastShortcut.modifier.carbonFlags,
+            newID,
+            GetApplicationEventTarget(),
+            0,
+            &globalHotKeyNewRef
+        )
+        if focusStatus != noErr { globalHotKeyNewRef = nil }
 
-        // Shift+Cmd+Space -> new note
+        // New note
         let lastID = EventHotKeyID(signature: signature, id: 2)
-        _ = RegisterEventHotKey(keyCode, UInt32(shiftKey | cmdKey), lastID, GetApplicationEventTarget(), 0, &globalHotKeyLastRef)
+        let newStatus = RegisterEventHotKey(
+            keyCode(for: newNoteShortcut.key),
+            newNoteShortcut.modifier.carbonFlags,
+            lastID,
+            GetApplicationEventTarget(),
+            0,
+            &globalHotKeyLastRef
+        )
+        if newStatus != noErr { globalHotKeyLastRef = nil }
 
+        installGlobalHotKeyHandlerIfNeeded()
+    }
+
+    private func unregisterGlobalHotKeys() {
+        if let globalHotKeyNewRef {
+            UnregisterEventHotKey(globalHotKeyNewRef)
+            self.globalHotKeyNewRef = nil
+        }
+        if let globalHotKeyLastRef {
+            UnregisterEventHotKey(globalHotKeyLastRef)
+            self.globalHotKeyLastRef = nil
+        }
+    }
+
+    private func installGlobalHotKeyHandlerIfNeeded() {
+        guard globalHotKeyHandlerRef == nil else { return }
         var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
         let handler: EventHandlerUPP = { _, eventRef, userData in
             guard let userData else { return noErr }
@@ -136,7 +169,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             delegate.handleGlobalHotKey(eventRef)
             return noErr
         }
-
         InstallEventHandler(
             GetApplicationEventTarget(),
             handler,
@@ -145,6 +177,49 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque()),
             &globalHotKeyHandlerRef
         )
+    }
+
+    private func keyCode(for key: String) -> UInt32 {
+        switch key.lowercased() {
+        case "space": return UInt32(kVK_Space)
+        case "0": return UInt32(kVK_ANSI_0)
+        case "1": return UInt32(kVK_ANSI_1)
+        case "2": return UInt32(kVK_ANSI_2)
+        case "3": return UInt32(kVK_ANSI_3)
+        case "4": return UInt32(kVK_ANSI_4)
+        case "5": return UInt32(kVK_ANSI_5)
+        case "6": return UInt32(kVK_ANSI_6)
+        case "7": return UInt32(kVK_ANSI_7)
+        case "8": return UInt32(kVK_ANSI_8)
+        case "9": return UInt32(kVK_ANSI_9)
+        case "a": return UInt32(kVK_ANSI_A)
+        case "b": return UInt32(kVK_ANSI_B)
+        case "c": return UInt32(kVK_ANSI_C)
+        case "d": return UInt32(kVK_ANSI_D)
+        case "e": return UInt32(kVK_ANSI_E)
+        case "f": return UInt32(kVK_ANSI_F)
+        case "g": return UInt32(kVK_ANSI_G)
+        case "h": return UInt32(kVK_ANSI_H)
+        case "i": return UInt32(kVK_ANSI_I)
+        case "j": return UInt32(kVK_ANSI_J)
+        case "k": return UInt32(kVK_ANSI_K)
+        case "l": return UInt32(kVK_ANSI_L)
+        case "m": return UInt32(kVK_ANSI_M)
+        case "n": return UInt32(kVK_ANSI_N)
+        case "o": return UInt32(kVK_ANSI_O)
+        case "p": return UInt32(kVK_ANSI_P)
+        case "q": return UInt32(kVK_ANSI_Q)
+        case "r": return UInt32(kVK_ANSI_R)
+        case "s": return UInt32(kVK_ANSI_S)
+        case "t": return UInt32(kVK_ANSI_T)
+        case "u": return UInt32(kVK_ANSI_U)
+        case "v": return UInt32(kVK_ANSI_V)
+        case "w": return UInt32(kVK_ANSI_W)
+        case "x": return UInt32(kVK_ANSI_X)
+        case "y": return UInt32(kVK_ANSI_Y)
+        case "z": return UInt32(kVK_ANSI_Z)
+        default: return UInt32(kVK_Space)
+        }
     }
 
     private func handleGlobalHotKey(_ event: EventRef?) {
@@ -285,6 +360,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] _ in
                 self?.buildMainMenu()
                 self?.buildStatusMenu()
+                self?.unregisterGlobalHotKeys()
+                self?.registerGlobalHotKey()
             }
             .store(in: &cancellables)
     }

@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import Foundation
 
 enum ShortcutModifierPreset: String, CaseIterable, Codable, Identifiable {
@@ -43,6 +44,17 @@ enum ShortcutModifierPreset: String, CaseIterable, Codable, Identifiable {
         case .commandOptionShift: [.command, .option, .shift]
         }
     }
+
+    var carbonFlags: UInt32 {
+        switch self {
+        case .shift: return UInt32(shiftKey)
+        case .command: return UInt32(cmdKey)
+        case .commandShift: return UInt32(cmdKey | shiftKey)
+        case .commandOption: return UInt32(cmdKey | optionKey)
+        case .commandControl: return UInt32(cmdKey | controlKey)
+        case .commandOptionShift: return UInt32(cmdKey | optionKey | shiftKey)
+        }
+    }
 }
 
 struct KeyboardShortcutSetting: Codable, Equatable {
@@ -69,6 +81,8 @@ struct KeyboardShortcutSetting: Codable, Equatable {
 }
 
 enum ShortcutAction: String, CaseIterable, Identifiable {
+    case focusLastNoteGlobal
+    case newNoteGlobal
     case newStickyNote
     case showAllNotes
     case showNotesList
@@ -87,6 +101,8 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
+        case .focusLastNoteGlobal: "Focus Last Note (Global)"
+        case .newNoteGlobal: "Create New Note (Global)"
         case .newStickyNote: "New Sticky Note"
         case .showAllNotes: "Show All Notes"
         case .showNotesList: "Show Notes List"
@@ -105,7 +121,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
 
     var group: String {
         switch self {
-        case .newStickyNote, .showAllNotes, .showNotesList, .saveAllNotes, .preferences:
+        case .focusLastNoteGlobal, .newNoteGlobal, .newStickyNote, .showAllNotes, .showNotesList, .saveAllNotes, .preferences:
             "App"
         case .closeNoteWindow, .deleteStickyNote, .toggleList, .emojiSymbols, .toggleMonospace, .zoomIn, .zoomOut, .actualSize:
             "Note"
@@ -114,6 +130,8 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
 
     var defaultShortcut: KeyboardShortcutSetting {
         switch self {
+        case .focusLastNoteGlobal: KeyboardShortcutSetting(key: "space", modifier: .shift)
+        case .newNoteGlobal: KeyboardShortcutSetting(key: "space", modifier: .commandShift)
         case .newStickyNote: KeyboardShortcutSetting(key: "n", modifier: .command)
         case .showAllNotes: KeyboardShortcutSetting(key: "l", modifier: .shift)
         case .showNotesList: KeyboardShortcutSetting(key: "l", modifier: .commandShift)

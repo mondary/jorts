@@ -2,42 +2,86 @@ import SwiftUI
 
 final class CommandPaletteState: ObservableObject {
     @Published var query: String = ""
-    @Published var selection: UUID?
+    @Published var selection: CommandPaletteItem.ID?
 
-    init(query: String = "", selection: UUID? = nil) {
+    init(query: String = "", selection: CommandPaletteItem.ID? = nil) {
         self.query = query
         self.selection = selection
+    }
+}
+
+enum CommandPaletteItem: Identifiable {
+    case note(NoteDocument)
+    case action(PaletteAction)
+
+    var id: String {
+        switch self {
+        case .note(let doc): return "note-\(doc.id.uuidString)"
+        case .action(let action): return "action-\(action.rawValue)"
+        }
+    }
+
+    enum PaletteAction: String, CaseIterable {
+        case newNote = "new_note"
+        case settings = "settings"
+        case about = "about"
+
+        var title: String {
+            switch self {
+            case .newNote: return "Create New Note"
+            case .settings: return "Preferences"
+            case .about: return "About Jorts"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .newNote: return "plus.circle.fill"
+            case .settings: return "gearshape.fill"
+            case .about: return "info.circle.fill"
+            }
+        }
     }
 }
 
 struct CommandPaletteView: View {
     let documents: [NoteDocument]
     let onOpenNote: (UUID) -> Void
+    let onCreateNote: () -> Void
+    let onShowPreferences: () -> Void
+    let onShowAbout: () -> Void
     let onClose: () -> Void
     let state: CommandPaletteState
 
     @FocusState private var searchFocused: Bool
+    @State private var hoverID: CommandPaletteItem.ID?
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            // Outer Bezel / Glass
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(.ultraThinMaterial)
+                .shadow(color: .black.opacity(0.25), radius: 30, x: 0, y: 15)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
                 )
 
             VStack(spacing: 0) {
                 header
+                    .padding(.top, 4)
 
-                Divider()
-                    .overlay(Color.white.opacity(0.08))
+                if results.isEmpty {
+                    emptyState
+                } else {
+                    resultsList
+                }
 
-                resultsList
+                footer
             }
         }
-        .padding(18)
-        .frame(width: 720, height: 520)
+        .padding(20)
+        .frame(width: 640, height: 480)
         .onAppear {
             searchFocused = true
             if state.selection == nil {
@@ -47,130 +91,263 @@ struct CommandPaletteView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
+        VStack(spacing: 0) {
+            HStack(spacing: 14) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(.secondary)
 
-            TextField(
-                "Search notes…",
-                text: Binding(
-                    get: { state.query },
-                    set: { state.query = $0 }
+                TextField(
+                    "Search notes or commands…",
+                    text: Binding(
+                        get: { state.query },
+                        set: { state.query = $0 }
+                    )
                 )
-            )
-                .textFieldStyle(.plain)
-                .focused($searchFocused)
-                .onSubmit { openSelectionOrFirst() }
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 18, weight: .regular, design: .default))
+                    .focused($searchFocused)
+                    .onSubmit { handleSelection() }
 
-            if !state.query.isEmpty {
-                Button {
-                    state.query = ""
-                    searchFocused = true
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
+                if !state.query.isEmpty {
+                    Button {
+                        state.query = ""
+                        searchFocused = true
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.opacity.combined(with: .scale))
                 }
-                .buttonStyle(.plain)
+
+                HStack(spacing: 4) {
+                    Text("ESC")
+                        .font(.system(size: 10, weight: .bold))
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 4))
+                }
+                .foregroundStyle(.secondary)
+                .opacity(0.6)
             }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 18)
+
+            Divider()
+                .opacity(0.1)
         }
-        .font(.system(size: 15, weight: .medium))
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .padding(16)
         .onExitCommand { onClose() }
     }
 
     private var resultsList: some View {
         ScrollViewReader { proxy in
-            List(
-                selection: Binding(
-                    get: { state.selection },
-                    set: { state.selection = $0 }
-                )
-            ) {
-                ForEach(results, id: \.id) { doc in
-                    row(for: doc)
-                        .tag(doc.id)
+            ScrollView {
+                VStack(spacing: 4) {
+                    ForEach(results) { item in
+                        row(for: item)
+                            .id(item.id)
+                    }
                 }
+                .padding(10)
             }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .background(Color.clear)
+            .scrollIndicators(.never)
             .onChange(of: state.selection) { newValue in
                 guard let selected = newValue else { return }
-                proxy.scrollTo(selected, anchor: .center)
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    proxy.scrollTo(selected, anchor: .center)
+                }
             }
             .onChange(of: state.query) { _ in
                 state.selection = results.first?.id
             }
-            .onSubmit { openSelectionOrFirst() }
         }
     }
 
-    private func row(for doc: NoteDocument) -> some View {
-        let isSelected = state.selection == doc.id
+    private func row(for item: CommandPaletteItem) -> some View {
+        let isSelected = state.selection == item.id
+        let isHovered = hoverID == item.id
+
         return HStack(spacing: 12) {
-            Circle()
-                .fill(doc.theme.backgroundColor)
-                .frame(width: 10, height: 10)
-                .overlay(Circle().strokeBorder(Color.black.opacity(0.12), lineWidth: 1))
+            icon(for: item)
+                .frame(width: 28, height: 28)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(doc.title.isEmpty ? "Untitled" : doc.title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .lineLimit(1)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title(for: item))
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(isSelected ? Color.primary : Color.primary.opacity(0.9))
 
-                if !doc.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text(previewText(for: doc))
+                if let sub = subtitle(for: item) {
+                    Text(sub)
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
             }
 
-            Spacer(minLength: 0)
+            Spacer()
 
             if isSelected {
-                Text("↩︎")
-                    .font(.system(size: 12, weight: .semibold))
+                Image(systemName: "return")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .opacity(0.8)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background {
+            ZStack {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color.white.opacity(0.12))
+                        .matchedGeometryEffect(id: "selection", in: selectionNamespace)
+                } else if isHovered {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color.white.opacity(0.05))
+                }
+            }
+        }
+        .contentShape(Rectangle())
+        .onHover { over in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                hoverID = over ? item.id : nil
+            }
+        }
+        .onTapGesture {
+            state.selection = item.id
+            handleSelection()
+        }
+    }
+
+    @Namespace private var selectionNamespace
+
+    @ViewBuilder
+    private func icon(for item: CommandPaletteItem) -> some View {
+        switch item {
+        case .note(let doc):
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(doc.theme.backgroundColor)
+                    .shadow(color: doc.theme.backgroundColor.opacity(0.3), radius: 4, x: 0, y: 2)
+
+                Image(systemName: "note.text")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(doc.theme.autoTextColorColor)
+            }
+        case .action(let action):
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.white.opacity(0.08))
+
+                Image(systemName: action.icon)
+                    .font(.system(size: 14))
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.vertical, 8)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            state.selection = doc.id
-        }
-        .onTapGesture(count: 2) {
-            onOpenNote(doc.id)
-        }
-        .listRowSeparator(.hidden)
-        .listRowBackground(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(isSelected ? Color.white.opacity(0.10) : .clear)
-        )
     }
 
-    private var results: [NoteDocument] {
-        let trimmed = state.query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            return documents
+    private func title(for item: CommandPaletteItem) -> String {
+        switch item {
+        case .note(let doc): return doc.title.isEmpty ? "Untitled Note" : doc.title
+        case .action(let action): return action.title
+        }
+    }
+
+    private func subtitle(for item: CommandPaletteItem) -> String? {
+        switch item {
+        case .note(let doc):
+            let content = doc.content.trimmingCharacters(in: .whitespacesAndNewlines)
+            return content.isEmpty ? nil : content
+        case .action: return "System Command"
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(systemName: "doc.text.magnifyingglass")
+                .font(.system(size: 48))
+                .foregroundStyle(.tertiary)
+
+            Text("No results for \"\(state.query)\"")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(.secondary)
+
+            Text("Try searching for a note title or content")
+                .font(.system(size: 13))
+                .foregroundStyle(.tertiary)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var footer: some View {
+        VStack(spacing: 0) {
+            Divider()
+                .opacity(0.1)
+
+            HStack {
+                Text("\(results.count) results")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+
+                Spacer()
+
+                HStack(spacing: 12) {
+                    footerHint(key: "↑↓", label: "Navigate")
+                    footerHint(key: "↵", label: "Open")
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+        }
+    }
+
+    private func footerHint(key: String, label: String) -> some View {
+        HStack(spacing: 4) {
+            Text(key)
+                .font(.system(size: 12, weight: .bold))
+                .padding(.horizontal, 4)
+                .background(Color.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 4))
+            Text(label)
+                .font(.system(size: 11))
+        }
+        .foregroundStyle(.secondary)
+        .opacity(0.8)
+    }
+
+    private var results: [CommandPaletteItem] {
+        let q = state.query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        var items: [CommandPaletteItem] = []
+
+        // Actions first if query matches
+        for action in CommandPaletteItem.PaletteAction.allCases {
+            if q.isEmpty || action.title.lowercased().contains(q) {
+                items.append(.action(action))
+            }
         }
 
-        let q = trimmed.lowercased()
-        return documents
+        // Notes
+        let noteItems = documents
             .filter { doc in
-                let title = doc.title.lowercased()
-                let content = doc.content.lowercased()
-                return title.contains(q) || content.contains(q)
+                if q.isEmpty { return true }
+                return doc.title.lowercased().contains(q) || doc.content.lowercased().contains(q)
             }
             .sorted { lhs, rhs in
                 score(for: lhs, query: q) > score(for: rhs, query: q)
             }
+            .map { CommandPaletteItem.note($0) }
+
+        items.append(contentsOf: noteItems)
+        return items
     }
 
     private func score(for doc: NoteDocument, query: String) -> Int {
+        if query.isEmpty { return 0 }
         let title = doc.title.lowercased()
         let content = doc.content.lowercased()
 
@@ -180,13 +357,22 @@ struct CommandPaletteView: View {
         return 0
     }
 
-    private func openSelectionOrFirst() {
-        if let selection = state.selection {
-            onOpenNote(selection)
+    private func handleSelection() {
+        guard let selection = state.selection,
+              let item = results.first(where: { $0.id == selection }) else {
             return
         }
-        if let first = results.first {
-            onOpenNote(first.id)
+
+        switch item {
+        case .note(let doc):
+            onOpenNote(doc.id)
+        case .action(let action):
+            switch action {
+            case .newNote: onCreateNote()
+            case .settings: onShowPreferences()
+            case .about: onShowAbout()
+            }
+            onClose()
         }
     }
 
@@ -195,16 +381,10 @@ struct CommandPaletteView: View {
 
         let ids = results.map(\.id)
         if let current = state.selection, let idx = ids.firstIndex(of: current) {
-            let next = (idx + delta).clamped(to: 0...(ids.count - 1))
+            let next = (idx + delta + ids.count) % ids.count
             state.selection = ids[next]
         } else {
             state.selection = ids.first
         }
-    }
-
-    private func previewText(for doc: NoteDocument) -> String {
-        let trimmed = doc.content.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.count <= 120 { return trimmed }
-        return String(trimmed.prefix(120)) + "…"
     }
 }

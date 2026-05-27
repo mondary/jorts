@@ -17,16 +17,22 @@ final class NoteStorage {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         decoder = JSONDecoder()
 
-        let applicationSupport = try? fileManager.url(
-            for: .applicationSupportDirectory,
+        let documentsDirectory = try? fileManager.url(
+            for: .documentDirectory,
             in: .userDomainMask,
             appropriateFor: nil,
             create: true
         )
 
-        let baseDirectory = storageDirectoryOverride ?? (applicationSupport ?? fileManager.homeDirectoryForCurrentUser)
-        let storageDirectory = baseDirectory
-            .appendingPathComponent("JortsMacOS", isDirectory: true)
+        let appFolderName = "JortsMacOS"
+        let defaultStorageDirectory = (documentsDirectory ?? fileManager.homeDirectoryForCurrentUser)
+            .appendingPathComponent(appFolderName, isDirectory: true)
+        let normalizedOverride = storageDirectoryOverride.map { override in
+            override.lastPathComponent == appFolderName
+            ? override
+            : override.appendingPathComponent(appFolderName, isDirectory: true)
+        }
+        let storageDirectory = normalizedOverride ?? defaultStorageDirectory
         storageURL = storageDirectory.appendingPathComponent("saved_state.json")
         notesDirectory = storageDirectory.appendingPathComponent("Notes", isDirectory: true)
         trashDirectory = storageDirectory.appendingPathComponent("Trash", isDirectory: true)

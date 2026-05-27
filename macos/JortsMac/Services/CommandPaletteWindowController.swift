@@ -37,20 +37,14 @@ final class CommandPaletteWindowController: NSWindowController, NSWindowDelegate
 
     init(manager: NoteManager) {
         self.manager = manager
+        super.init(window: nil)
 
-        let view = CommandPaletteView(
-            documents: manager.documents,
-            onOpenNote: { [weak manager] id in
-                manager?.focusNote(documentID: id)
-            },
-            onClose: { },
-            state: state
-        )
+        let view = makeView()
         let host = CommandPaletteHostingController(rootView: view)
         self.hostingController = host
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 720, height: 520),
+            contentRect: NSRect(x: 0, y: 0, width: 640, height: 480),
             styleMask: [.titled, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -68,8 +62,9 @@ final class CommandPaletteWindowController: NSWindowController, NSWindowDelegate
         window.contentViewController = self.hostingController
         window.level = .floating
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.hasShadow = true
 
-        super.init(window: window)
+        self.window = window
         window.delegate = self
         positionWindow()
 
@@ -100,8 +95,8 @@ final class CommandPaletteWindowController: NSWindowController, NSWindowDelegate
         lastKeyWindow?.makeKeyAndOrderFront(nil)
     }
 
-    private func updateViewCallbacks() {
-        let view = CommandPaletteView(
+    private func makeView() -> CommandPaletteView {
+        CommandPaletteView(
             documents: manager.documents,
             onOpenNote: { [weak self] id in
                 self?.manager.focusNote(documentID: id)
@@ -109,12 +104,24 @@ final class CommandPaletteWindowController: NSWindowController, NSWindowDelegate
                     self?.close()
                 }
             },
+            onCreateNote: { [weak self] in
+                self?.manager.createNote()
+            },
+            onShowPreferences: {
+                NSApp.sendAction(Selector(("showPreferences:")), to: nil, from: nil)
+            },
+            onShowAbout: {
+                NSApp.sendAction(Selector(("showAbout:")), to: nil, from: nil)
+            },
             onClose: { [weak self] in
                 self?.close()
             },
             state: state
         )
-        hostingController?.rootView = view
+    }
+
+    private func updateViewCallbacks() {
+        hostingController?.rootView = makeView()
         hostingController?.onCancel = { [weak self] in
             self?.close()
         }
@@ -149,13 +156,7 @@ final class CommandPaletteWindowController: NSWindowController, NSWindowDelegate
     }
 
     private func moveSelection(delta: Int) {
-        let view = CommandPaletteView(
-            documents: manager.documents,
-            onOpenNote: { _ in },
-            onClose: { },
-            state: state
-        )
-        view.moveSelection(delta: delta)
+        makeView().moveSelection(delta: delta)
     }
 
     private func installKeyDownMonitorIfNeeded() {
@@ -171,19 +172,7 @@ final class CommandPaletteWindowController: NSWindowController, NSWindowDelegate
                 return event
             }
 
-            switch event.keyCode {
-            case 53: // Escape
-                self.close()
-                return nil
-            case 125: // Down
-                self.moveSelection(delta: +1)
-                return nil
-            case 126: // Up
-                self.moveSelection(delta: -1)
-                return nil
-            default:
-                return event
-            }
+            return event
         }
     }
 

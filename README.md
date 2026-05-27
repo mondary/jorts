@@ -46,11 +46,8 @@ You'll need [Xcode](https://developer.apple.com/xcode/) or the Swift toolchain.
 git clone https://github.com/clm-tmp/JORTS_macos.git
 cd JORTS_macos
 
-# Build using Swift Package Manager
-swift build
-
-# Run the app
-swift run
+# Build + package + run (single dev entrypoint)
+./run-dev.sh
 ```
 
 ### Development build
@@ -77,9 +74,9 @@ Type simple math in a note to see results in a subtle right-side column.
 
 Notes are stored in `saved_state.json` in the app's data directory.
 
-**Location on macOS:**
+**Location on macOS (default):**
 ```bash
-~/Library/Application Support/io.github.elly_code.jorts/
+~/Documents/JortsMacOS/
 ```
 
 You can manually backup or transfer notes by copying this file. The JSON format is simple and human-readable.
