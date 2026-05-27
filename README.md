@@ -84,6 +84,12 @@
   - Ouvrir le clipboard: `jortsmacos://clipboard`
 - Dossier de stockage par défaut: `~/Documents/JortsMacOS/`
 
+### Clipboard drawer
+- Toggle: `Cmd+Shift+V`
+- Navigation: flèches gauche/droite
+- `Enter`: colle (best-effort) dans l'app précédente + ferme le drawer
+- `Cmd+Enter`: convertir en note
+
 ## ⚙️ Réglages
 - Préférences générales (langue, stockage, import/export).
 - Préférences raccourcis (modificateurs + touche).

@@ -12,9 +12,11 @@ Status: in progress.
 - [x] App icons per clipboard item (source pictos)
 - [x] Image thumbnails + lightbox
 - [x] File preview + QuickLook
+- [x] Image thumbnails (aspect-fill crop) + lightbox
 - [x] Search + basic type filters (All/Text/URL/Image/Files)
 - [x] Pins + lock (non-expiring) + per-item delete actions
 - [x] Purge logic (max items + max age days), respecting pinned/locked
+- [x] Enter pastes into previous app (Cmd+V injection best-effort)
 
 ## Remaining Features
 

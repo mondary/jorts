@@ -470,8 +470,8 @@ private struct DeckCard: View {
                 GeometryReader { geo in
                     Image(nsImage: image)
                         .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: geo.size.width, height: geo.size.height)
+                        .scaledToFill()
+                        .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
                         .clipped()
                 }
                 .frame(height: 120 * scale)
