@@ -22,7 +22,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         manager.launch()
         buildStatusMenu()
         registerGlobalHotKey()
+        donateSpotlightActivities()
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        // Enables Raycast / Alfred / scripts via: open "jortsmacos://new"
+        for url in urls {
+            handleExternalURL(url)
+        }
+    }
+
+    func application(
+        _ application: NSApplication,
+        continue userActivity: NSUserActivity,
+        restorationHandler: @escaping ([any NSUserActivityRestoring]) -> Void
+    ) -> Bool {
+        // Enables Spotlight suggestions / Siri predictions when the activity is donated.
+        if handleExternalUserActivity(userActivity) {
+            return true
+        }
+        return false
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -490,6 +510,81 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
         item.target = nil
         return item
+    }
+
+    // MARK: - External Automation (URL Scheme + Spotlight/Raycast/Alfred)
+
+    private enum ExternalAction: String {
+        case new
+        case last
+        case list
+    }
+
+    private func handleExternalURL(_ url: URL) {
+        // Expected:
+        // - jortsmacos://new
+        // - jortsmacos://last
+        // - jortsmacos://list
+        guard url.scheme?.lowercased() == "jortsmacos" else { return }
+
+        let raw = (url.host?.isEmpty == false ? url.host! : url.path)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            .lowercased()
+
+        guard let action = ExternalAction(rawValue: raw) else { return }
+        DispatchQueue.main.async { [weak self] in
+            self?.performExternalAction(action)
+        }
+    }
+
+    private func handleExternalUserActivity(_ activity: NSUserActivity) -> Bool {
+        // Activity types are declared in Info.plist (generated) and donated at launch.
+        let type = activity.activityType.lowercased()
+        if type.hasSuffix(".newnote") || type.hasSuffix(".new_note") {
+            performExternalAction(.new)
+            return true
+        }
+        if type.hasSuffix(".lastnote") || type.hasSuffix(".last_note") {
+            performExternalAction(.last)
+            return true
+        }
+        if type.hasSuffix(".noteslist") || type.hasSuffix(".notes_list") {
+            performExternalAction(.list)
+            return true
+        }
+        return false
+    }
+
+    private func performExternalAction(_ action: ExternalAction) {
+        NSApp.activate(ignoringOtherApps: true)
+        switch action {
+        case .new:
+            manager.createNote()
+        case .last:
+            manager.focusLastFocusedNote()
+        case .list:
+            showNotesList(nil)
+        }
+    }
+
+    private func donateSpotlightActivities() {
+        // Donated activities make Spotlight/Raycast/Alfred suggestions possible. Raycast/Alfred
+        // can also call us via the URL scheme, which is more deterministic.
+        let bundleID = Bundle.main.bundleIdentifier ?? "io.github.ellycode.jorts.macos"
+
+        let activities: [(id: String, titleKey: String)] = [
+            ("\(bundleID).newNote", "new_note"),
+            ("\(bundleID).lastNote", "reopen_last_note"),
+            ("\(bundleID).notesList", "show_notes_list")
+        ]
+
+        for (id, titleKey) in activities {
+            let activity = NSUserActivity(activityType: id)
+            activity.title = localizedString(titleKey)
+            activity.isEligibleForSearch = true
+            activity.persistentIdentifier = NSUserActivityPersistentIdentifier(id)
+            activity.becomeCurrent()
+        }
     }
 }
 

@@ -80,12 +80,29 @@ cat >"$INFO_PLIST" <<PLIST
   <string>JortsMacOS</string>
   <key>CFBundleDisplayName</key>
   <string>JortsMacOS</string>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key>
+      <string>$BUNDLE_ID</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>jortsmacos</string>
+      </array>
+    </dict>
+  </array>
   <key>CFBundleIconFile</key>
   <string>Jorts</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>LSMinimumSystemVersion</key>
   <string>$MIN_SYSTEM_VERSION</string>
+  <key>NSUserActivityTypes</key>
+  <array>
+    <string>$BUNDLE_ID.newNote</string>
+    <string>$BUNDLE_ID.lastNote</string>
+    <string>$BUNDLE_ID.notesList</string>
+  </array>
   <key>NSHighResolutionCapable</key>
   <true/>
   <key>NSPrincipalClass</key>

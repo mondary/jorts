@@ -77,6 +77,10 @@
 - Global shortcuts (defaults, configurable):
   - `Cmd+Shift+Space`: focus last note
   - `Ctrl+Shift+Space`: create new note
+- Spotlight / Raycast / Alfred integration (URLs):
+  - New note: `jortsmacos://new`
+  - Reopen last note: `jortsmacos://last`
+  - Show notes list: `jortsmacos://list`
 - Default storage folder: `~/Documents/JortsMacOS/`
 
 ## ⚙️ Settings

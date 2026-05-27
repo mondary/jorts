@@ -77,6 +77,10 @@
 - Raccourcis globaux (par défaut, configurables):
   - `Cmd+Shift+Space` : rouvrir / focus la dernière note
   - `Ctrl+Shift+Space` : créer une nouvelle note
+- Intégration Spotlight / Raycast / Alfred (URLs):
+  - Nouvelle note: `jortsmacos://new`
+  - Rouvrir la dernière note: `jortsmacos://last`
+  - Afficher la liste des notes: `jortsmacos://list`
 - Dossier de stockage par défaut: `~/Documents/JortsMacOS/`
 
 ## ⚙️ Réglages
