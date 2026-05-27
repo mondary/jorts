@@ -142,6 +142,10 @@ final class ClipboardManager: ObservableObject {
         scheduleSave()
     }
 
+    func loadFaviconData(named name: String) -> Data? {
+        return persistence.loadFaviconData(named: name)
+    }
+
     func deleteAll(fromSourceBundleID bundleID: String?) {
         guard let bundleID else { return }
         items.removeAll { $0.sourceBundleID == bundleID && !$0.isLocked }
@@ -202,38 +206,8 @@ final class ClipboardManager: ObservableObject {
             return
             }
 
-            // Images: some apps provide PNG/TIFF bytes directly, others only provide a bridgeable image.
-            // 1) Try a direct AppKit read (most robust).
-            if let img = NSImage(pasteboard: pasteboard),
-            let tiff = img.tiffRepresentation
-            {
-            append(Item(
-                id: UUID(),
-                createdAt: Date(),
-                sourceBundleID: bundleID,
-                sourceAppName: appName,
-                kind: .image,
-                previewText: "Image",
-                payload: .imageData(tiff),
-                isPinned: false,
-                isLocked: false,
-                metadataTitle: nil,
-                metadataFaviconName: nil
-            ))
-            return
-            }
-
-            // 2) Try raw bytes by type (covers some web copies).
-            let pngType = NSPasteboard.PasteboardType.png
-            let tiffType = NSPasteboard.PasteboardType.tiff
-            let publicPNG = NSPasteboard.PasteboardType(rawValue: "public.png")
-            let publicTIFF = NSPasteboard.PasteboardType(rawValue: "public.tiff")
-            if let imageData =
-            pasteboard.data(forType: pngType) ??
-            pasteboard.data(forType: publicPNG) ??
-            pasteboard.data(forType: tiffType) ??
-            pasteboard.data(forType: publicTIFF)
-            {
+        // Images: robust extraction across apps (web, design tools, Finder, etc.)
+        if let imageData = extractImageData(from: pasteboard) {
             append(Item(
                 id: UUID(),
                 createdAt: Date(),
@@ -248,27 +222,7 @@ final class ClipboardManager: ObservableObject {
                 metadataFaviconName: nil
             ))
             return
-            }
-
-            if let images = pasteboard.readObjects(forClasses: [NSImage.self], options: nil) as? [NSImage],
-            let first = images.first,
-            let tiff = first.tiffRepresentation
-            {
-            append(Item(
-                id: UUID(),
-                createdAt: Date(),
-                sourceBundleID: bundleID,
-                sourceAppName: appName,
-                kind: .image,
-                previewText: "Image",
-                payload: .imageData(tiff),
-                isPinned: false,
-                isLocked: false,
-                metadataTitle: nil,
-                metadataFaviconName: nil
-            ))
-            return
-            }
+        }
 
             if let s = pasteboard.string(forType: .string), !s.isEmpty {
             let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -347,6 +301,48 @@ final class ClipboardManager: ObservableObject {
     private func frontmostAppIdentity() -> (bundleID: String?, name: String?) {
         let app = NSWorkspace.shared.frontmostApplication
         return (app?.bundleIdentifier, app?.localizedName)
+    }
+
+    private func extractImageData(from pasteboard: NSPasteboard) -> Data? {
+        // 1) Try AppKit bridge (handles many representations)
+        if let img = NSImage(pasteboard: pasteboard),
+           let tiff = img.tiffRepresentation, !tiff.isEmpty
+        {
+            return tiff
+        }
+
+        // 2) Try explicit data representations on pasteboard items
+        let candidates: [NSPasteboard.PasteboardType] = [
+            .png,
+            .tiff,
+            NSPasteboard.PasteboardType(rawValue: "public.png"),
+            NSPasteboard.PasteboardType(rawValue: "public.jpeg"),
+            NSPasteboard.PasteboardType(rawValue: "public.jpg"),
+            NSPasteboard.PasteboardType(rawValue: "public.tiff")
+        ]
+
+        if let items = pasteboard.pasteboardItems {
+            for it in items {
+                for t in candidates where it.types.contains(t) {
+                    if let d = it.data(forType: t), !d.isEmpty {
+                        return d
+                    }
+                }
+            }
+        }
+
+        // 3) Fallback direct read by type
+        for t in candidates {
+            if let d = pasteboard.data(forType: t), !d.isEmpty {
+                return d
+            }
+        }
+
+        if let types = pasteboard.types, !types.isEmpty {
+            let joined = types.map { $0.rawValue }.joined(separator: ", ")
+            NSLog("JortsMac: no image extracted; pasteboard types: %@", joined)
+        }
+        return nil
     }
 
     private func scheduleSave() {
