@@ -1,131 +1,120 @@
-<div align="center">
-  <img alt="An icon representing a stack of little squared blue sticky notes. The first one, and the second one hinted below, have scribbles over them" src="data/icons/default/hicolor/128.png" />
-  <h1>Jorts_MacOS</h1>
-  <h3>Neither jeans nor shorts, just like jorts. A sticky notes app for macOS</h3>
+# JortsMacOS
 
-  <p>
-    <strong>This is a native macOS fork of</strong>
-    <a href="https://github.com/elly-code/jorts">elly-code/jorts</a>
-  </p>
+Native macOS notes app inspired by [Jorts](https://github.com/elly-code/jorts).
 
-  <p>
-    <a href="https://github.com/clm-tmp/JORTS_macos">
-      <img src="https://img.shields.io/badge/macOS-fork-blue" alt="macOS fork">
-    </a>
-    <em> — macOS port by <a href="https://github.com/clm-tmp">clm-tmp</a></em>
-  </p>
+This repository keeps a dedicated macOS implementation while tracking upstream Jorts separately.
 
-  <p>
-    <em>Looking for Linux or Windows? See the <a href="#other-platforms">original project</a>.</em>
-  </p>
-</div>
+## Repository Layout
 
-<br/>
+- `submodules/jorts` — upstream Jorts source (Git submodule)
+- `submodules/numi` — placeholder for future Numi source integration
+- `JortsMacOS` — macOS app code (SwiftUI/AppKit)
+- `releases` — release artifacts
 
-<img src="https://github.com/elly-code/jorts/blob/main/data/screenshots/spread.png" alt="Several colourful sticky notes in a spread. Most are covered in scribbles. One in forefront is blue and has the text 'Lovely little colourful squares for all of your notes! 🥰'">
-
-<br/>
-
----
-
-## macOS Port
-
-This is a **native Swift + AppKit implementation** of Jorts, rewritten from the original GTK-based version. It provides a true macOS experience with native menus, keyboard shortcuts, and system integration.
-
-**Minimum requirement:** macOS 13.0 (Ventura) or later
-
-
-## Installation on macOS
-
-### Building from source
-
-You'll need [Xcode](https://developer.apple.com/xcode/) or the Swift toolchain.
+## Build & Run (macOS)
 
 ```bash
-# Clone the repository
-git clone https://github.com/clm-tmp/JORTS_macos.git
-cd JORTS_macos
-
-# Build + package + run (single dev entrypoint)
-./run-dev.sh
+./JortsMacOS/run-dev.sh
 ```
 
-### Development build
+## Storage (default)
 
-```bash
-# Build in release mode
-swift build -c release
+Notes are stored in:
 
-# The binary will be at:
-# .build/arm64-apple-macosx/release/JortsMac
-```
-
-**Note:** A distributable app bundle (`.app`) and proper installer are planned for future releases. For now, use the built executable or Xcode to run the app.
-
-### Inline calculations (macOS)
-
-Type simple math in a note to see results in a subtle right-side column.
-
-- Units: `10 km in m`, `5kg + 200g`, `32 f in c`
-- Variables (per render, top-to-bottom): `tax=1.2` then `100*tax`
-
-
-## Storage
-
-Notes are stored in `saved_state.json` in the app's data directory.
-
-**Location on macOS (default):**
 ```bash
 ~/Documents/JortsMacOS/
 ```
 
-You can manually backup or transfer notes by copying this file. The JSON format is simple and human-readable.
+## What Is Added Beyond Original Jorts
 
+This fork includes much more than a straight macOS port.
 
-## Other Platforms
+### Platform + UX
 
-Looking for Jorts on **Linux** or **Windows**? The original project supports those platforms:
+- Native SwiftUI/AppKit app lifecycle
+- Native menu bar status item + dynamic menu entries
+- Native preferences window with sections
+- Native notes list window (active notes + trash)
+- Native command palette window (`Cmd+K`)
+- Native About panel wiring
+- Restart action from UI
 
-- [elly-code/jorts](https://github.com/elly-code/jorts) — GTK-based version
-- Available on [Flathub](https://flathub.org/apps/io.github.ellie_commons.jorts) for Linux
-- Windows installer available in [releases](https://github.com/elly-code/jorts/releases)
+### Shortcut System
 
+- Editable shortcut settings UI (modifiers + key)
+- Shortcut persistence in app settings
+- Menu shortcuts rebuilt live when settings change
+- Two global system hotkeys:
+  - Focus last note
+  - Create new note
+- Global hotkeys wired to settings (not hardcoded)
 
-## Keyboard Shortcuts (macOS)
+### Command Palette
 
-| Shortcut | Action |
-|----------|--------|
-| `Cmd + N` | New sticky note |
-| `Cmd + S` | Save all notes |
-| `Cmd + W` | Close note window |
-| `Cmd + ,` | Preferences |
-| `Cmd + Delete` | Delete sticky note |
-| `Cmd + Shift + L` | Toggle list |
-| `Cmd + M` | Toggle monospace |
-| `Cmd + Plus` | Zoom in |
-| `Cmd + Minus` | Zoom out |
-| `Cmd + 0` | Reset zoom |
+- Search over note title/content
+- Command actions in palette:
+  - Create note
+  - Open preferences
+  - Open about
+- Keyboard navigation (up/down, enter, esc)
+- Selection state handling + close/focus behavior
 
+### Note Editing Features
 
-## Contributing
+- Inline calculations column
+- Unit conversion and expression parsing support
+- Typing visual effects engine (multiple effect modes)
+- List toggle behavior in text editor
+- Monospace toggle support
+- Font selection and previews
+- Pin/unpin behavior
+- Zoom in/out/reset note content
 
-This is a personal macOS port. For issues related to the original Jorts application, please report them to [elly-code/jorts](https://github.com/elly-code/jorts/issues).
+### Data Model + Persistence
 
-macOS-specific issues can be reported here.
+- Markdown-first storage (`Notes/`, `Trash/`)
+- Sidecar JSON for note version history
+- Legacy JSON import/migration support
+- Seed JSON migration support
+- Duplicate markdown consolidation
+- Canonicalization + cleanup passes
+- Trash restore flow
+- Versioning + restore workflow
+- Autosave scheduling + immediate save paths
 
+### Data Operations
 
-## Credits
+- Export notes flow
+- Import notes flow
+- Archive duplicates/backups flow
+- Open storage directory in Finder flow
 
-- **[teamcons](https://github.com/teamcons)** — Original developer and maintainer of Jorts
-- **[lains](https://github.com/lains)** — Original creator (Notejot)
-- **[wpkelso](https://github.com/wpkelso)** — Icon designer
-- **[clm-tmp](https://github.com/clm-tmp)** — Native macOS port developer
+### Theming + Visuals
 
-**Links:**
-- Original project: [elly-code/jorts](https://github.com/elly-code/jorts)
-- This macOS fork: [clm-tmp/JORTS_macos](https://github.com/clm-tmp/JORTS_macos)
+- Expanded color theme set
+- Auto text color contrast handling
+- Color picker popover/grid
+- Theme previews in note surfaces
+- Custom macOS menu bar icon handling
 
+### Internationalization
 
-## License
+- Localization controller for runtime language selection
+- Bundled multi-language resources for macOS build
 
-This project shares the same license as the original Jorts. See [LICENSE](LICENSE) for details.
+### Window Management
+
+- Remember/reapply note window state behavior
+- Dedicated floating behavior for command palette
+- Focus restoration logic when palette closes
+
+### Dev/Repo Operations
+
+- Single dev launcher script for macOS app bundle refresh + run
+- Repository refactor toward external-source submodules
+
+## Upstream Relationship
+
+- Upstream inspiration/source: `elly-code/jorts`
+- macOS fork implementation lives in `JortsMacOS`
+- Upstream code tracking lives in `submodules/jorts`

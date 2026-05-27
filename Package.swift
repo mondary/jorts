@@ -14,7 +14,7 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "JortsMac",
-            path: "macos/JortsMac",
+            path: "JortsMacOS/macos/JortsMac",
             resources: [
                 .copy("Resources/RedactedScript-Regular.ttf"),
                 .process("Resources/Localizations")

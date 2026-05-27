@@ -10,6 +10,15 @@
 build
 builddir
 dist
+JortsMacOS/dist
+JortsMacOS/.build
+.build
+DerivedData
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.bak
+*.bak2
+.DS_Store
 .flatpak-builder
 .potrans
 repo
