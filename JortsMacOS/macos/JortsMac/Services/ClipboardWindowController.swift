@@ -9,6 +9,8 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
     private var hostingController: NSHostingController<ClipboardView>?
     private var lastKnownVisibleFrame: NSRect?
     private var lastFrontmostApp: NSRunningApplication?
+    private weak var lastKeyWindow: NSWindow?
+    private weak var lastFirstResponder: NSResponder?
 
     init(manager: NoteManager, settings: AppSettings, clipboard: ClipboardManager) {
         self.manager = manager
@@ -46,27 +48,59 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         // Hosting controller must be initialized after super.init so we can safely capture self.
         self.hostingController = NSHostingController(rootView: ClipboardView(
             clipboard: clipboard,
+            notesProvider: { [weak manager] in
+                (manager?.documents ?? []).map { doc in
+                    ClipboardView.NoteDeckItem(
+                        id: doc.id,
+                        title: doc.title,
+                        content: doc.content,
+                        theme: doc.theme,
+                        isPinned: doc.pinned,
+                        updatedAt: doc.versions.first?.date ?? Date()
+                    )
+                }
+            },
             onCreateNoteFromItem: { [weak manager] item in
                 manager?.createNote(prefillContent: ClipboardWindowController.noteContent(from: item))
             },
+            onOpenNote: { [weak manager] id in
+                manager?.focusNote(documentID: id)
+            },
             onCopyItem: { [weak clipboard] item in clipboard?.copyToPasteboard(item) },
             onDismiss: { [weak self] in self?.dismissAnimated() },
-            onPaste: { [weak self] in self?.pasteActiveSelection() }
+            onPaste: { [weak self] in self?.pasteActiveSelection() },
+            shouldHandleKeyboard: { [weak self] in
+                guard let window = self?.window else { return false }
+                return window.isVisible && NSApp.isActive
+            }
         ))
         panel.contentViewController = self.hostingController
     }
 
     required init?(coder: NSCoder) { nil }
 
-    func toggle() {
+    func toggle(targetApp: NSRunningApplication? = nil, targetWindow: NSWindow? = nil, targetResponder: NSResponder? = nil) {
         guard let window else { return }
         if window.isVisible {
             dismissAnimated()
         } else {
-            // Remember the app that was active before we showed the drawer.
-            lastFrontmostApp = NSWorkspace.shared.frontmostApplication
+            // Remember the app/window that had the insertion cursor before the
+            // drawer opened. This must happen before Jorts activates the panel.
+            lastFrontmostApp = targetApp ?? NSWorkspace.shared.frontmostApplication
+            rememberFocus(targetWindow: targetWindow, targetResponder: targetResponder, excluding: window)
             presentAnimated()
         }
+    }
+
+    private func rememberFocus(targetWindow: NSWindow?, targetResponder: NSResponder?, excluding clipboardWindow: NSWindow) {
+        let keyWindow = targetWindow ?? NSApp.keyWindow
+        guard let keyWindow, keyWindow !== clipboardWindow else {
+            lastKeyWindow = nil
+            lastFirstResponder = nil
+            return
+        }
+        lastKeyWindow = keyWindow
+        lastFirstResponder = targetResponder ?? keyWindow.firstResponder
     }
 
     private func presentAnimated() {
@@ -87,6 +121,7 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         window.alphaValue = 0
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        window.makeFirstResponder(nil)
 
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.16
@@ -120,8 +155,42 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
             return
         }
 
-        app.activate(options: [.activateIgnoringOtherApps])
+        let targetPID = app.processIdentifier
+        window?.orderOut(nil)
+        window?.alphaValue = 1
 
+        if app.bundleIdentifier == Bundle.main.bundleIdentifier {
+            NSApp.activate(ignoringOtherApps: true)
+            restoreLastJortsFocus()
+        } else {
+            app.activate(options: [.activateIgnoringOtherApps])
+        }
+
+        // Activation is asynchronous. If Cmd+V is posted immediately, it can land
+        // in the drawer search field instead of the app that had focus before.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) { [weak self] in
+            guard let self else { return }
+            if NSWorkspace.shared.frontmostApplication?.processIdentifier != targetPID {
+                app.activate(options: [.activateIgnoringOtherApps])
+            }
+            if app.bundleIdentifier == Bundle.main.bundleIdentifier {
+                self.restoreLastJortsFocus()
+                self.postCommandV()
+            } else {
+                self.postCommandV(to: targetPID)
+            }
+        }
+    }
+
+    private func restoreLastJortsFocus() {
+        guard let lastKeyWindow else { return }
+        lastKeyWindow.makeKeyAndOrderFront(nil)
+        if let responder = lastFirstResponder {
+            lastKeyWindow.makeFirstResponder(responder)
+        }
+    }
+
+    private func postCommandV() {
         // Best-effort: simulate Cmd+V. This typically requires Accessibility permission.
         let src = CGEventSource(stateID: .combinedSessionState)
         let vKey = CGKeyCode(kVK_ANSI_V)
@@ -132,8 +201,23 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
 
         vDown?.post(tap: CGEventTapLocation.cghidEventTap)
         vUp?.post(tap: CGEventTapLocation.cghidEventTap)
+    }
 
-        dismissAnimated()
+    private func postCommandV(to pid: pid_t) {
+        // For external target apps, posting directly to PID is more reliable.
+        let src = CGEventSource(stateID: .combinedSessionState)
+        let vKey = CGKeyCode(kVK_ANSI_V)
+        let vDown = CGEvent(keyboardEventSource: src, virtualKey: vKey, keyDown: true)
+        vDown?.flags = CGEventFlags.maskCommand
+        let vUp = CGEvent(keyboardEventSource: src, virtualKey: vKey, keyDown: false)
+        vUp?.flags = CGEventFlags.maskCommand
+
+        guard pid > 0 else {
+            postCommandV()
+            return
+        }
+        vDown?.postToPid(pid)
+        vUp?.postToPid(pid)
     }
 
     func windowDidResignKey(_ notification: Notification) {

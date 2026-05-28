@@ -1,14 +1,26 @@
 import SwiftUI
 
 struct ClipboardView: View {
+    struct NoteDeckItem: Identifiable, Equatable {
+        let id: UUID
+        let title: String
+        let content: String
+        let theme: NoteTheme
+        let isPinned: Bool
+        let updatedAt: Date
+    }
+
     @ObservedObject var clipboard: ClipboardManager
+    let notesProvider: () -> [NoteDeckItem]
     let onCreateNoteFromItem: (ClipboardManager.Item) -> Void
+    let onOpenNote: (UUID) -> Void
     let onCopyItem: (ClipboardManager.Item) -> Void
     let onDismiss: () -> Void
     let onPaste: () -> Void
+    let shouldHandleKeyboard: () -> Bool
 
     @State private var query: String = ""
-    @State private var selectedSource: String? = nil
+    @State private var selectedSource: SourceFilter = .all
     @State private var selectedID: UUID?
     private let deckScale: CGFloat = 0.82
     @State private var kind: ClipboardManager.Query.KindFilter = .all
@@ -20,6 +32,24 @@ struct ClipboardView: View {
     @State private var quickLookURLs: [URL] = []
     @FocusState private var searchFocused: Bool
     @State private var keyMonitor: Any?
+
+    private enum DeckEntry: Identifiable, Equatable {
+        case clipboard(ClipboardManager.Item)
+        case note(NoteDeckItem)
+
+        var id: UUID {
+            switch self {
+            case .clipboard(let item): return item.id
+            case .note(let item): return item.id
+            }
+        }
+    }
+
+    private enum SourceFilter: Equatable {
+        case all
+        case notes
+        case app(String)
+    }
 
     var body: some View {
         ZStack {
@@ -39,34 +69,62 @@ struct ClipboardView: View {
         .onDisappear { removeKeyMonitorIfNeeded() }
     }
 
+    @ViewBuilder
     private var topRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(spacing: 16) {
-                ForEach(filteredItems) { item in
-                    DeckCard(
-                        item: item,
-                        isSelected: selectedID == item.id,
-                        onSelect: { selectedID = item.id },
-                        onCopy: { onCopyItem(item) },
-                        onMakeNote: { onCreateNoteFromItem(item) },
-                        scale: deckScale,
-                        onDelete: { clipboard.delete(item.id) },
-                        onTogglePin: { clipboard.togglePin(item.id) },
-                        onToggleLock: { clipboard.toggleLock(item.id) },
-                        onQuickLook: { urls in quickLookURLs = urls },
-                        onLightbox: { img in lightboxImage = img },
-                        onLoadFavicon: { name in clipboard.loadFaviconData(named: name) }
-                    )
+        let entries = filteredEntries
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 16) {
+                    ForEach(entries) { entry in
+                        switch entry {
+                        case .clipboard(let item):
+                            DeckCard(
+                                item: item,
+                                isSelected: selectedID == item.id,
+                                onSelect: { selectedID = item.id },
+                                onCopy: { onCopyItem(item) },
+                                onMakeNote: { onCreateNoteFromItem(item) },
+                                scale: deckScale,
+                                onDelete: { clipboard.delete(item.id) },
+                                onTogglePin: { clipboard.togglePin(item.id) },
+                                onToggleLock: { clipboard.toggleLock(item.id) },
+                                onQuickLook: { urls in quickLookURLs = urls },
+                                onLightbox: { img in lightboxImage = img },
+                                onLoadFavicon: { name in clipboard.loadFaviconData(named: name) }
+                            )
+                            .id(item.id)
+                        case .note(let note):
+                            NoteDeckCard(
+                                note: note,
+                                isSelected: selectedID == note.id,
+                                scale: deckScale,
+                                onSelect: { selectedID = note.id },
+                                onOpen: { onOpenNote(note.id) }
+                            )
+                            .id(note.id)
+                        }
+                    }
                 }
+                .padding(.horizontal, 2)
+                .padding(.bottom, 4)
             }
-            .padding(.horizontal, 2)
-            .padding(.bottom, 4)
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 300)
-        .onAppear {
-            if selectedID == nil {
-                selectedID = filteredItems.first?.id
+            .frame(maxWidth: .infinity)
+            .frame(height: 300)
+            .onAppear {
+                if selectedID == nil || !entries.contains(where: { $0.id == selectedID }) {
+                    selectedID = entries.first?.id
+                }
+                scrollSelectionIntoView(proxy: proxy)
+            }
+            .onChange(of: selectedID) { _ in
+                scrollSelectionIntoView(proxy: proxy)
+            }
+            .onChange(of: entries.map(\.id)) { ids in
+                if let selectedID, ids.contains(selectedID) {
+                    scrollSelectionIntoView(proxy: proxy)
+                } else {
+                    selectedID = ids.first
+                }
             }
         }
         .sheet(isPresented: Binding(
@@ -91,8 +149,45 @@ struct ClipboardView: View {
         }
     }
 
+    private func scrollSelectionIntoView(proxy: ScrollViewProxy) {
+        guard let selectedID else { return }
+        DispatchQueue.main.async {
+            withAnimation(.easeOut(duration: 0.12)) {
+                proxy.scrollTo(selectedID, anchor: .center)
+            }
+        }
+    }
+
     private var bottomBar: some View {
-        HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    SourceChip(
+                        title: localizedString("all_sources"),
+                        isSelected: selectedSource == .all,
+                        icon: nil
+                    ) { selectedSource = .all }
+
+                    SourceChip(
+                        title: localizedString("notes"),
+                        isSelected: selectedSource == .notes,
+                        icon: notesSourceIcon
+                    ) { selectedSource = .notes }
+
+                    ForEach(sourceChips, id: \.bundleID) { chip in
+                        SourceChip(
+                            title: chip.name,
+                            isSelected: selectedSource == .app(chip.bundleID),
+                            icon: chip.icon
+                        ) { selectedSource = .app(chip.bundleID) }
+                    }
+                }
+                .padding(.vertical, 2)
+                .fixedSize(horizontal: true, vertical: false)
+            }
+            .frame(maxWidth: .infinity)
+
+            HStack(spacing: 12) {
             Toggle(isOn: Binding(
                 get: { !clipboard.isPaused },
                 set: { clipboard.isPaused = !$0 }
@@ -116,27 +211,6 @@ struct ClipboardView: View {
                 Text(localizedString("filter_color")).tag(ClipboardManager.Query.KindFilter.color)
             }
             .frame(width: 160)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    SourceChip(
-                        title: localizedString("all_sources"),
-                        isSelected: selectedSource == nil,
-                        icon: nil
-                    ) { selectedSource = nil }
-
-                    ForEach(sourceChips, id: \.bundleID) { chip in
-                        SourceChip(
-                            title: chip.name,
-                            isSelected: selectedSource == chip.name,
-                            icon: chip.icon
-                        ) { selectedSource = chip.name }
-                    }
-                }
-                .padding(.vertical, 2)
-                .fixedSize(horizontal: true, vertical: false)
-            }
-            .frame(maxWidth: 420)
 
             Toggle(localizedString("pinned"), isOn: $pinnedOnly)
                 .toggleStyle(.checkbox)
@@ -163,6 +237,7 @@ struct ClipboardView: View {
             }
             .buttonStyle(.plain)
             .help(localizedString("clear"))
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -193,11 +268,14 @@ struct ClipboardView: View {
         return Array(byBundle.values).sorted { $0.name.lowercased() < $1.name.lowercased() }
     }
 
+    private var notesSourceIcon: NSImage? {
+        NSApp.applicationIconImage
+    }
+
     private var filteredItems: [ClipboardManager.Item] {
         let sourceBundleID: String?
-        if let selectedSource {
-            let firstMatch = clipboard.items.first(where: { $0.sourceAppName == selectedSource })
-            sourceBundleID = firstMatch?.sourceBundleID
+        if case let .app(bundleID) = selectedSource {
+            sourceBundleID = bundleID
         } else {
             sourceBundleID = nil
         }
@@ -211,6 +289,34 @@ struct ClipboardView: View {
             recentWindowMinutes: recentMinutes
         )
         return clipboard.filteredItems(q)
+    }
+
+    private var filteredEntries: [DeckEntry] {
+        var entries: [DeckEntry] = []
+        if selectedSource != .notes {
+            entries = filteredItems.map { .clipboard($0) }
+        }
+
+        let notes = notesProvider()
+        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        for note in notes {
+            if pinnedOnly && !note.isPinned { continue }
+            if recentOnly && note.updatedAt < Date().addingTimeInterval(-Double(recentMinutes) * 60.0) { continue }
+            if kind != .all && kind != .text { continue }
+
+            if selectedSource == .all || selectedSource == .notes {
+                // allowed
+            } else {
+                continue
+            }
+            if !needle.isEmpty {
+                let haystack = "\(note.title)\n\(note.content)".lowercased()
+                if !haystack.contains(needle) { continue }
+            }
+            entries.append(.note(note))
+        }
+        return entries
     }
 
 
@@ -229,12 +335,24 @@ struct ClipboardView: View {
     }
 
     private func handleKeyDown(_ event: NSEvent) -> Bool {
-        // Only handle when the clipboard drawer is frontmost.
-        guard NSApp.isActive else { return false }
+        // The SwiftUI root view can stay alive after the panel is hidden, so the
+        // local monitor must be scoped to the visible clipboard drawer only.
+        guard shouldHandleKeyboard() else { return false }
 
         // Esc closes.
         if event.keyCode == 53 { // kVK_Escape
             onDismiss()
+            return true
+        }
+
+        let entries = filteredEntries
+        guard !entries.isEmpty else { return false }
+        if selectedID == nil { selectedID = entries.first?.id }
+
+        // Left / Right arrows: move through the horizontal list.
+        if event.keyCode == 123 || event.keyCode == 124 { // left/right
+            let delta = (event.keyCode == 123) ? -1 : 1
+            moveSelection(delta: delta, entries: entries)
             return true
         }
 
@@ -246,25 +364,31 @@ struct ClipboardView: View {
             return true
         }
 
-        let items = filteredItems
-        guard !items.isEmpty else { return false }
-        if selectedID == nil { selectedID = items.first?.id }
+        if !searchFocused, let typed = searchText(from: event) {
+            query.append(typed)
+            searchFocused = true
+            return true
+        }
 
-        // Left / Right arrows: move through the horizontal list.
-        if event.keyCode == 123 || event.keyCode == 124 { // left/right
-            let delta = (event.keyCode == 123) ? -1 : 1
-            moveSelection(delta: delta, items: items)
+        if event.modifierFlags.contains(.command),
+           let quickIndex = quickSlotIndex(for: event.keyCode),
+           quickIndex < min(9, entries.count)
+        {
+            let entry = entries[quickIndex]
+            selectedID = entry.id
+            performPrimaryAction(for: entry)
             return true
         }
 
         // Enter / Return: copy. Cmd+Enter: convert to note.
         if event.keyCode == 36 || event.keyCode == 76 { // return / enter
-            guard let id = selectedID, let item = items.first(where: { $0.id == id }) else { return true }
+            guard let id = selectedID, let entry = entries.first(where: { $0.id == id }) else { return true }
             if event.modifierFlags.contains(.command) {
-                onCreateNoteFromItem(item)
+                if case .clipboard(let item) = entry {
+                    onCreateNoteFromItem(item)
+                }
             } else {
-                onCopyItem(item)
-                onPaste()
+                performPrimaryAction(for: entry)
             }
             return true
         }
@@ -272,13 +396,125 @@ struct ClipboardView: View {
         return false
     }
 
-    private func moveSelection(delta: Int, items: [ClipboardManager.Item]) {
-        guard let id = selectedID, let idx = items.firstIndex(where: { $0.id == id }) else {
-            selectedID = items.first?.id
+    private func searchText(from event: NSEvent) -> String? {
+        // Ignore navigation/function keys.
+        switch event.keyCode {
+        case 123, 124, 125, 126, 36, 76, 48, 53: // arrows, return, tab, escape
+            return nil
+        default:
+            break
+        }
+        let flags = event.modifierFlags.intersection([.command, .control, .option])
+        guard flags.isEmpty else { return nil }
+        guard let chars = event.characters, !chars.isEmpty else { return nil }
+        guard chars.rangeOfCharacter(from: .newlines) == nil else { return nil }
+        guard chars.rangeOfCharacter(from: .controlCharacters) == nil else { return nil }
+        return chars
+    }
+
+    private func moveSelection(delta: Int, entries: [DeckEntry]) {
+        guard let id = selectedID, let idx = entries.firstIndex(where: { $0.id == id }) else {
+            selectedID = entries.first?.id
             return
         }
-        let next = max(0, min(items.count - 1, idx + delta))
-        selectedID = items[next].id
+        let next = max(0, min(entries.count - 1, idx + delta))
+        selectedID = entries[next].id
+    }
+
+    private func quickSlotIndex(for keyCode: UInt16) -> Int? {
+        switch keyCode {
+        case 18: return 0 // 1
+        case 19: return 1 // 2
+        case 20: return 2 // 3
+        case 21: return 3 // 4
+        case 23: return 4 // 5
+        case 22: return 5 // 6
+        case 26: return 6 // 7
+        case 28: return 7 // 8
+        case 25: return 8 // 9
+        default: return nil
+        }
+    }
+
+    private func performPrimaryAction(for entry: DeckEntry) {
+        switch entry {
+        case .clipboard(let item):
+            onCopyItem(item)
+            onPaste()
+        case .note(let note):
+            onOpenNote(note.id)
+        }
+    }
+}
+
+private struct NoteDeckCard: View {
+    let note: ClipboardView.NoteDeckItem
+    let isSelected: Bool
+    let scale: CGFloat
+    let onSelect: () -> Void
+    let onOpen: () -> Void
+
+    private let cardWidth: CGFloat = 300
+    private let cardHeight: CGFloat = 250
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "note.text")
+                    .font(.system(size: 14 * scale, weight: .semibold))
+                    .foregroundStyle(note.theme.autoTextColorColor.opacity(0.9))
+                Text(localizedString("notes"))
+                    .font(.system(size: 13 * scale, weight: .semibold))
+                    .foregroundStyle(note.theme.autoTextColorColor.opacity(0.9))
+                if note.isPinned {
+                    Image(systemName: "pin.fill")
+                        .font(.system(size: 12 * scale, weight: .semibold))
+                        .foregroundStyle(note.theme.autoTextColorColor.opacity(0.75))
+                }
+                Spacer()
+            }
+
+            Text(note.title.isEmpty ? localizedString("empty_note") : note.title)
+                .font(.system(size: 15 * scale, weight: .semibold))
+                .foregroundStyle(note.theme.autoTextColorColor)
+                .lineLimit(2)
+
+            Text(note.content)
+                .font(.system(size: 13 * scale))
+                .foregroundStyle(note.theme.autoTextColorColor.opacity(0.9))
+                .lineLimit(8)
+
+            Spacer(minLength: 0)
+
+            HStack {
+                Text(localizedString("note"))
+                    .font(.system(size: 11 * scale))
+                    .foregroundStyle(note.theme.autoTextColorColor.opacity(0.75))
+                Spacer()
+                Button(action: onOpen) {
+                    Image(systemName: "arrow.up.forward.app")
+                        .font(.system(size: 14 * scale, weight: .semibold))
+                        .frame(width: 24, height: 24)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(note.theme.autoTextColorColor.opacity(0.9))
+                .help(localizedString("open"))
+            }
+        }
+        .padding(14)
+        .frame(width: cardWidth, height: cardHeight)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(note.theme.backgroundColor)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(isSelected ? Color(red: 0/255, green: 122/255, blue: 255/255) : note.theme.autoTextColorColor.opacity(0.2), lineWidth: isSelected ? 3 : 1)
+        )
+        .shadow(color: Color.black.opacity(isSelected ? 0.12 : 0.05), radius: isSelected ? 18 : 12, x: 0, y: 8)
+        .contentShape(RoundedRectangle(cornerRadius: 20))
+        .onTapGesture { onSelect() }
+        .onTapGesture(count: 2) { onOpen() }
     }
 }
 
@@ -353,9 +589,6 @@ private struct DeckCard: View {
             HStack(spacing: 8) {
                 AppIconView(bundleID: item.sourceBundleID)
                     .frame(width: 22 * scale, height: 22 * scale)
-                Text("⌘1")
-                    .font(.system(size: 14 * scale, weight: .medium))
-                    .foregroundStyle(Color(red: 0/255, green: 122/255, blue: 255/255))
                 if item.isPinned {
                     Image(systemName: "pin.fill")
                         .font(.system(size: 12 * scale, weight: .semibold))

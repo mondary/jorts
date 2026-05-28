@@ -12,13 +12,66 @@ enum InlineCalculator {
     }
 
     private static func evaluateLine(_ line: String, ctx: inout EvalContext) -> Value? {
-        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalized = normalizeCurrencyShorthand(in: line)
+        let trimmed = normalized.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
 
         var parser = LineParser(trimmed, ctx: ctx)
         let value = parser.parseLine()
         ctx = parser.ctx
         return value
+    }
+
+    private static func normalizeCurrencyShorthand(in line: String) -> String {
+        var s = line
+
+        s = replacing(s, pattern: #"([0-9]+(?:[.,][0-9]+)?)\s*€"#, with: "$1 eur")
+        s = replacing(s, pattern: #"€\s*([0-9]+(?:[.,][0-9]+)?)"#, with: "$1 eur")
+        s = replacing(s, pattern: #"([0-9]+(?:[.,][0-9]+)?)\s*\$"#, with: "$1 usd")
+        s = replacing(s, pattern: #"\$\s*([0-9]+(?:[.,][0-9]+)?)"#, with: "$1 usd")
+        s = replacing(s, pattern: #"([0-9]+(?:[.,][0-9]+)?)\s*£"#, with: "$1 gbp")
+        s = replacing(s, pattern: #"£\s*([0-9]+(?:[.,][0-9]+)?)"#, with: "$1 gbp")
+
+        let lower = s.lowercased()
+        let currency: String?
+        if lower.contains(" eur") { currency = "eur" }
+        else if lower.contains(" usd") { currency = "usd" }
+        else if lower.contains(" gbp") { currency = "gbp" }
+        else { currency = nil }
+
+        if let currency {
+            s = replacingCents(in: s, currency: currency)
+        }
+
+        return s
+    }
+
+    private static func replacing(_ input: String, pattern: String, with template: String) -> String {
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return input }
+        let range = NSRange(input.startIndex..., in: input)
+        return regex.stringByReplacingMatches(in: input, options: [], range: range, withTemplate: template)
+    }
+
+    private static func replacingCents(in input: String, currency: String) -> String {
+        guard let regex = try? NSRegularExpression(pattern: #"([0-9]+(?:[.,][0-9]+)?)\s*(?:c|¢)\b"#, options: [.caseInsensitive]) else {
+            return input
+        }
+        let ns = input as NSString
+        let matches = regex.matches(in: input, options: [], range: NSRange(location: 0, length: ns.length))
+        if matches.isEmpty { return input }
+
+        var out = input
+        for m in matches.reversed() {
+            guard m.numberOfRanges >= 2 else { continue }
+            let amountRaw = ns.substring(with: m.range(at: 1)).replacingOccurrences(of: ",", with: ".")
+            guard let amount = Double(amountRaw) else { continue }
+            let major = amount / 100.0
+            let replacement = "\(major) \(currency)"
+            if let r = Range(m.range, in: out) {
+                out.replaceSubrange(r, with: replacement)
+            }
+        }
+        return out
     }
 
     private static func format(_ value: Value) -> String {
@@ -53,13 +106,23 @@ private struct Value: Equatable {
 }
 
 private enum UnitKind {
-    case length, mass, duration, temperature, volume
+    case length, mass, duration, temperature, volume, currency
 }
 
 private struct UnitSpec: Equatable {
     let kind: UnitKind
     let unit: Dimension
     let display: String
+}
+
+private final class UnitCurrency: Dimension, @unchecked Sendable {
+    override class func baseUnit() -> Self {
+        return eur as! Self
+    }
+
+    static let eur = UnitCurrency(symbol: "EUR", converter: UnitConverterLinear(coefficient: 1))
+    static let usd = UnitCurrency(symbol: "USD", converter: UnitConverterLinear(coefficient: 1))
+    static let gbp = UnitCurrency(symbol: "GBP", converter: UnitConverterLinear(coefficient: 1))
 }
 
 private enum UnitRegistry {
@@ -70,6 +133,7 @@ private enum UnitRegistry {
         if let u = duration[s] { return u }
         if let u = temperature[s] { return u }
         if let u = volume[s] { return u }
+        if let u = currency[s] { return u }
         return nil
     }
 
@@ -83,20 +147,50 @@ private enum UnitRegistry {
 
     private static let length: [String: UnitSpec] = [
         "mm": .init(kind: .length, unit: UnitLength.millimeters, display: "mm"),
+        "millimeter": .init(kind: .length, unit: UnitLength.millimeters, display: "mm"),
+        "millimeters": .init(kind: .length, unit: UnitLength.millimeters, display: "mm"),
+        "millimetre": .init(kind: .length, unit: UnitLength.millimeters, display: "mm"),
+        "millimetres": .init(kind: .length, unit: UnitLength.millimeters, display: "mm"),
         "cm": .init(kind: .length, unit: UnitLength.centimeters, display: "cm"),
+        "centimeter": .init(kind: .length, unit: UnitLength.centimeters, display: "cm"),
+        "centimeters": .init(kind: .length, unit: UnitLength.centimeters, display: "cm"),
+        "centimetre": .init(kind: .length, unit: UnitLength.centimeters, display: "cm"),
+        "centimetres": .init(kind: .length, unit: UnitLength.centimeters, display: "cm"),
         "m": .init(kind: .length, unit: UnitLength.meters, display: "m"),
+        "meter": .init(kind: .length, unit: UnitLength.meters, display: "m"),
+        "meters": .init(kind: .length, unit: UnitLength.meters, display: "m"),
+        "metre": .init(kind: .length, unit: UnitLength.meters, display: "m"),
+        "metres": .init(kind: .length, unit: UnitLength.meters, display: "m"),
         "km": .init(kind: .length, unit: UnitLength.kilometers, display: "km"),
+        "kilometer": .init(kind: .length, unit: UnitLength.kilometers, display: "km"),
+        "kilometers": .init(kind: .length, unit: UnitLength.kilometers, display: "km"),
+        "kilometre": .init(kind: .length, unit: UnitLength.kilometers, display: "km"),
+        "kilometres": .init(kind: .length, unit: UnitLength.kilometers, display: "km"),
         "in": .init(kind: .length, unit: UnitLength.inches, display: "in"),
+        "inch": .init(kind: .length, unit: UnitLength.inches, display: "in"),
+        "inches": .init(kind: .length, unit: UnitLength.inches, display: "in"),
         "ft": .init(kind: .length, unit: UnitLength.feet, display: "ft"),
+        "foot": .init(kind: .length, unit: UnitLength.feet, display: "ft"),
+        "feet": .init(kind: .length, unit: UnitLength.feet, display: "ft"),
         "yd": .init(kind: .length, unit: UnitLength.yards, display: "yd"),
+        "yard": .init(kind: .length, unit: UnitLength.yards, display: "yd"),
+        "yards": .init(kind: .length, unit: UnitLength.yards, display: "yd"),
         "mi": .init(kind: .length, unit: UnitLength.miles, display: "mi")
     ]
 
     private static let mass: [String: UnitSpec] = [
         "mg": .init(kind: .mass, unit: UnitMass.milligrams, display: "mg"),
+        "milligram": .init(kind: .mass, unit: UnitMass.milligrams, display: "mg"),
+        "milligrams": .init(kind: .mass, unit: UnitMass.milligrams, display: "mg"),
         "g": .init(kind: .mass, unit: UnitMass.grams, display: "g"),
+        "gram": .init(kind: .mass, unit: UnitMass.grams, display: "g"),
+        "grams": .init(kind: .mass, unit: UnitMass.grams, display: "g"),
         "kg": .init(kind: .mass, unit: UnitMass.kilograms, display: "kg"),
+        "kilogram": .init(kind: .mass, unit: UnitMass.kilograms, display: "kg"),
+        "kilograms": .init(kind: .mass, unit: UnitMass.kilograms, display: "kg"),
         "oz": .init(kind: .mass, unit: UnitMass.ounces, display: "oz"),
+        "ounce": .init(kind: .mass, unit: UnitMass.ounces, display: "oz"),
+        "ounces": .init(kind: .mass, unit: UnitMass.ounces, display: "oz"),
         "lb": .init(kind: .mass, unit: UnitMass.pounds, display: "lb")
     ]
 
@@ -104,9 +198,19 @@ private enum UnitRegistry {
         "ms": .init(kind: .duration, unit: UnitDuration.milliseconds, display: "ms"),
         "s": .init(kind: .duration, unit: UnitDuration.seconds, display: "s"),
         "sec": .init(kind: .duration, unit: UnitDuration.seconds, display: "s"),
+        "second": .init(kind: .duration, unit: UnitDuration.seconds, display: "s"),
+        "seconds": .init(kind: .duration, unit: UnitDuration.seconds, display: "s"),
+        "seconde": .init(kind: .duration, unit: UnitDuration.seconds, display: "s"),
+        "secondes": .init(kind: .duration, unit: UnitDuration.seconds, display: "s"),
         "min": .init(kind: .duration, unit: UnitDuration.minutes, display: "min"),
+        "minute": .init(kind: .duration, unit: UnitDuration.minutes, display: "min"),
+        "minutes": .init(kind: .duration, unit: UnitDuration.minutes, display: "min"),
         "h": .init(kind: .duration, unit: UnitDuration.hours, display: "h"),
-        "hr": .init(kind: .duration, unit: UnitDuration.hours, display: "h")
+        "hr": .init(kind: .duration, unit: UnitDuration.hours, display: "h"),
+        "hour": .init(kind: .duration, unit: UnitDuration.hours, display: "h"),
+        "hours": .init(kind: .duration, unit: UnitDuration.hours, display: "h"),
+        "heure": .init(kind: .duration, unit: UnitDuration.hours, display: "h"),
+        "heures": .init(kind: .duration, unit: UnitDuration.hours, display: "h")
     ]
 
     private static let temperature: [String: UnitSpec] = [
@@ -119,11 +223,57 @@ private enum UnitRegistry {
 
     private static let volume: [String: UnitSpec] = [
         "ml": .init(kind: .volume, unit: UnitVolume.milliliters, display: "mL"),
+        "millilitre": .init(kind: .volume, unit: UnitVolume.milliliters, display: "mL"),
+        "millilitres": .init(kind: .volume, unit: UnitVolume.milliliters, display: "mL"),
         "milliliter": .init(kind: .volume, unit: UnitVolume.milliliters, display: "mL"),
         "milliliters": .init(kind: .volume, unit: UnitVolume.milliliters, display: "mL"),
+        "cl": .init(kind: .volume, unit: UnitVolume.centiliters, display: "cL"),
+        "centilitre": .init(kind: .volume, unit: UnitVolume.centiliters, display: "cL"),
+        "centilitres": .init(kind: .volume, unit: UnitVolume.centiliters, display: "cL"),
+        "centiliter": .init(kind: .volume, unit: UnitVolume.centiliters, display: "cL"),
+        "centiliters": .init(kind: .volume, unit: UnitVolume.centiliters, display: "cL"),
+        "dl": .init(kind: .volume, unit: UnitVolume.deciliters, display: "dL"),
+        "decilitre": .init(kind: .volume, unit: UnitVolume.deciliters, display: "dL"),
+        "decilitres": .init(kind: .volume, unit: UnitVolume.deciliters, display: "dL"),
+        "deciliter": .init(kind: .volume, unit: UnitVolume.deciliters, display: "dL"),
+        "deciliters": .init(kind: .volume, unit: UnitVolume.deciliters, display: "dL"),
         "l": .init(kind: .volume, unit: UnitVolume.liters, display: "L"),
+        "litre": .init(kind: .volume, unit: UnitVolume.liters, display: "L"),
+        "litres": .init(kind: .volume, unit: UnitVolume.liters, display: "L"),
         "liter": .init(kind: .volume, unit: UnitVolume.liters, display: "L"),
-        "liters": .init(kind: .volume, unit: UnitVolume.liters, display: "L")
+        "liters": .init(kind: .volume, unit: UnitVolume.liters, display: "L"),
+        "tsp": .init(kind: .volume, unit: UnitVolume.teaspoons, display: "tsp"),
+        "teaspoon": .init(kind: .volume, unit: UnitVolume.teaspoons, display: "tsp"),
+        "teaspoons": .init(kind: .volume, unit: UnitVolume.teaspoons, display: "tsp"),
+        "tbsp": .init(kind: .volume, unit: UnitVolume.tablespoons, display: "tbsp"),
+        "tablespoon": .init(kind: .volume, unit: UnitVolume.tablespoons, display: "tbsp"),
+        "tablespoons": .init(kind: .volume, unit: UnitVolume.tablespoons, display: "tbsp"),
+        "floz": .init(kind: .volume, unit: UnitVolume.fluidOunces, display: "fl oz"),
+        "fl_oz": .init(kind: .volume, unit: UnitVolume.fluidOunces, display: "fl oz"),
+        "fl-oz": .init(kind: .volume, unit: UnitVolume.fluidOunces, display: "fl oz"),
+        "cup": .init(kind: .volume, unit: UnitVolume.cups, display: "cup"),
+        "cups": .init(kind: .volume, unit: UnitVolume.cups, display: "cups"),
+        "pt": .init(kind: .volume, unit: UnitVolume.pints, display: "pt"),
+        "pint": .init(kind: .volume, unit: UnitVolume.pints, display: "pt"),
+        "pints": .init(kind: .volume, unit: UnitVolume.pints, display: "pt"),
+        "qt": .init(kind: .volume, unit: UnitVolume.quarts, display: "qt"),
+        "quart": .init(kind: .volume, unit: UnitVolume.quarts, display: "qt"),
+        "quarts": .init(kind: .volume, unit: UnitVolume.quarts, display: "qt"),
+        "gal": .init(kind: .volume, unit: UnitVolume.gallons, display: "gal"),
+        "gallon": .init(kind: .volume, unit: UnitVolume.gallons, display: "gal"),
+        "gallons": .init(kind: .volume, unit: UnitVolume.gallons, display: "gal")
+    ]
+
+    private static let currency: [String: UnitSpec] = [
+        "eur": .init(kind: .currency, unit: UnitCurrency.eur, display: "EUR"),
+        "euro": .init(kind: .currency, unit: UnitCurrency.eur, display: "EUR"),
+        "euros": .init(kind: .currency, unit: UnitCurrency.eur, display: "EUR"),
+        "usd": .init(kind: .currency, unit: UnitCurrency.usd, display: "USD"),
+        "dollar": .init(kind: .currency, unit: UnitCurrency.usd, display: "USD"),
+        "dollars": .init(kind: .currency, unit: UnitCurrency.usd, display: "USD"),
+        "gbp": .init(kind: .currency, unit: UnitCurrency.gbp, display: "GBP"),
+        "pound": .init(kind: .currency, unit: UnitCurrency.gbp, display: "GBP"),
+        "pounds": .init(kind: .currency, unit: UnitCurrency.gbp, display: "GBP")
     ]
 }
 

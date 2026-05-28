@@ -66,7 +66,7 @@ struct NoteTextView: NSViewRepresentable {
         textView.isEditable = isEditable
         host.setInlineCalculationsVisible(showsInlineCalculations)
 
-        if textView.string != text && !context.coordinator.isApplyingChange {
+        if context.coordinator.sanitizedPlainText(from: textView) != text && !context.coordinator.isApplyingChange {
             let selectedRange = textView.selectedRange()
             textView.string = text
             textView.setSelectedRange(selectedRange.clamped(toLength: (text as NSString).length))
@@ -358,7 +358,7 @@ struct NoteTextView: NSViewRepresentable {
             isApplyingChange = false
         }
 
-        private func sanitizedPlainText(from textView: NSTextView) -> String {
+        func sanitizedPlainText(from textView: NSTextView) -> String {
             // NSTextAttachment appears as U+FFFC in string. We also remove the leading space we insert before icons.
             // This keeps persisted notes clean and stable.
             let raw = textView.string

@@ -185,6 +185,10 @@ final class ClipboardManager: ObservableObject {
             pasteboard.clearContents()
             pasteboard.setString(hex, forType: .string)
         }
+        // This write is initiated by the clipboard drawer itself. Treat the new
+        // pasteboard change count as already observed so polling does not create
+        // a duplicate tile with the same content.
+        lastChangeCount = pasteboard.changeCount
     }
 
     private func poll() {

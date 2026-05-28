@@ -266,6 +266,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func handleGlobalHotKey(_ event: EventRef?) {
         guard let event else { return }
+        let frontmostAppBeforeHandling = NSWorkspace.shared.frontmostApplication
+        let keyWindowBeforeHandling = NSApp.keyWindow
+        let firstResponderBeforeHandling = keyWindowBeforeHandling?.firstResponder
         var hotKeyID = EventHotKeyID()
         let status = GetEventParameter(
             event,
@@ -287,7 +290,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case 2:
                 self.manager.createNote()
             case 3:
-                self.showClipboard(nil)
+                self.showClipboard(
+                    targetApp: frontmostAppBeforeHandling,
+                    targetWindow: keyWindowBeforeHandling,
+                    targetResponder: firstResponderBeforeHandling
+                )
             default:
                 break
             }
@@ -398,10 +405,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func showClipboard(_ sender: Any?) {
+        showClipboard(
+            targetApp: NSWorkspace.shared.frontmostApplication,
+            targetWindow: NSApp.keyWindow,
+            targetResponder: NSApp.keyWindow?.firstResponder
+        )
+    }
+
+    private func showClipboard(targetApp: NSRunningApplication?, targetWindow: NSWindow?, targetResponder: NSResponder?) {
         if clipboardWindowController == nil {
             clipboardWindowController = ClipboardWindowController(manager: manager, settings: settings, clipboard: clipboard)
         }
-        clipboardWindowController?.toggle()
+        clipboardWindowController?.toggle(
+            targetApp: targetApp,
+            targetWindow: targetWindow,
+            targetResponder: targetResponder
+        )
     }
 
     private func observeSettings() {
@@ -601,16 +620,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func performExternalAction(_ action: ExternalAction) {
-        NSApp.activate(ignoringOtherApps: true)
         switch action {
         case .new:
+            NSApp.activate(ignoringOtherApps: true)
             manager.createNote()
         case .last:
+            NSApp.activate(ignoringOtherApps: true)
             manager.focusLastFocusedNote()
         case .list:
+            NSApp.activate(ignoringOtherApps: true)
             showNotesList(nil)
         case .clipboard:
-            showClipboard(nil)
+            showClipboard(
+                targetApp: NSWorkspace.shared.frontmostApplication,
+                targetWindow: NSApp.keyWindow,
+                targetResponder: NSApp.keyWindow?.firstResponder
+            )
         }
     }
 
