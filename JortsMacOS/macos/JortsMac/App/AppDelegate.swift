@@ -412,6 +412,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
 
+    @objc private func showClipboardWindow(_ sender: Any?) {
+        if clipboardWindowController == nil {
+            clipboardWindowController = ClipboardWindowController(manager: manager, settings: settings, clipboard: clipboard)
+        }
+        clipboardWindowController?.showStandardClipboardWindow()
+    }
+
     private func showClipboard(targetApp: NSRunningApplication?, targetWindow: NSWindow?, targetResponder: NSResponder?) {
         if clipboardWindowController == nil {
             clipboardWindowController = ClipboardWindowController(manager: manager, settings: settings, clipboard: clipboard)
@@ -518,6 +525,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         windowMenu.addItem(menuItem(localizedString("show_all_notes"), action: #selector(showAllNotes(_:)), shortcut: .showAllNotes))
         windowMenu.addItem(menuItem(localizedString("show_notes_list"), action: #selector(showNotesList(_:)), shortcut: .showNotesList))
         windowMenu.addItem(menuItem(localizedString("clipboard"), action: #selector(showClipboard(_:)), key: "v", modifiers: [.command, .shift]))
+        windowMenu.addItem(menuItem(localizedString("show_clipboard_window"), action: #selector(showClipboardWindow(_:)), key: "", modifiers: []))
         windowMenu.addItem(.separator())
         windowMenu.addItem(menuItem(localizedString("command_palette"), action: #selector(showCommandPalette(_:)), key: "k", modifiers: [.command]))
         windowMenu.addItem(.separator())
@@ -544,6 +552,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onRestart: { [weak self] in self?.restartApp(nil) },
             onShowList: { [weak self] in self?.showNotesList(nil) },
             onShowClipboard: { [weak self] in self?.showClipboard(nil) },
+            onShowClipboardWindow: { [weak self] in self?.showClipboardWindow(nil) },
             onQuit: { NSApp.terminate(nil) },
             settings: settings
         )

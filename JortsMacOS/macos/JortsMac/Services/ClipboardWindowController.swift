@@ -147,13 +147,15 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         }
     }
 
-    private func toggleStandardClipboardWindow() {
-        if let standardWindow = standardWindowController?.window, standardWindow.isVisible {
-            standardWindow.orderOut(nil)
+    func showStandardClipboardWindow() {
+        if let standardWindow = standardWindowController?.window {
+            standardWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
             return
         }
 
         let host = NSHostingController(rootView: makeStandardClipboardWindowView())
+        let autosaveName = "PKclipboardWindowFrame"
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1280, height: 820),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -164,10 +166,23 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         window.contentViewController = host
         window.isReleasedWhenClosed = false
         window.minSize = NSSize(width: 1120, height: 720)
-        window.center()
+        let restoredFrame = window.setFrameUsingName(autosaveName)
+        _ = window.setFrameAutosaveName(autosaveName)
+        if !restoredFrame {
+            window.center()
+        }
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         standardWindowController = NSWindowController(window: window)
+    }
+
+    private func toggleStandardClipboardWindow() {
+        if let standardWindow = standardWindowController?.window, standardWindow.isVisible {
+            standardWindow.orderOut(nil)
+            return
+        }
+
+        showStandardClipboardWindow()
     }
 
     private func makeStandardClipboardWindowView() -> ClipboardStandardWindowView {

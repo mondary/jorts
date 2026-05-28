@@ -13,6 +13,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let onRestart: () -> Void
     private let onShowList: () -> Void
     private let onShowClipboard: () -> Void
+    private let onShowClipboardWindow: () -> Void
     private let onQuit: () -> Void
     private let settings: AppSettings
 
@@ -26,6 +27,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         onRestart: @escaping () -> Void,
         onShowList: @escaping () -> Void,
         onShowClipboard: @escaping () -> Void,
+        onShowClipboardWindow: @escaping () -> Void,
         onQuit: @escaping () -> Void,
         settings: AppSettings
     ) {
@@ -39,6 +41,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         self.onRestart = onRestart
         self.onShowList = onShowList
         self.onShowClipboard = onShowClipboard
+        self.onShowClipboardWindow = onShowClipboardWindow
         self.onQuit = onQuit
         self.settings = settings
 
@@ -104,6 +107,10 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         onShowClipboard()
     }
 
+    @objc private func showClipboardWindow(_ sender: NSMenuItem) {
+        onShowClipboardWindow()
+    }
+
     private func rebuildMenu() {
         menu.removeAllItems()
 
@@ -132,6 +139,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         menu.addItem(actionItem(localizedString("show_all_notes"), action: #selector(showAllNotes(_:)), shortcut: .showAllNotes))
         menu.addItem(actionItem(localizedString("show_list"), action: #selector(showList(_:)), shortcut: .showNotesList))
         menu.addItem(actionItem(localizedString("show_clipboard_drawer"), action: #selector(showClipboard(_:)), keyEquivalent: "v", modifiers: [.command, .shift], systemImage: "clipboard"))
+        menu.addItem(actionItem(localizedString("show_clipboard_window"), action: #selector(showClipboardWindow(_:)), keyEquivalent: "", systemImage: "macwindow"))
         menu.addItem(.separator())
         menu.addItem(actionItem(localizedString("settings"), action: #selector(showSettings(_:)), shortcut: .preferences, systemImage: "gearshape"))
         menu.addItem(actionItem(localizedString("about_jortsmacos"), action: #selector(showAbout(_:)), keyEquivalent: ""))

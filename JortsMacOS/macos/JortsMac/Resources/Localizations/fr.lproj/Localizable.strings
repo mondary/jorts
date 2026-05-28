@@ -162,6 +162,7 @@
 "show_notes_list" = "Afficher la liste des notes";
 "clipboard" = "Presse-papiers";
 "show_clipboard_drawer" = "Afficher le tiroir presse-papiers";
+"show_clipboard_window" = "Afficher la fenêtre clipboard";
 "clipboard_capture" = "Capture";
 "clipboard_open_window" = "Ouvrir la fenêtre clipboard";
 "clipboard_clear_confirm_title" = "Vider le presse-papiers ?";

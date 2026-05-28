@@ -162,6 +162,7 @@
 "show_notes_list" = "Show Notes List";
 "clipboard" = "Clipboard";
 "show_clipboard_drawer" = "Show Clipboard Drawer";
+"show_clipboard_window" = "Show Clipboard Window";
 "clipboard_capture" = "Capture";
 "clipboard_open_window" = "Open clipboard window";
 "clipboard_clear_confirm_title" = "Clear clipboard history?";

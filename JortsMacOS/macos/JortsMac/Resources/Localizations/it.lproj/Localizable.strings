@@ -161,6 +161,7 @@
 "show_notes_list" = "Mostra lista note";
 "clipboard" = "Appunti";
 "show_clipboard_drawer" = "Mostra pannello appunti";
+"show_clipboard_window" = "Mostra finestra appunti";
 "clipboard_capture" = "Acquisizione";
 "all_sources" = "Tutte le sorgenti";
 "unknown_source" = "Sconosciuto";
