@@ -19,6 +19,10 @@ Status: in progress.
 - [x] Purge logic (max items + max age days), respecting pinned/locked
 - [x] Enter pastes into previous app (Cmd+V injection best-effort)
 - [x] One-line footer/actions/tags layout in drawer cards
+- [x] Esc behavior in 2 steps:
+  - first Esc resets filters/category/selection to default latest item
+  - second Esc closes drawer
+- [x] Menu bar entry to open clipboard drawer (`Afficher le tiroir presse-papiers`)
 
 ## Remaining Features
 
@@ -48,11 +52,12 @@ Status: in progress.
      - large swatch
      - Hex/RGB/HSL/OKLCH conversions
      - legacy text clipboard items that are hex values render as color cards
-   - [ ] URL preview:
+   - [x] URL preview:
      - title
      - favicon
-     - optional snippet
-     - caching + async fetch
+     - snippet/description
+     - preview image thumbnail
+     - caching + async refresh
    - [ ] Text preview:
      - long text scroll
      - better truncation rules

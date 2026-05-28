@@ -543,6 +543,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onShowAbout: { [weak self] in self?.showAbout(nil) },
             onRestart: { [weak self] in self?.restartApp(nil) },
             onShowList: { [weak self] in self?.showNotesList(nil) },
+            onShowClipboard: { [weak self] in self?.showClipboard(nil) },
             onQuit: { NSApp.terminate(nil) },
             settings: settings
         )
@@ -587,14 +588,49 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // - jortsmacos://list
         guard url.scheme?.lowercased() == "jortsmacos" else { return }
 
-        let raw = (url.host?.isEmpty == false ? url.host! : url.path)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-            .lowercased()
-
-        guard let action = ExternalAction(rawValue: raw) else { return }
+        let parsedAction = externalAction(from: url)
+        guard let action = parsedAction else { return }
         DispatchQueue.main.async { [weak self] in
             self?.performExternalAction(action)
         }
+    }
+
+    private func externalAction(from url: URL) -> ExternalAction? {
+        let host = (url.host ?? "").trimmingCharacters(in: CharacterSet(charactersIn: "/")).lowercased()
+        let path = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/")).lowercased()
+        let pathComponents = path.split(separator: "/").map(String.init)
+
+        // Support x-callback style: jortsmacos://x-callback-url/new
+        var candidates: [String] = []
+        candidates.append(host)
+        candidates.append(path)
+        candidates.append(contentsOf: pathComponents)
+
+        if let components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+            for item in components.queryItems ?? [] {
+                let key = item.name.lowercased()
+                guard key == "action" || key == "cmd" else { continue }
+                if let value = item.value?.lowercased() {
+                    candidates.append(value)
+                }
+            }
+        }
+
+        for token in candidates {
+            switch token {
+            case "new", "newnote", "new_note", "new-note", "create", "create-note", "create_note":
+                return .new
+            case "last", "lastnote", "last_note", "last-note", "reopen-last", "reopen_last":
+                return .last
+            case "list", "noteslist", "notes_list", "notes-list", "show-list", "show_list":
+                return .list
+            case "clipboard", "clip", "pasteboard":
+                return .clipboard
+            default:
+                continue
+            }
+        }
+        return nil
     }
 
     private func handleExternalUserActivity(_ activity: NSUserActivity) -> Bool {

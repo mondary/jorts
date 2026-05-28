@@ -11,13 +11,16 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
     private var lastFrontmostApp: NSRunningApplication?
     private weak var lastKeyWindow: NSWindow?
     private weak var lastFirstResponder: NSResponder?
+    private weak var anchorWindow: NSWindow?
+    private var keyMonitor: Any?
+    private var isClipboardViewAtDefaultContext = true
 
     init(manager: NoteManager, settings: AppSettings, clipboard: ClipboardManager) {
         self.manager = manager
         self.settings = settings
         self.clipboard = clipboard
 
-        let panel = NSPanel(
+        let panel = ClipboardDrawerPanel(
             contentRect: NSRect(x: 0, y: 0, width: 980, height: 380),
             styleMask: [.nonactivatingPanel, .titled, .closable, .fullSizeContentView],
             backing: .buffered,
@@ -44,9 +47,18 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
 
         super.init(window: panel)
         panel.delegate = self
+        panel.onEscapePressed = { [weak self] in
+            self?.handleEscapeRequest()
+        }
+        installKeyMonitor()
 
         // Hosting controller must be initialized after super.init so we can safely capture self.
-        self.hostingController = NSHostingController(rootView: ClipboardView(
+        self.hostingController = NSHostingController(rootView: makeClipboardView())
+        panel.contentViewController = self.hostingController
+    }
+
+    private func makeClipboardView() -> ClipboardView {
+        ClipboardView(
             clipboard: clipboard,
             notesProvider: { [weak manager] in
                 (manager?.documents ?? []).map { doc in
@@ -72,12 +84,49 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
             shouldHandleKeyboard: { [weak self] in
                 guard let window = self?.window else { return false }
                 return window.isVisible && NSApp.isActive
+            },
+            onContextStateChanged: { [weak self] isDefaultContext in
+                self?.isClipboardViewAtDefaultContext = isDefaultContext
             }
-        ))
-        panel.contentViewController = self.hostingController
+        )
     }
 
     required init?(coder: NSCoder) { nil }
+
+    deinit {
+        if let keyMonitor {
+            NSEvent.removeMonitor(keyMonitor)
+        }
+    }
+
+    private func installKeyMonitor() {
+        guard keyMonitor == nil else { return }
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
+            guard let self,
+                  let window = self.window,
+                  window.isVisible,
+                  event.keyCode == 53
+            else {
+                return event
+            }
+            self.handleEscapeRequest()
+            return nil
+        }
+    }
+
+    private func handleEscapeRequest() {
+        guard window?.isVisible == true else { return }
+        if isClipboardViewAtDefaultContext {
+            dismissAnimated()
+        } else {
+            clipboard.markDrawerPresented()
+        }
+    }
+
+    private func rebuildContentView() {
+        hostingController = NSHostingController(rootView: makeClipboardView())
+        window?.contentViewController = hostingController
+    }
 
     func toggle(targetApp: NSRunningApplication? = nil, targetWindow: NSWindow? = nil, targetResponder: NSResponder? = nil) {
         guard let window else { return }
@@ -87,7 +136,11 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
             // Remember the app/window that had the insertion cursor before the
             // drawer opened. This must happen before Jorts activates the panel.
             lastFrontmostApp = targetApp ?? NSWorkspace.shared.frontmostApplication
+            anchorWindow = targetWindow
             rememberFocus(targetWindow: targetWindow, targetResponder: targetResponder, excluding: window)
+            isClipboardViewAtDefaultContext = true
+            rebuildContentView()
+            clipboard.markDrawerPresented()
             presentAnimated()
         }
     }
@@ -107,15 +160,16 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         guard let window else { return }
 
         // Drawer behavior: anchored on a screen edge, with a short slide-in animation.
-        let visible = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
-        lastKnownVisibleFrame = visible
+        let visible = preferredVisibleFrame(fallbackWindow: window)
+        let layoutBounds = preferredLayoutBounds(fallbackWindow: window, visibleFrame: visible, edge: settings.clipboardDrawerEdge)
+        lastKnownVisibleFrame = layoutBounds
 
-        let inset: CGFloat = 10
-        let target = targetFrame(in: visible, inset: inset, edge: settings.clipboardDrawerEdge, current: window.frame.size)
+        let inset: CGFloat = 0
+        let target = targetFrame(in: layoutBounds, inset: inset, edge: settings.clipboardDrawerEdge, current: window.frame.size)
 
         // Start just outside the chosen edge.
         var start = target
-        start = offscreenFrame(for: target, in: visible, edge: settings.clipboardDrawerEdge)
+        start = offscreenFrame(for: target, in: layoutBounds, edge: settings.clipboardDrawerEdge)
         window.setFrame(start, display: false)
 
         window.alphaValue = 0
@@ -123,16 +177,52 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         NSApp.activate(ignoringOtherApps: true)
         window.makeFirstResponder(nil)
 
+        // Two-step motion for a "dynamic island" feel: fast approach + tiny settle.
+        let overshoot = overshootFrame(for: target, edge: settings.clipboardDrawerEdge)
         NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.16
-            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            ctx.duration = 0.10
+            ctx.timingFunction = CAMediaTimingFunction(controlPoints: 0.15, 1.05, 0.2, 1.0)
             window.animator().alphaValue = 1
-            window.animator().setFrame(target, display: true)
+            window.animator().setFrame(overshoot, display: true)
+        } completionHandler: {
+            NSAnimationContext.runAnimationGroup { ctx in
+                ctx.duration = 0.12
+                ctx.timingFunction = CAMediaTimingFunction(controlPoints: 0.22, 0.0, 0.15, 1.0)
+                window.animator().setFrame(target, display: true)
+            }
         }
+    }
+
+    private func preferredVisibleFrame(fallbackWindow: NSWindow) -> NSRect {
+        if let targetVisible = anchorWindow?.screen?.visibleFrame {
+            return targetVisible
+        }
+
+        let mouseLocation = NSEvent.mouseLocation
+        if let mouseScreen = NSScreen.screens.first(where: { NSMouseInRect(mouseLocation, $0.frame, false) }) {
+            return mouseScreen.visibleFrame
+        }
+
+        return fallbackWindow.screen?.visibleFrame
+            ?? NSScreen.main?.visibleFrame
+            ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
+    }
+
+    private func preferredLayoutBounds(fallbackWindow: NSWindow, visibleFrame: NSRect, edge: ClipboardDrawerEdge) -> NSRect {
+        guard edge == .top else { return visibleFrame }
+        if let screenFrame = anchorWindow?.screen?.frame {
+            return screenFrame
+        }
+        let mouseLocation = NSEvent.mouseLocation
+        if let mouseScreen = NSScreen.screens.first(where: { NSMouseInRect(mouseLocation, $0.frame, false) }) {
+            return mouseScreen.frame
+        }
+        return fallbackWindow.screen?.frame ?? visibleFrame
     }
 
     private func dismissAnimated() {
         guard let window else { return }
+        clipboard.markDrawerPresented()
         let visible = window.screen?.visibleFrame ?? lastKnownVisibleFrame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
 
         let end = offscreenFrame(for: window.frame, in: visible, edge: settings.clipboardDrawerEdge)
@@ -224,17 +314,18 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
     }
 
     func windowDidResignKey(_ notification: Notification) {
-        // Drawer-like behavior: hide when focus leaves.
-        dismissAnimated()
+        // Keep the drawer stable while keyboard reset/paste flows move focus.
+        // Closing is handled explicitly by Esc, toggle, or actions.
     }
 
     private func targetFrame(in visible: NSRect, inset: CGFloat, edge: ClipboardDrawerEdge, current: CGSize) -> NSRect {
         switch edge {
         case .top, .bottom:
-            let width = max(640, visible.width - inset * 2)
-            let height = min(max(340, current.height), min(visible.height * 0.46, 520))
+            let width = visible.width - inset * 2
+            let reducedHeight = current.height * 0.70
+            let height = min(max(280, reducedHeight), min(visible.height * 0.52, 560))
             let x = visible.minX + inset
-            let y: CGFloat = (edge == .top) ? (visible.maxY - inset - height) : (visible.minY + inset)
+            let y: CGFloat = (edge == .top) ? (visible.maxY - height + 2) : (visible.minY + inset)
             return NSRect(x: x, y: y, width: width, height: height)
         case .left, .right:
             let height = max(320, visible.height - inset * 2)
@@ -261,6 +352,22 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         return start
     }
 
+    private func overshootFrame(for target: NSRect, edge: ClipboardDrawerEdge) -> NSRect {
+        let delta: CGFloat = 16
+        var frame = target
+        switch edge {
+        case .top:
+            frame.origin.y -= delta
+        case .bottom:
+            frame.origin.y += delta
+        case .left:
+            frame.origin.x += delta
+        case .right:
+            frame.origin.x -= delta
+        }
+        return frame
+    }
+
     private static func noteContent(from item: ClipboardManager.Item) -> String {
         switch item.payload {
         case .text(let t): return t
@@ -271,5 +378,21 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         case .colorHex(let hex):
             return hex
         }
+    }
+}
+
+private final class ClipboardDrawerPanel: NSPanel {
+    var onEscapePressed: (() -> Void)?
+
+    override func keyDown(with event: NSEvent) {
+        if event.keyCode == 53 {
+            onEscapePressed?()
+            return
+        }
+        super.keyDown(with: event)
+    }
+
+    override func cancelOperation(_ sender: Any?) {
+        onEscapePressed?()
     }
 }

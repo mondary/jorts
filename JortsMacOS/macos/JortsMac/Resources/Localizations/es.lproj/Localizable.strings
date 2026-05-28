@@ -160,6 +160,7 @@
 "zoom" = "Zoom";
 "show_notes_list" = "Mostrar lista de notas";
 "clipboard" = "Portapapeles";
+"show_clipboard_drawer" = "Mostrar panel del portapapeles";
 "clipboard_capture" = "Captura";
 "all_sources" = "Todas las fuentes";
 "unknown_source" = "Desconocido";

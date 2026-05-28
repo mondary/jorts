@@ -161,6 +161,7 @@
 "zoom" = "Zoom";
 "show_notes_list" = "Show Notes List";
 "clipboard" = "Clipboard";
+"show_clipboard_drawer" = "Show Clipboard Drawer";
 "clipboard_capture" = "Capture";
 "all_sources" = "All sources";
 "unknown_source" = "Unknown";

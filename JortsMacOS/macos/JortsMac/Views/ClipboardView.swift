@@ -18,6 +18,7 @@ struct ClipboardView: View {
     let onDismiss: () -> Void
     let onPaste: () -> Void
     let shouldHandleKeyboard: () -> Bool
+    let onContextStateChanged: (Bool) -> Void
 
     @State private var query: String = ""
     @State private var selectedSource: SourceFilter = .all
@@ -56,17 +57,34 @@ struct ClipboardView: View {
             VibrancyBackground()
                 .ignoresSafeArea()
 
-            VStack(spacing: 18) {
+            VStack(spacing: 10) {
                 topRow
                 bottomBar
             }
-            .padding(.top, 18)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 14)
+            .padding(.top, 6)
+            .padding(.horizontal, 4)
+            .padding(.bottom, 6)
         }
+        .clipShape(
+            UnevenRoundedRectangle(
+                topLeadingRadius: 12,
+                bottomLeadingRadius: 12,
+                bottomTrailingRadius: 12,
+                topTrailingRadius: 12
+            )
+        )
         .frame(minWidth: 900, minHeight: 420)
-        .onAppear { installKeyMonitorIfNeeded() }
+        .onAppear {
+            installKeyMonitorIfNeeded()
+            notifyContextState()
+        }
         .onDisappear { removeKeyMonitorIfNeeded() }
+        .onReceive(clipboard.$drawerPresentationToken) { _ in
+            resetContextToLatestClipboard()
+        }
+        .onChange(of: contextSignature) { _ in
+            notifyContextState()
+        }
     }
 
     @ViewBuilder
@@ -90,7 +108,8 @@ struct ClipboardView: View {
                                 onToggleLock: { clipboard.toggleLock(item.id) },
                                 onQuickLook: { urls in quickLookURLs = urls },
                                 onLightbox: { img in lightboxImage = img },
-                                onLoadFavicon: { name in clipboard.loadFaviconData(named: name) }
+                                onLoadFavicon: { name in clipboard.loadFaviconData(named: name) },
+                                onLoadURLPreviewImage: { name in clipboard.loadURLPreviewImageData(named: name) }
                             )
                             .id(item.id)
                         case .note(let note):
@@ -109,7 +128,7 @@ struct ClipboardView: View {
                 .padding(.bottom, 4)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 300)
+            .frame(height: 340)
             .onAppear {
                 if selectedID == nil || !entries.contains(where: { $0.id == selectedID }) {
                     selectedID = entries.first?.id
@@ -239,13 +258,13 @@ struct ClipboardView: View {
             .help(localizedString("clear"))
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: 8)
                 .fill(Color.white.opacity(0.20))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 14)
+                    RoundedRectangle(cornerRadius: 8)
                         .stroke(Color.white.opacity(0.22), lineWidth: 1)
                 )
         )
@@ -339,12 +358,6 @@ struct ClipboardView: View {
         // local monitor must be scoped to the visible clipboard drawer only.
         guard shouldHandleKeyboard() else { return false }
 
-        // Esc closes.
-        if event.keyCode == 53 { // kVK_Escape
-            onDismiss()
-            return true
-        }
-
         let entries = filteredEntries
         guard !entries.isEmpty else { return false }
         if selectedID == nil { selectedID = entries.first?.id }
@@ -394,6 +407,67 @@ struct ClipboardView: View {
         }
 
         return false
+    }
+
+    private var latestClipboardID: UUID? {
+        clipboard.items.max { lhs, rhs in
+            lhs.createdAt < rhs.createdAt
+        }?.id
+    }
+
+    private var defaultSelectionID: UUID? {
+        latestClipboardID ?? filteredEntries.first?.id
+    }
+
+    private var isDefaultContextOnLatestClipboard: Bool {
+        query.isEmpty &&
+        selectedSource == .all &&
+        kind == .all &&
+        pinnedOnly == false &&
+        recentOnly == false &&
+        selectedID == defaultSelectionID
+    }
+
+    private var contextSignature: String {
+        [
+            query,
+            sourceContextKey,
+            kind.rawValue,
+            pinnedOnly ? "pinned" : "unpinned",
+            recentOnly ? "recent" : "all-time",
+            selectedID?.uuidString ?? "nil",
+            defaultSelectionID?.uuidString ?? "nil"
+        ].joined(separator: "|")
+    }
+
+    private var sourceContextKey: String {
+        switch selectedSource {
+        case .all:
+            return "all"
+        case .notes:
+            return "notes"
+        case .app(let bundleID):
+            return "app:\(bundleID)"
+        }
+    }
+
+    private func notifyContextState() {
+        onContextStateChanged(isDefaultContextOnLatestClipboard)
+    }
+
+    private func resetContextToLatestClipboard() {
+        query = ""
+        selectedSource = .all
+        kind = .all
+        pinnedOnly = false
+        recentOnly = false
+        searchFocused = false
+
+        let targetID = defaultSelectionID
+        DispatchQueue.main.async {
+            self.selectedID = targetID
+            self.notifyContextState()
+        }
     }
 
     private func searchText(from event: NSEvent) -> String? {
@@ -580,6 +654,7 @@ private struct DeckCard: View {
     let onQuickLook: (([URL]) -> Void)?
     let onLightbox: ((NSImage) -> Void)?
     let onLoadFavicon: (String) -> Data?
+    let onLoadURLPreviewImage: (String) -> Data?
 
     private let cardWidth: CGFloat = 300
     private let cardHeight: CGFloat = 250
@@ -770,44 +845,68 @@ private struct DeckCard: View {
                 onQuickLook?(urls)
             }
         case .url(let url):
-            HStack(spacing: 12) {
-                if let faviconName = item.metadataFaviconName,
-                   let faviconData = onLoadFavicon(faviconName),
-                   let image = NSImage(data: faviconData) {
-                    Image(nsImage: image)
-                        .resizable()
-                        .interpolation(.high)
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 32 * scale, height: 32 * scale)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                } else {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(Color(NSColor.controlBackgroundColor))
-                        Image(systemName: "globe")
-                            .font(.system(size: 16 * scale))
-                            .foregroundColor(.secondary)
+            VStack(alignment: .leading, spacing: 8) {
+                if let previewName = item.metadataImageName,
+                   let previewData = onLoadURLPreviewImage(previewName),
+                   let previewImage = NSImage(data: previewData) {
+                    GeometryReader { geo in
+                        Image(nsImage: previewImage)
+                            .resizable()
+                            .interpolation(.high)
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: geo.size.width, height: geo.size.height)
+                            .clipped()
                     }
-                    .frame(width: 32 * scale, height: 32 * scale)
+                    .frame(height: 92 * scale)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 6)
+                        RoundedRectangle(cornerRadius: 8)
                             .stroke(Color(NSColor.separatorColor).opacity(0.2), lineWidth: 1)
                     )
                 }
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.metadataTitle ?? url.host ?? localizedString("link"))
-                        .font(.system(size: 14 * scale, weight: .semibold))
-                        .foregroundColor(Color(NSColor.labelColor))
-                        .lineLimit(2)
+                HStack(alignment: .top, spacing: 10) {
+                    if let faviconName = item.metadataFaviconName,
+                       let faviconData = onLoadFavicon(faviconName),
+                       let image = NSImage(data: faviconData) {
+                        Image(nsImage: image)
+                            .resizable()
+                            .interpolation(.high)
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 24 * scale, height: 24 * scale)
+                            .clipShape(RoundedRectangle(cornerRadius: 5))
+                    } else {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(Color(NSColor.controlBackgroundColor))
+                            Image(systemName: "globe")
+                                .font(.system(size: 13 * scale))
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(width: 24 * scale, height: 24 * scale)
+                    }
 
-                    Text(url.host ?? url.absoluteString)
-                        .font(.system(size: 11 * scale))
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(item.metadataTitle ?? url.host ?? localizedString("link"))
+                            .font(.system(size: 13 * scale, weight: .semibold))
+                            .foregroundColor(Color(NSColor.labelColor))
+                            .lineLimit(2)
+
+                        if let description = item.metadataDescription, !description.isEmpty {
+                            Text(description)
+                                .font(.system(size: 11 * scale))
+                                .foregroundColor(.secondary)
+                                .lineLimit(item.metadataImageName == nil ? 4 : 2)
+                        }
+
+                        Text(url.host ?? url.absoluteString)
+                            .font(.system(size: 10 * scale))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
                 }
             }
-            .padding(12 * scale)
+            .padding(10 * scale)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 10)

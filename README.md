@@ -56,9 +56,13 @@
   - `Enter` colle dans l'app précédente
   - `Cmd+Enter` convertit l'item en note
   - aperçu image complet sans crop + lightbox
+  - aperçu URL enrichi (titre, favicon, description, thumbnail)
   - QuickLook pour les fichiers
   - aperçu couleur intelligent avec Hex/RGB/HSL/OKLCH
   - position du drawer configurable: haut, bas, gauche, droite
+  - `Esc` en 2 temps:
+    - 1er `Esc`: reset contexte (catégorie/filtres/recherche/sélection) vers la carte la plus récente
+    - 2e `Esc`: fermeture du drawer
 - Persistance et stockage:
   - stockage Markdown par note
   - JSON d’historique de versions
@@ -77,6 +81,7 @@
   - restauration focus fenêtre après palette
 - Menubar native:
   - actions rapides
+  - entrée dédiée: afficher le tiroir presse-papiers
   - accès settings/about/restart/quit
 - Refactor repo:
   - `JortsMacOS/` pour le code app

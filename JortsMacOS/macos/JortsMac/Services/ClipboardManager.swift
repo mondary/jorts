@@ -21,7 +21,9 @@ final class ClipboardManager: ObservableObject {
         var isPinned: Bool
         var isLocked: Bool
         var metadataTitle: String?
+        var metadataDescription: String?
         var metadataFaviconName: String?
+        var metadataImageName: String?
 
         enum Payload: Equatable {
             case text(String)
@@ -33,6 +35,7 @@ final class ClipboardManager: ObservableObject {
     }
 
     @Published private(set) var items: [Item] = []
+    @Published private(set) var drawerPresentationToken: Int = 0
 
     var isPaused: Bool = false
     var maxItems: Int = 500
@@ -52,13 +55,22 @@ final class ClipboardManager: ObservableObject {
         self.lastChangeCount = pasteboard.changeCount
         self.items = persistence.load()
         purgeIfNeeded()
-        fetchMissingMetadata()
+        refreshMissingURLMetadata()
     }
 
-    private func fetchMissingMetadata() {
-        for item in items where item.kind == .url && item.metadataTitle == nil {
+    func refreshMissingURLMetadata(limit: Int = 50) {
+        let targets = items
+            .filter { item in
+                item.kind == .url &&
+                (item.metadataTitle == nil || item.metadataDescription == nil || item.metadataImageName == nil)
+            }
+            .sorted { $0.createdAt > $1.createdAt }
+            .prefix(limit)
+            .map(\.id)
+
+        for id in targets {
             Task {
-                await fetchMetadata(for: item.id)
+                await fetchMetadata(for: id)
             }
         }
     }
@@ -70,6 +82,9 @@ final class ClipboardManager: ObservableObject {
             self?.poll()
         }
         RunLoop.main.add(timer!, forMode: .common)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            self?.refreshMissingURLMetadata(limit: 25)
+        }
     }
 
     func stop() {
@@ -80,6 +95,11 @@ final class ClipboardManager: ObservableObject {
     func clear() {
         items.removeAll()
         persistence.clear()
+    }
+
+    func markDrawerPresented() {
+        drawerPresentationToken &+= 1
+        refreshMissingURLMetadata(limit: 25)
     }
 
     func setConfig(maxItems: Int, maxAgeDays: Int, sourceMode: ClipboardSourceMode, sourceList: [String]) {
@@ -160,6 +180,10 @@ final class ClipboardManager: ObservableObject {
         return persistence.loadFaviconData(named: name)
     }
 
+    func loadURLPreviewImageData(named name: String) -> Data? {
+        return persistence.loadURLPreviewImageData(named: name)
+    }
+
     func deleteAll(fromSourceBundleID bundleID: String?) {
         guard let bundleID else { return }
         items.removeAll { $0.sourceBundleID == bundleID && !$0.isLocked }
@@ -223,7 +247,9 @@ final class ClipboardManager: ObservableObject {
                     isPinned: false,
                     isLocked: false,
                     metadataTitle: nil,
-                    metadataFaviconName: nil
+                    metadataDescription: nil,
+                    metadataFaviconName: nil,
+                    metadataImageName: nil
                 ))
             } else {
                 let preview = urls.first?.lastPathComponent ?? "Files"
@@ -238,7 +264,9 @@ final class ClipboardManager: ObservableObject {
                     isPinned: false,
                     isLocked: false,
                     metadataTitle: nil,
-                    metadataFaviconName: nil
+                    metadataDescription: nil,
+                    metadataFaviconName: nil,
+                    metadataImageName: nil
                 ))
             }
             return
@@ -257,7 +285,9 @@ final class ClipboardManager: ObservableObject {
                 isPinned: false,
                 isLocked: false,
                 metadataTitle: nil,
-                metadataFaviconName: nil
+                metadataDescription: nil,
+                metadataFaviconName: nil,
+                metadataImageName: nil
             ))
             return
         }
@@ -276,7 +306,9 @@ final class ClipboardManager: ObservableObject {
                     isPinned: false,
                     isLocked: false,
                     metadataTitle: nil,
-                    metadataFaviconName: nil
+                    metadataDescription: nil,
+                    metadataFaviconName: nil,
+                    metadataImageName: nil
                 ))
             } else if let url = URL(string: trimmed), url.scheme != nil, url.host != nil {
                 append(Item(
@@ -290,7 +322,9 @@ final class ClipboardManager: ObservableObject {
                     isPinned: false,
                     isLocked: false,
                     metadataTitle: nil,
-                    metadataFaviconName: nil
+                    metadataDescription: nil,
+                    metadataFaviconName: nil,
+                    metadataImageName: nil
                 ))
             } else {
                 append(Item(
@@ -304,7 +338,9 @@ final class ClipboardManager: ObservableObject {
                     isPinned: false,
                     isLocked: false,
                     metadataTitle: nil,
-                    metadataFaviconName: nil
+                    metadataDescription: nil,
+                    metadataFaviconName: nil,
+                    metadataImageName: nil
                 ))
             }
             }
@@ -342,8 +378,12 @@ final class ClipboardManager: ObservableObject {
             guard let idx = items.firstIndex(where: { $0.id == id }) else { return }
             var updatedItem = items[idx]
             updatedItem.metadataTitle = metadata.title
+            updatedItem.metadataDescription = metadata.description
             if let faviconData = metadata.faviconData {
                 updatedItem.metadataFaviconName = persistence.saveFaviconData(faviconData, id: id)
+            }
+            if let imageData = metadata.imageData {
+                updatedItem.metadataImageName = persistence.saveURLPreviewImageData(imageData, id: id)
             }
             items[idx] = updatedItem
             scheduleSave()
@@ -570,6 +610,26 @@ final class ClipboardPersistence {
         return try? Data(contentsOf: url)
     }
 
+    func saveURLPreviewImageData(_ data: Data, id: UUID) -> String? {
+        guard let dir = urlPreviewsDir() else { return nil }
+        do {
+            try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+            let name = "\(id.uuidString).image"
+            let url = dir.appendingPathComponent(name)
+            try data.write(to: url, options: [.atomic])
+            return name
+        } catch {
+            NSLog("JortsMac: failed to save URL preview image: \(error)")
+            return nil
+        }
+    }
+
+    func loadURLPreviewImageData(named name: String) -> Data? {
+        guard let dir = urlPreviewsDir() else { return nil }
+        let url = dir.appendingPathComponent(name)
+        return try? Data(contentsOf: url)
+    }
+
     private func stateURL() -> URL? {
         baseDir()?.appendingPathComponent("clipboard.json")
     }
@@ -580,6 +640,10 @@ final class ClipboardPersistence {
 
     private func faviconsDir() -> URL? {
         baseDir()?.appendingPathComponent("Favicons", isDirectory: true)
+    }
+
+    private func urlPreviewsDir() -> URL? {
+        baseDir()?.appendingPathComponent("URLPreviews", isDirectory: true)
     }
 
     private func baseDir() -> URL? {
@@ -614,7 +678,9 @@ private struct StoredItem: Codable {
     let isPinned: Bool
     let isLocked: Bool
     let metadataTitle: String?
+    let metadataDescription: String?
     let metadataFaviconName: String?
+    let metadataImageName: String?
 
     let payloadText: String?
     let payloadURL: String?
@@ -632,7 +698,9 @@ private struct StoredItem: Codable {
         isPinned = item.isPinned
         isLocked = item.isLocked
         metadataTitle = item.metadataTitle
+        metadataDescription = item.metadataDescription
         metadataFaviconName = item.metadataFaviconName
+        metadataImageName = item.metadataImageName
 
         switch item.payload {
         case .text(let t):
@@ -701,7 +769,9 @@ private struct StoredItem: Codable {
             isPinned: isPinned,
             isLocked: isLocked,
             metadataTitle: metadataTitle,
-            metadataFaviconName: metadataFaviconName
+            metadataDescription: metadataDescription,
+            metadataFaviconName: metadataFaviconName,
+            metadataImageName: metadataImageName
         )
     }
 }

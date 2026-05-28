@@ -161,6 +161,7 @@
 "zoom" = "Zoom";
 "show_notes_list" = "Afficher la liste des notes";
 "clipboard" = "Presse-papiers";
+"show_clipboard_drawer" = "Afficher le tiroir presse-papiers";
 "clipboard_capture" = "Capture";
 "all_sources" = "Toutes les sources";
 "unknown_source" = "Inconnu";

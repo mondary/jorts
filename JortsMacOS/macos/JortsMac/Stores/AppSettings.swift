@@ -100,8 +100,8 @@ final class AppSettings: ObservableObject {
             Keys.inlineCalculations: true,
             Keys.inlineBrandIcons: true,
             Keys.clipboardDrawerEdge: ClipboardDrawerEdge.top.rawValue,
-            Keys.clipboardMaxItems: 500,
-            Keys.clipboardMaxAgeDays: 30,
+            Keys.clipboardMaxItems: 5000,
+            Keys.clipboardMaxAgeDays: 365,
             Keys.clipboardSourceMode: ClipboardSourceMode.allowAll.rawValue
         ])
 
@@ -120,8 +120,10 @@ final class AppSettings: ObservableObject {
         inlineBrandIcons = defaults.bool(forKey: Keys.inlineBrandIcons)
         let edgeRaw = defaults.string(forKey: Keys.clipboardDrawerEdge) ?? ClipboardDrawerEdge.top.rawValue
         clipboardDrawerEdge = ClipboardDrawerEdge(rawValue: edgeRaw) ?? .top
-        clipboardMaxItems = max(50, defaults.integer(forKey: Keys.clipboardMaxItems))
-        clipboardMaxAgeDays = max(1, defaults.integer(forKey: Keys.clipboardMaxAgeDays))
+        // Migration floor for existing installs: keep at least 5000 items / 365 days
+        // unless the user explicitly sets higher values later.
+        clipboardMaxItems = max(5000, defaults.integer(forKey: Keys.clipboardMaxItems))
+        clipboardMaxAgeDays = max(365, defaults.integer(forKey: Keys.clipboardMaxAgeDays))
         let sourceModeRaw = defaults.string(forKey: Keys.clipboardSourceMode) ?? ClipboardSourceMode.allowAll.rawValue
         clipboardSourceMode = ClipboardSourceMode(rawValue: sourceModeRaw) ?? .allowAll
         if let data = defaults.data(forKey: Keys.clipboardSourceList),
