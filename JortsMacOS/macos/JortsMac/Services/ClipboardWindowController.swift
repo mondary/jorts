@@ -22,21 +22,17 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
 
         let panel = ClipboardDrawerPanel(
             contentRect: NSRect(x: 0, y: 0, width: 980, height: 380),
-            styleMask: [.nonactivatingPanel, .titled, .closable, .fullSizeContentView],
+            styleMask: [.nonactivatingPanel, .borderless],
             backing: .buffered,
             defer: false
         )
         panel.title = "Clipboard - JortsMacOS"
-        panel.titleVisibility = .hidden
-        panel.titlebarAppearsTransparent = true
         panel.isMovableByWindowBackground = true
         panel.isFloatingPanel = true
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.moveToActiveSpace, .transient, .fullScreenAuxiliary]
         panel.level = .floating
-        panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
-        panel.standardWindowButton(.zoomButton)?.isHidden = true
         panel.isMovable = false
         panel.minSize = NSSize(width: 720, height: 320)
         panel.maxSize = NSSize(width: 100000, height: 520)
@@ -325,7 +321,7 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
             let reducedHeight = current.height * 0.70
             let height = min(max(280, reducedHeight), min(visible.height * 0.52, 560))
             let x = visible.minX + inset
-            let y: CGFloat = (edge == .top) ? (visible.maxY - height + 2) : (visible.minY + inset)
+            let y: CGFloat = (edge == .top) ? (visible.maxY - height) : (visible.minY + inset)
             return NSRect(x: x, y: y, width: width, height: height)
         case .left, .right:
             let height = max(320, visible.height - inset * 2)

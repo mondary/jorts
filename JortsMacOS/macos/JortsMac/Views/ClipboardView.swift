@@ -61,16 +61,16 @@ struct ClipboardView: View {
                 topRow
                 bottomBar
             }
-            .padding(.top, 6)
+            .padding(.top, 0)
             .padding(.horizontal, 4)
             .padding(.bottom, 6)
         }
         .clipShape(
             UnevenRoundedRectangle(
-                topLeadingRadius: 12,
+                topLeadingRadius: 0,
                 bottomLeadingRadius: 12,
                 bottomTrailingRadius: 12,
-                topTrailingRadius: 12
+                topTrailingRadius: 0
             )
         )
         .frame(minWidth: 900, minHeight: 420)
