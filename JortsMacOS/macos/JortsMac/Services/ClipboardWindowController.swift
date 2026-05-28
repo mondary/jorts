@@ -163,22 +163,42 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
             NSApp.activate(ignoringOtherApps: true)
             restoreLastJortsFocus()
         } else {
+            app.unhide()
             app.activate(options: [.activateIgnoringOtherApps])
         }
 
         // Activation is asynchronous. If Cmd+V is posted immediately, it can land
         // in the drawer search field instead of the app that had focus before.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) { [weak self] in
             guard let self else { return }
             if NSWorkspace.shared.frontmostApplication?.processIdentifier != targetPID {
+                app.unhide()
                 app.activate(options: [.activateIgnoringOtherApps])
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { [weak self] in
+                    self?.pasteIntoActivatedTarget(app: app, targetPID: targetPID)
+                }
+                return
             }
+            self.pasteIntoActivatedTarget(app: app, targetPID: targetPID)
+        }
+    }
+
+    private func pasteIntoActivatedTarget(app: NSRunningApplication, targetPID: pid_t) {
+        if NSWorkspace.shared.frontmostApplication?.processIdentifier != targetPID {
+            app.unhide()
+            app.activate(options: [.activateIgnoringOtherApps])
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            guard let self else { return }
             if app.bundleIdentifier == Bundle.main.bundleIdentifier {
                 self.restoreLastJortsFocus()
-                self.postCommandV()
             } else {
-                self.postCommandV(to: targetPID)
+                // Browser/web apps such as Gmail usually require a normal HID
+                // Cmd+V after the app is frontmost; posting directly to PID can
+                // miss the focused web view.
             }
+            self.postCommandV()
         }
     }
 
@@ -201,23 +221,6 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
 
         vDown?.post(tap: CGEventTapLocation.cghidEventTap)
         vUp?.post(tap: CGEventTapLocation.cghidEventTap)
-    }
-
-    private func postCommandV(to pid: pid_t) {
-        // For external target apps, posting directly to PID is more reliable.
-        let src = CGEventSource(stateID: .combinedSessionState)
-        let vKey = CGKeyCode(kVK_ANSI_V)
-        let vDown = CGEvent(keyboardEventSource: src, virtualKey: vKey, keyDown: true)
-        vDown?.flags = CGEventFlags.maskCommand
-        let vUp = CGEvent(keyboardEventSource: src, virtualKey: vKey, keyDown: false)
-        vUp?.flags = CGEventFlags.maskCommand
-
-        guard pid > 0 else {
-            postCommandV()
-            return
-        }
-        vDown?.postToPid(pid)
-        vUp?.postToPid(pid)
     }
 
     func windowDidResignKey(_ notification: Notification) {
