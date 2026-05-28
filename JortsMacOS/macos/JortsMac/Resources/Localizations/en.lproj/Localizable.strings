@@ -163,6 +163,7 @@
 "clipboard" = "Clipboard";
 "show_clipboard_drawer" = "Show Clipboard Drawer";
 "clipboard_capture" = "Capture";
+"toggle_clipboard_presentation" = "Toggle Drawer/Window";
 "all_sources" = "All sources";
 "unknown_source" = "Unknown";
 "convert_to_note" = "Convert to note";

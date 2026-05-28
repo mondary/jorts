@@ -163,6 +163,7 @@
 "clipboard" = "Presse-papiers";
 "show_clipboard_drawer" = "Afficher le tiroir presse-papiers";
 "clipboard_capture" = "Capture";
+"toggle_clipboard_presentation" = "Basculer tiroir/fenêtre";
 "all_sources" = "Toutes les sources";
 "unknown_source" = "Inconnu";
 "convert_to_note" = "Convertir en note";
