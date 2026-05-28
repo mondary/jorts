@@ -13,6 +13,7 @@ dist
 JortsMacOS/dist
 JortsMacOS/.build
 .build
+.git-rewrite/
 releases/
 releases/*.app
 DerivedData
