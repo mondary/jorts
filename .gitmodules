@@ -4,3 +4,6 @@
 [submodule "submodules/developer-icons"]
 	path = submodules/developer-icons
 	url = https://github.com/xandemon/developer-icons.git
+[submodule "submodules/numara-calculator"]
+	path = submodules/numara-calculator
+	url = https://github.com/bornova/numara-calculator.git
