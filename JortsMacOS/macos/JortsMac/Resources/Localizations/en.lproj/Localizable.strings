@@ -163,6 +163,10 @@
 "clipboard" = "Clipboard";
 "show_clipboard_drawer" = "Show Clipboard Drawer";
 "clipboard_capture" = "Capture";
+"clipboard_open_window" = "Open clipboard window";
+"clipboard_clear_confirm_title" = "Clear clipboard history?";
+"clipboard_clear_confirm_message" = "This removes the entire clipboard history.";
+"clipboard_clear_confirm_action" = "Clear all";
 "all_sources" = "All sources";
 "unknown_source" = "Unknown";
 "convert_to_note" = "Convert to note";

@@ -19,6 +19,7 @@ struct ClipboardView: View {
     let onPaste: () -> Void
     let shouldHandleKeyboard: () -> Bool
     let onContextStateChanged: (Bool) -> Void
+    let onToggleStandardWindow: () -> Void
 
     @State private var query: String = ""
     @State private var selectedSource: SourceFilter = .all
@@ -29,6 +30,7 @@ struct ClipboardView: View {
     @State private var recentOnly: Bool = false
     @State private var recentMinutes: Int = 60
     @State private var showExportPanel: Bool = false
+    @State private var showClearConfirmation: Bool = false
     @State private var lightboxImage: NSImage?
     @State private var quickLookURLs: [URL] = []
     @FocusState private var searchFocused: Bool
@@ -57,13 +59,13 @@ struct ClipboardView: View {
             VibrancyBackground()
                 .ignoresSafeArea()
 
-            VStack(spacing: 10) {
+            VStack(spacing: 0) {
                 topRow
                 bottomBar
             }
             .padding(.top, 0)
-            .padding(.horizontal, 4)
-            .padding(.bottom, 6)
+            .padding(.horizontal, 2)
+            .padding(.bottom, 0)
         }
         .clipShape(
             UnevenRoundedRectangle(
@@ -92,7 +94,7 @@ struct ClipboardView: View {
         let entries = filteredEntries
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 16) {
+                LazyHStack(spacing: 8) {
                     ForEach(entries) { entry in
                         switch entry {
                         case .clipboard(let item):
@@ -124,11 +126,11 @@ struct ClipboardView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 2)
-                .padding(.bottom, 4)
+                .padding(.horizontal, 0)
+                .padding(.bottom, 0)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 340)
+            .frame(height: 270)
             .onAppear {
                 if selectedID == nil || !entries.contains(where: { $0.id == selectedID }) {
                     selectedID = entries.first?.id
@@ -240,6 +242,15 @@ struct ClipboardView: View {
             Spacer()
 
             Button {
+                onToggleStandardWindow()
+            } label: {
+                Image(systemName: "macwindow")
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .help(localizedString("clipboard_open_window"))
+
+            Button {
                 showExportPanel = true
             } label: {
                 Image(systemName: "square.and.arrow.up")
@@ -249,7 +260,7 @@ struct ClipboardView: View {
             .help(localizedString("export"))
 
             Button {
-                clipboard.clear()
+                showClearConfirmation = true
             } label: {
                 Image(systemName: "trash")
                     .frame(width: 28, height: 28)
@@ -268,6 +279,18 @@ struct ClipboardView: View {
                         .stroke(Color.white.opacity(0.22), lineWidth: 1)
                 )
         )
+        .confirmationDialog(
+            localizedString("clipboard_clear_confirm_title"),
+            isPresented: $showClearConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(localizedString("clipboard_clear_confirm_action"), role: .destructive) {
+                clipboard.clear()
+            }
+            Button(localizedString("cancel"), role: .cancel) {}
+        } message: {
+            Text(localizedString("clipboard_clear_confirm_message"))
+        }
     }
 
     private var sources: [String] {
@@ -575,18 +598,21 @@ private struct NoteDeckCard: View {
                 .help(localizedString("open"))
             }
         }
-        .padding(14)
+        .padding(.top, 4)
+        .padding(.leading, 14)
+        .padding(.trailing, 14)
+        .padding(.bottom, 5)
         .frame(width: cardWidth, height: cardHeight)
         .background(
-            RoundedRectangle(cornerRadius: 20)
+            RoundedRectangle(cornerRadius: 8)
                 .fill(note.theme.backgroundColor)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 20)
+            RoundedRectangle(cornerRadius: 8)
                 .stroke(isSelected ? Color(red: 0/255, green: 122/255, blue: 255/255) : note.theme.autoTextColorColor.opacity(0.2), lineWidth: isSelected ? 3 : 1)
         )
         .shadow(color: Color.black.opacity(isSelected ? 0.12 : 0.05), radius: isSelected ? 18 : 12, x: 0, y: 8)
-        .contentShape(RoundedRectangle(cornerRadius: 20))
+        .contentShape(RoundedRectangle(cornerRadius: 8))
         .onTapGesture { onSelect() }
         .onTapGesture(count: 2) { onOpen() }
     }
@@ -596,6 +622,534 @@ private struct SourceChipModel {
     let bundleID: String
     let name: String
     let icon: NSImage?
+}
+
+struct ClipboardStandardWindowView: View {
+    @ObservedObject var clipboard: ClipboardManager
+    let notesProvider: () -> [ClipboardView.NoteDeckItem]
+    let onCreateNoteFromItem: (ClipboardManager.Item) -> Void
+    let onOpenNote: (UUID) -> Void
+    let onCopyItem: (ClipboardManager.Item) -> Void
+    let onLoadFavicon: (String) -> Data?
+    let onLoadURLPreviewImage: (String) -> Data?
+
+    @State private var selectedSource: SourceFilter = .all
+    @State private var selectedID: UUID?
+    @State private var query = ""
+    @State private var isSidebarCollapsed = false
+
+    private enum SourceFilter: Equatable {
+        case all
+        case notes
+        case app(String)
+    }
+
+    enum GridEntry: Identifiable, Equatable {
+        case clipboard(ClipboardManager.Item)
+        case note(ClipboardView.NoteDeckItem)
+
+        var id: UUID {
+            switch self {
+            case .clipboard(let item): return item.id
+            case .note(let note): return note.id
+            }
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                sidebar
+                    .frame(width: isSidebarCollapsed ? 56 : 220)
+                Divider()
+                mainGrid
+            }
+            Divider()
+            footer
+                .frame(height: 36)
+        }
+        .background(Color.white)
+        .frame(minWidth: 1120, minHeight: 720)
+        .onAppear {
+            selectedID = entries.first?.id
+        }
+        .onChange(of: entries.map(\.id)) { ids in
+            if let selectedID, ids.contains(selectedID) {
+                return
+            }
+            selectedID = ids.first
+        }
+    }
+
+    private var sidebar: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.16)) {
+                        isSidebarCollapsed.toggle()
+                    }
+                } label: {
+                    Image(systemName: isSidebarCollapsed ? "sidebar.right" : "sidebar.left")
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, isSidebarCollapsed ? 14 : 16)
+                .padding(.bottom, 6)
+
+                sidebarButton(
+                    title: localizedString("filter_all"),
+                    systemImage: "house.fill",
+                    isSelected: selectedSource == .all
+                ) { selectedSource = .all }
+
+                sidebarButton(
+                    title: localizedString("notes"),
+                    systemImage: "note.text",
+                    isSelected: selectedSource == .notes
+                ) { selectedSource = .notes }
+
+                if !isSidebarCollapsed {
+                    sectionTitle("Collection")
+                }
+                collectionRow("#Prompt", color: .red)
+                collectionRow("Wordpress", color: .green)
+                collectionRow("PSWD", color: .yellow)
+                collectionRow("Immo", color: .orange)
+                collectionRow("MDP", color: .green)
+                collectionRow("API", color: .red)
+                collectionRow("Script", color: .yellow)
+                collectionRow("APPS", color: .orange)
+                collectionRow("Games", color: .pink)
+                collectionRow("UX", color: .blue)
+
+                if !isSidebarCollapsed {
+                    sectionTitle("Application")
+                }
+                ForEach(sourceChips, id: \.bundleID) { source in
+                    Button {
+                        selectedSource = .app(source.bundleID)
+                    } label: {
+                        HStack(spacing: 8) {
+                            if let icon = source.icon {
+                                Image(nsImage: icon)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 16, height: 16)
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                            } else {
+                                Image(systemName: "app")
+                                    .frame(width: 16, height: 16)
+                            }
+                            if !isSidebarCollapsed {
+                                Text(source.name)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .lineLimit(1)
+                                Spacer(minLength: 0)
+                            }
+                        }
+                        .padding(.horizontal, isSidebarCollapsed ? 12 : 16)
+                        .padding(.vertical, 5)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(selectedSource == .app(source.bundleID) ? Color.black.opacity(0.10) : Color.clear)
+                        )
+                        .padding(.horizontal, isSidebarCollapsed ? 6 : 8)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.vertical, 8)
+        }
+        .background(Color(NSColor.windowBackgroundColor).opacity(0.96))
+    }
+
+    private var mainGrid: some View {
+        ScrollView(.vertical, showsIndicators: true) {
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 190, maximum: 260), spacing: 10)],
+                spacing: 10
+            ) {
+                ForEach(entries.indices, id: \.self) { index in
+                    let entry = entries[index]
+                    StandardClipboardCard(
+                        entry: entry,
+                        shortcutIndex: index + 1,
+                        isSelected: selectedID == entry.id,
+                        onSelect: { selectedID = entry.id },
+                        onOpenNote: onOpenNote,
+                        onCopyItem: onCopyItem,
+                        onCreateNoteFromItem: onCreateNoteFromItem,
+                        onLoadFavicon: onLoadFavicon,
+                        onLoadURLPreviewImage: onLoadURLPreviewImage
+                    )
+                }
+            }
+            .padding(12)
+        }
+        .background(Color.white)
+    }
+
+    private var footer: some View {
+        HStack(spacing: 10) {
+            Text("Page")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.secondary)
+            ForEach(1...min(14, max(1, Int(ceil(Double(entries.count) / 12.0)))), id: \.self) { page in
+                Text("\(page)")
+                    .font(.system(size: 12, weight: page == 1 ? .bold : .regular))
+                    .foregroundStyle(page == 1 ? Color.primary : Color.secondary)
+                    .frame(minWidth: 16)
+            }
+            Spacer()
+            Image(systemName: "line.3.horizontal.decrease.circle")
+                .foregroundStyle(.secondary)
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(Color(NSColor.tertiaryLabelColor))
+                TextField(localizedString("search"), text: $query)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 12))
+            }
+            .padding(.horizontal, 10)
+            .frame(width: 170, height: 28)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.black.opacity(0.04))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color.black.opacity(0.08), lineWidth: 1)
+                    )
+            )
+        }
+        .padding(.horizontal, 16)
+        .background(Color.white)
+    }
+
+    private func sidebarButton(title: String, systemImage: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .frame(width: 16, height: 16)
+                if !isSidebarCollapsed {
+                    Text(title)
+                        .font(.system(size: 13, weight: .medium))
+                    Spacer(minLength: 0)
+                }
+            }
+            .padding(.horizontal, isSidebarCollapsed ? 12 : 16)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isSelected ? Color.black.opacity(0.12) : Color.clear)
+            )
+            .padding(.horizontal, isSidebarCollapsed ? 6 : 8)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func sectionTitle(_ title: String) -> some View {
+        Text(title)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 16)
+            .padding(.top, 14)
+            .padding(.bottom, 6)
+    }
+
+    private func collectionRow(_ title: String, color: Color) -> some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(color)
+                .frame(width: 10, height: 10)
+            if !isSidebarCollapsed {
+                Text(title)
+                    .font(.system(size: 13, weight: .medium))
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(.horizontal, isSidebarCollapsed ? 20 : 16)
+        .padding(.vertical, 5)
+    }
+
+    private var sourceChips: [SourceChipModel] {
+        var byBundle: [String: SourceChipModel] = [:]
+        for item in clipboard.items {
+            guard let bundleID = item.sourceBundleID else { continue }
+            let name = item.sourceAppName ?? localizedString("unknown_source")
+            if byBundle[bundleID] == nil {
+                byBundle[bundleID] = SourceChipModel(bundleID: bundleID, name: name, icon: appIcon(bundleID: bundleID))
+            }
+        }
+        return Array(byBundle.values).sorted { $0.name.lowercased() < $1.name.lowercased() }
+    }
+
+    private var entries: [GridEntry] {
+        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        var output: [GridEntry] = []
+
+        if selectedSource != .notes {
+            let sourceBundleID: String?
+            if case .app(let bundleID) = selectedSource {
+                sourceBundleID = bundleID
+            } else {
+                sourceBundleID = nil
+            }
+
+            let query = ClipboardManager.Query(text: needle, sourceBundleID: sourceBundleID)
+            output.append(contentsOf: clipboard.filteredItems(query).map { .clipboard($0) })
+        }
+
+        if selectedSource == .all || selectedSource == .notes {
+            let notes = notesProvider().filter { note in
+                guard !needle.isEmpty else { return true }
+                return "\(note.title)\n\(note.content)".lowercased().contains(needle)
+            }
+            output.append(contentsOf: notes.map { .note($0) })
+        }
+
+        return output
+    }
+}
+
+private struct StandardClipboardCard: View {
+    let entry: ClipboardStandardWindowView.GridEntry
+    let shortcutIndex: Int
+    let isSelected: Bool
+    let onSelect: () -> Void
+    let onOpenNote: (UUID) -> Void
+    let onCopyItem: (ClipboardManager.Item) -> Void
+    let onCreateNoteFromItem: (ClipboardManager.Item) -> Void
+    let onLoadFavicon: (String) -> Data?
+    let onLoadURLPreviewImage: (String) -> Data?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+            bodyContent
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
+            footer
+        }
+        .frame(height: 170)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(isSelected ? Color(red: 0, green: 122/255, blue: 1) : Color.black.opacity(0.06), lineWidth: isSelected ? 3 : 1.5)
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 8))
+        .onTapGesture { onSelect() }
+        .onTapGesture(count: 2) { performPrimaryAction() }
+    }
+
+    private var header: some View {
+        HStack(spacing: 6) {
+            entryIcon
+                .frame(width: 18, height: 18)
+            Text("⌘\(min(shortcutIndex, 9))")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Color(red: 0, green: 122/255, blue: 1))
+            Spacer()
+            Text(relativeTime)
+                .font(.system(size: 11))
+                .foregroundStyle(Color(NSColor.tertiaryLabelColor))
+        }
+        .padding(.top, 8)
+        .padding(.horizontal, 10)
+    }
+
+    @ViewBuilder
+    private var entryIcon: some View {
+        switch entry {
+        case .clipboard(let item):
+            AppIconView(bundleID: item.sourceBundleID)
+        case .note(let note):
+            Image(systemName: note.isPinned ? "note.text.badge.plus" : "note.text")
+                .foregroundStyle(note.theme.autoTextColorColor)
+                .padding(2)
+                .background(note.theme.backgroundColor)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+        }
+    }
+
+    @ViewBuilder
+    private var bodyContent: some View {
+        switch entry {
+        case .note(let note):
+            VStack(alignment: .leading, spacing: 6) {
+                Text(note.title.isEmpty ? localizedString("empty_note") : note.title)
+                    .font(.system(size: 12.5, weight: .semibold))
+                    .lineLimit(2)
+                Text(note.content)
+                    .font(.system(size: 12.5))
+                    .lineLimit(8)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+        case .clipboard(let item):
+            clipboardBody(item)
+        }
+    }
+
+    @ViewBuilder
+    private func clipboardBody(_ item: ClipboardManager.Item) -> some View {
+        if let hex = displayColorHex(for: item), let info = ColorInfo(hex: hex) {
+            ZStack {
+                info.color
+                Text(info.hex)
+                    .font(.system(size: 13, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 5)
+                    .background(.white.opacity(0.25), in: RoundedRectangle(cornerRadius: 6))
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            switch item.payload {
+            case .imageData(let data):
+                if let image = NSImage(data: data) {
+                    Image(nsImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .clipped()
+                }
+            case .url(let url):
+                VStack(alignment: .leading, spacing: 5) {
+                    if let previewName = item.metadataImageName,
+                       let data = onLoadURLPreviewImage(previewName),
+                       let image = NSImage(data: data) {
+                        Image(nsImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(height: 86)
+                            .clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 5))
+                    }
+                    Text(item.metadataTitle ?? url.host ?? localizedString("link"))
+                        .font(.system(size: 11.5, weight: .medium))
+                        .lineLimit(2)
+                    Text(url.absoluteString)
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(Color(NSColor.tertiaryLabelColor))
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+            case .fileURLs(let urls):
+                VStack(alignment: .leading, spacing: 7) {
+                    ForEach(urls.prefix(4), id: \.self) { url in
+                        HStack(spacing: 8) {
+                            FileIconView(url: url)
+                                .frame(width: 16, height: 16)
+                            Text(url.lastPathComponent)
+                                .font(.system(size: 12))
+                                .lineLimit(1)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+            default:
+                Text(item.metadataTitle ?? item.previewText)
+                    .font(.system(size: 12.5))
+                    .lineSpacing(2)
+                    .lineLimit(10)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+            }
+        }
+    }
+
+    private var footer: some View {
+        HStack(spacing: 6) {
+            Image(systemName: footerIcon)
+                .font(.system(size: 12))
+                .foregroundStyle(Color(NSColor.tertiaryLabelColor))
+            Text(footerText)
+                .font(.system(size: 11))
+                .foregroundStyle(Color(NSColor.tertiaryLabelColor))
+                .lineLimit(1)
+            Spacer()
+            Image(systemName: "gearshape")
+                .font(.system(size: 12))
+                .foregroundStyle(Color(NSColor.tertiaryLabelColor).opacity(0.5))
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .frame(height: 30)
+        .background(Color.black.opacity(0.035))
+    }
+
+    private var footerIcon: String {
+        switch entry {
+        case .note:
+            return "note.text"
+        case .clipboard(let item):
+            switch item.payload {
+            case .text: return "doc.text"
+            case .url: return "link"
+            case .imageData: return "photo"
+            case .fileURLs: return "doc"
+            case .colorHex: return "paintpalette"
+            }
+        }
+    }
+
+    private var footerText: String {
+        switch entry {
+        case .note(let note):
+            return "\(note.content.count) \(localizedString("characters"))"
+        case .clipboard(let item):
+            switch item.payload {
+            case .text(let text):
+                return "\(text.count) \(localizedString("characters"))"
+            case .url:
+                return localizedString("link")
+            case .imageData:
+                return "IMG"
+            case .fileURLs(let urls):
+                return "\(urls.count) \(localizedString("files"))"
+            case .colorHex:
+                return localizedString("color")
+            }
+        }
+    }
+
+    private var relativeTime: String {
+        let date: Date
+        switch entry {
+        case .clipboard(let item):
+            date = item.createdAt
+        case .note(let note):
+            date = note.updatedAt
+        }
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
+
+    private func displayColorHex(for item: ClipboardManager.Item) -> String? {
+        if case .colorHex(let hex) = item.payload {
+            return ColorInfo.normalizedHex(hex)
+        }
+        return ColorInfo.normalizedHex(item.previewText)
+    }
+
+    private func performPrimaryAction() {
+        switch entry {
+        case .clipboard(let item):
+            onCopyItem(item)
+        case .note(let note):
+            onOpenNote(note.id)
+        }
+    }
 }
 
 private func appIcon(bundleID: String) -> NSImage? {
@@ -773,18 +1327,21 @@ private struct DeckCard: View {
                 .help(localizedString("delete"))
             }
         }
-        .padding(14)
+        .padding(.top, 4)
+        .padding(.leading, 14)
+        .padding(.trailing, 14)
+        .padding(.bottom, 5)
         .frame(width: cardWidth, height: cardHeight)
         .background(
-            RoundedRectangle(cornerRadius: 20)
+            RoundedRectangle(cornerRadius: 8)
                 .fill(Color.white)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 20)
+            RoundedRectangle(cornerRadius: 8)
                 .stroke(isSelected ? Color(red: 0/255, green: 122/255, blue: 255/255) : Color(NSColor.separatorColor).opacity(0.25), lineWidth: isSelected ? 3 : 1)
         )
         .shadow(color: Color.black.opacity(isSelected ? 0.10 : 0.04), radius: isSelected ? 18 : 14, x: 0, y: 8)
-        .contentShape(RoundedRectangle(cornerRadius: 20))
+        .contentShape(RoundedRectangle(cornerRadius: 8))
         .onTapGesture {
             onSelect()
         }

@@ -13,7 +13,10 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
     private weak var lastFirstResponder: NSResponder?
     private weak var anchorWindow: NSWindow?
     private var keyMonitor: Any?
+    private var mouseLocalMonitor: Any?
+    private var mouseGlobalMonitor: Any?
     private var isClipboardViewAtDefaultContext = true
+    private var standardWindowController: NSWindowController?
 
     init(manager: NoteManager, settings: AppSettings, clipboard: ClipboardManager) {
         self.manager = manager
@@ -47,6 +50,7 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
             self?.handleEscapeRequest()
         }
         installKeyMonitor()
+        installMouseMonitors()
 
         // Hosting controller must be initialized after super.init so we can safely capture self.
         self.hostingController = NSHostingController(rootView: makeClipboardView())
@@ -83,6 +87,9 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
             },
             onContextStateChanged: { [weak self] isDefaultContext in
                 self?.isClipboardViewAtDefaultContext = isDefaultContext
+            },
+            onToggleStandardWindow: { [weak self] in
+                self?.toggleStandardClipboardWindow()
             }
         )
     }
@@ -92,6 +99,12 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
     deinit {
         if let keyMonitor {
             NSEvent.removeMonitor(keyMonitor)
+        }
+        if let mouseLocalMonitor {
+            NSEvent.removeMonitor(mouseLocalMonitor)
+        }
+        if let mouseGlobalMonitor {
+            NSEvent.removeMonitor(mouseGlobalMonitor)
         }
     }
 
@@ -108,6 +121,86 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
             self.handleEscapeRequest()
             return nil
         }
+    }
+
+    private func installMouseMonitors() {
+        guard mouseLocalMonitor == nil else { return }
+        let mask: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+
+        mouseLocalMonitor = NSEvent.addLocalMonitorForEvents(matching: mask) { [weak self] event in
+            self?.dismissIfClickOutside(event.locationInWindow, isWindowLocation: true)
+            return event
+        }
+
+        mouseGlobalMonitor = NSEvent.addGlobalMonitorForEvents(matching: mask) { [weak self] event in
+            self?.dismissIfClickOutside(NSEvent.mouseLocation, isWindowLocation: false)
+        }
+    }
+
+    private func dismissIfClickOutside(_ point: NSPoint, isWindowLocation: Bool) {
+        guard let window, window.isVisible else { return }
+        let screenLocation = isWindowLocation ? window.convertPoint(toScreen: point) : point
+        guard !window.frame.contains(screenLocation) else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.window?.isVisible == true else { return }
+            self.dismissAnimated()
+        }
+    }
+
+    private func toggleStandardClipboardWindow() {
+        if let standardWindow = standardWindowController?.window, standardWindow.isVisible {
+            standardWindow.orderOut(nil)
+            return
+        }
+
+        let host = NSHostingController(rootView: makeStandardClipboardWindowView())
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 1280, height: 820),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "PKclipboard"
+        window.contentViewController = host
+        window.isReleasedWhenClosed = false
+        window.minSize = NSSize(width: 1120, height: 720)
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        standardWindowController = NSWindowController(window: window)
+    }
+
+    private func makeStandardClipboardWindowView() -> ClipboardStandardWindowView {
+        ClipboardStandardWindowView(
+            clipboard: clipboard,
+            notesProvider: { [weak manager] in
+                (manager?.documents ?? []).map { doc in
+                    ClipboardView.NoteDeckItem(
+                        id: doc.id,
+                        title: doc.title,
+                        content: doc.content,
+                        theme: doc.theme,
+                        isPinned: doc.pinned,
+                        updatedAt: doc.versions.first?.date ?? Date()
+                    )
+                }
+            },
+            onCreateNoteFromItem: { [weak manager] item in
+                manager?.createNote(prefillContent: ClipboardWindowController.noteContent(from: item))
+            },
+            onOpenNote: { [weak manager] id in
+                manager?.focusNote(documentID: id)
+            },
+            onCopyItem: { [weak clipboard] item in
+                clipboard?.copyToPasteboard(item)
+            },
+            onLoadFavicon: { [weak clipboard] name in
+                clipboard?.loadFaviconData(named: name)
+            },
+            onLoadURLPreviewImage: { [weak clipboard] name in
+                clipboard?.loadURLPreviewImageData(named: name)
+            }
+        )
     }
 
     private func handleEscapeRequest() {
@@ -310,6 +403,11 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc func windowDidResignKey(_ notification: Notification) {
+        guard window?.isVisible == true else { return }
+        dismissAnimated()
+    }
+
+    @objc func windowDidResignMain(_ notification: Notification) {
         guard window?.isVisible == true else { return }
         dismissAnimated()
     }
