@@ -22,7 +22,9 @@ Status: in progress.
 - [x] Esc behavior in 2 steps:
   - first Esc resets filters/category/selection to default latest item
   - second Esc closes drawer
+- [x] Click outside drawer closes drawer
 - [x] Menu bar entry to open clipboard drawer (`Afficher le tiroir presse-papiers`)
+- [x] Sticky note metadata stored at end of Markdown file (`<!-- JORTS_META ... -->`)
 
 ## Remaining Features
 

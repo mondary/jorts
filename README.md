@@ -60,11 +60,13 @@
   - QuickLook pour les fichiers
   - aperçu couleur intelligent avec Hex/RGB/HSL/OKLCH
   - position du drawer configurable: haut, bas, gauche, droite
+  - clic hors drawer: fermeture automatique
   - `Esc` en 2 temps:
     - 1er `Esc`: reset contexte (catégorie/filtres/recherche/sélection) vers la carte la plus récente
     - 2e `Esc`: fermeture du drawer
 - Persistance et stockage:
   - stockage Markdown par note
+  - métadonnées note en fin de fichier (`<!-- JORTS_META ... -->`)
   - JSON d’historique de versions
   - migration JSON legacy -> Markdown
   - consolidation des doublons
@@ -107,6 +109,7 @@
 - Toggle: `Cmd+Shift+V`
 - Navigation: flèches gauche/droite
 - `Enter`: colle (best-effort) dans l'app précédente + ferme le drawer
+- Clic hors drawer: ferme le drawer
 - `Cmd+Enter`: convertir en note
 - Filtres: texte, URL, image, fichier, couleur, source, épinglé, récent
 - Couleurs: copier `#2C3861` crée une carte couleur avec:

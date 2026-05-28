@@ -313,9 +313,9 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         vUp?.post(tap: CGEventTapLocation.cghidEventTap)
     }
 
-    func windowDidResignKey(_ notification: Notification) {
-        // Keep the drawer stable while keyboard reset/paste flows move focus.
-        // Closing is handled explicitly by Esc, toggle, or actions.
+    @objc func windowDidResignKey(_ notification: Notification) {
+        guard window?.isVisible == true else { return }
+        dismissAnimated()
     }
 
     private func targetFrame(in visible: NSRect, inset: CGFloat, edge: ClipboardDrawerEdge, current: CGSize) -> NSRect {

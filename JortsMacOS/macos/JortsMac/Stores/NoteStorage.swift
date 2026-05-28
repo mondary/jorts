@@ -496,27 +496,31 @@ final class NoteStorage {
     }
 
     private func serialize(note: NoteData, extraFrontMatter: [String: String] = [:]) -> String {
-        var lines: [String] = []
-        lines.append("---")
-        lines.append("id: \(note.id.uuidString)")
-        lines.append("title: \(escape(note.title))")
-        lines.append("theme: \(note.theme.rawValue)")
-        lines.append("monospace: \(note.monospace)")
-        lines.append("fontFamily: \(escape(note.fontFamily.rawValue))")
-        lines.append("zoom: \(note.zoom)")
-        lines.append("width: \(note.width)")
-        lines.append("height: \(note.height)")
-        if let x = note.x { lines.append("x: \(x)") }
-        if let y = note.y { lines.append("y: \(y)") }
-        lines.append("macFrameVersion: \(note.macFrameVersion)")
+        var metadata: [String: String] = [
+            "id": note.id.uuidString,
+            "title": escape(note.title),
+            "theme": String(note.theme.rawValue),
+            "monospace": String(note.monospace),
+            "fontFamily": escape(note.fontFamily.rawValue),
+            "zoom": String(note.zoom),
+            "width": String(note.width),
+            "height": String(note.height),
+            "macFrameVersion": String(note.macFrameVersion)
+        ]
+        if let x = note.x { metadata["x"] = String(x) }
+        if let y = note.y { metadata["y"] = String(y) }
         for (k, v) in extraFrontMatter {
-            lines.append("\(k): \(escape(v))")
+            metadata[k] = escape(v)
         }
-        lines.append("---")
-        lines.append("")
-        lines.append(note.content)
-        if !note.content.hasSuffix("\n") { lines.append("") }
-        return lines.joined(separator: "\n")
+
+        var output = note.content
+        if !output.hasSuffix("\n") {
+            output.append("\n")
+        }
+        output.append("\n")
+        output.append(serializeTrailingMetadata(metadata))
+        output.append("\n")
+        return output
     }
 
     private func serialize(trashed: TrashedNote) -> String {
@@ -524,23 +528,72 @@ final class NoteStorage {
     }
 
     private func parseFrontMatter(_ input: String) -> ([String: String], String) {
-        guard input.hasPrefix("---\n") else { return ([:], input) }
-        guard let endRange = input.range(of: "\n---\n", options: [], range: input.index(input.startIndex, offsetBy: 4)..<input.endIndex) else {
-            return ([:], input)
-        }
-        let fmBlock = String(input[input.index(input.startIndex, offsetBy: 4)..<endRange.lowerBound])
-        let body = String(input[endRange.upperBound...])
+        var frontMatter: [String: String] = [:]
+        var body = input
 
+        if input.hasPrefix("---\n"),
+           let endRange = input.range(of: "\n---\n", options: [], range: input.index(input.startIndex, offsetBy: 4)..<input.endIndex) {
+            let fmBlock = String(input[input.index(input.startIndex, offsetBy: 4)..<endRange.lowerBound])
+            body = String(input[endRange.upperBound...])
+            frontMatter = parseKeyValueBlock(fmBlock)
+        }
+
+        let (trailingMetadata, cleanBody) = parseTrailingMetadata(from: body)
+        var merged = trailingMetadata
+        for (k, v) in frontMatter {
+            merged[k] = v
+        }
+
+        return (merged, cleanBody)
+    }
+
+    private func parseTrailingMetadata(from body: String) -> ([String: String], String) {
+        let startMarker = "\n<!-- JORTS_META\n"
+        guard let markerRange = body.range(of: startMarker, options: .backwards) else {
+            return ([:], body)
+        }
+
+        let metadataStart = markerRange.upperBound
+        guard let endRange = body.range(of: "\n-->", range: metadataStart..<body.endIndex) else {
+            return ([:], body)
+        }
+
+        let block = String(body[metadataStart..<endRange.lowerBound])
+        let metadata = parseKeyValueBlock(block)
+
+        var cleanBody = String(body[..<markerRange.lowerBound])
+        cleanBody = cleanBody.trimmingCharacters(in: .newlines) + "\n"
+        return (metadata, cleanBody)
+    }
+
+    private func parseKeyValueBlock(_ block: String) -> [String: String] {
         var dict: [String: String] = [:]
-        for line in fmBlock.split(separator: "\n") {
+        for line in block.split(separator: "\n") {
             let parts = line.split(separator: ":", maxSplits: 1)
             guard parts.count == 2 else { continue }
             let key = parts[0].trimmingCharacters(in: .whitespaces)
             let value = parts[1].trimmingCharacters(in: .whitespaces)
             dict[key] = unescape(value)
         }
+        return dict
+    }
 
-        return (dict, body)
+    private func serializeTrailingMetadata(_ metadata: [String: String]) -> String {
+        let preferredOrder = [
+            "id", "title", "theme", "monospace", "fontFamily", "zoom",
+            "width", "height", "x", "y", "macFrameVersion", "deletedAt"
+        ]
+
+        var lines: [String] = ["<!-- JORTS_META"]
+        var keys = preferredOrder.filter { metadata[$0] != nil }
+        keys.append(contentsOf: metadata.keys.filter { !preferredOrder.contains($0) }.sorted())
+
+        for key in keys {
+            guard let value = metadata[key] else { continue }
+            lines.append("\(key): \(value)")
+        }
+        lines.append("-->")
+        return lines.joined(separator: "\n")
     }
 
     private func decodeNote(frontMatter: [String: String], body: String) -> NoteData {
