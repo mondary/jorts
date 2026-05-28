@@ -19,8 +19,6 @@ struct ClipboardView: View {
     let onPaste: () -> Void
     let shouldHandleKeyboard: () -> Bool
     let onContextStateChanged: (Bool) -> Void
-    let isStandardWindowMode: Bool
-    let onTogglePresentationMode: () -> Void
 
     @State private var query: String = ""
     @State private var selectedSource: SourceFilter = .all
@@ -63,16 +61,16 @@ struct ClipboardView: View {
                 topRow
                 bottomBar
             }
-            .padding(.top, 0)
+            .padding(.top, 6)
             .padding(.horizontal, 4)
             .padding(.bottom, 6)
         }
         .clipShape(
             UnevenRoundedRectangle(
-                topLeadingRadius: 0,
+                topLeadingRadius: 12,
                 bottomLeadingRadius: 12,
                 bottomTrailingRadius: 12,
-                topTrailingRadius: 0
+                topTrailingRadius: 12
             )
         )
         .frame(minWidth: 900, minHeight: 420)
@@ -240,15 +238,6 @@ struct ClipboardView: View {
                 .toggleStyle(.checkbox)
 
             Spacer()
-
-            Button {
-                onTogglePresentationMode()
-            } label: {
-                Image(systemName: isStandardWindowMode ? "rectangle.topthird.inset.filled" : "macwindow")
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(.plain)
-            .help(localizedString("toggle_clipboard_presentation"))
 
             Button {
                 showExportPanel = true

@@ -22,17 +22,21 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
 
         let panel = ClipboardDrawerPanel(
             contentRect: NSRect(x: 0, y: 0, width: 980, height: 380),
-            styleMask: [.nonactivatingPanel, .borderless],
+            styleMask: [.nonactivatingPanel, .titled, .closable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         panel.title = "Clipboard - JortsMacOS"
+        panel.titleVisibility = .hidden
+        panel.titlebarAppearsTransparent = true
         panel.isMovableByWindowBackground = true
         panel.isFloatingPanel = true
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.moveToActiveSpace, .transient, .fullScreenAuxiliary]
         panel.level = .floating
+        panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
+        panel.standardWindowButton(.zoomButton)?.isHidden = true
         panel.isMovable = false
         panel.minSize = NSSize(width: 720, height: 320)
         panel.maxSize = NSSize(width: 100000, height: 520)
@@ -83,10 +87,6 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
             },
             onContextStateChanged: { [weak self] isDefaultContext in
                 self?.isClipboardViewAtDefaultContext = isDefaultContext
-            },
-            isStandardWindowMode: settings.clipboardPresentationMode == .window,
-            onTogglePresentationMode: { [weak self] in
-                self?.togglePresentationMode()
             }
         )
     }
@@ -141,21 +141,6 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
             isClipboardViewAtDefaultContext = true
             rebuildContentView()
             clipboard.markDrawerPresented()
-            present()
-        }
-    }
-
-    private func togglePresentationMode() {
-        settings.clipboardPresentationMode = (settings.clipboardPresentationMode == .drawer) ? .window : .drawer
-        rebuildContentView()
-        guard window?.isVisible == true else { return }
-        present()
-    }
-
-    private func present() {
-        if settings.clipboardPresentationMode == .window {
-            presentWindowMode()
-        } else {
             presentAnimated()
         }
     }
@@ -206,23 +191,6 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
                 window.animator().setFrame(target, display: true)
             }
         }
-    }
-
-    private func presentWindowMode() {
-        guard let window else { return }
-        let visible = preferredVisibleFrame(fallbackWindow: window)
-        let width = min(max(1024, visible.width * 0.9), 1700)
-        let height = min(max(600, visible.height * 0.82), 1200)
-        let target = NSRect(
-            x: visible.midX - width / 2,
-            y: visible.midY - height / 2,
-            width: width,
-            height: height
-        )
-        window.alphaValue = 1
-        window.setFrame(target, display: true, animate: true)
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
     }
 
     private func preferredVisibleFrame(fallbackWindow: NSWindow) -> NSRect {
@@ -347,7 +315,6 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
 
     @objc func windowDidResignKey(_ notification: Notification) {
         guard window?.isVisible == true else { return }
-        guard settings.clipboardPresentationMode == .drawer else { return }
         dismissAnimated()
     }
 
@@ -358,7 +325,7 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
             let reducedHeight = current.height * 0.70
             let height = min(max(280, reducedHeight), min(visible.height * 0.52, 560))
             let x = visible.minX + inset
-            let y: CGFloat = (edge == .top) ? (visible.maxY - height) : (visible.minY + inset)
+            let y: CGFloat = (edge == .top) ? (visible.maxY - height + 2) : (visible.minY + inset)
             return NSRect(x: x, y: y, width: width, height: height)
         case .left, .right:
             let height = max(320, visible.height - inset * 2)
@@ -416,8 +383,6 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
 
 private final class ClipboardDrawerPanel: NSPanel {
     var onEscapePressed: (() -> Void)?
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { false }
 
     override func keyDown(with event: NSEvent) {
         if event.keyCode == 53 {

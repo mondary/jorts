@@ -13,7 +13,6 @@ final class AppSettings: ObservableObject {
         static let inlineCalculations = "inline-calculations"
         static let inlineBrandIcons = "inline-brand-icons"
         static let clipboardDrawerEdge = "clipboard-drawer-edge"
-        static let clipboardPresentationMode = "clipboard-presentation-mode"
         static let clipboardMaxItems = "clipboard-max-items"
         static let clipboardMaxAgeDays = "clipboard-max-age-days"
         static let clipboardSourceMode = "clipboard-source-mode"
@@ -66,10 +65,6 @@ final class AppSettings: ObservableObject {
     @Published var clipboardDrawerEdge: ClipboardDrawerEdge {
         didSet { defaults.set(clipboardDrawerEdge.rawValue, forKey: Keys.clipboardDrawerEdge) }
     }
-    
-    @Published var clipboardPresentationMode: ClipboardPresentationMode {
-        didSet { defaults.set(clipboardPresentationMode.rawValue, forKey: Keys.clipboardPresentationMode) }
-    }
 
     @Published var clipboardMaxItems: Int {
         didSet { defaults.set(clipboardMaxItems, forKey: Keys.clipboardMaxItems) }
@@ -105,7 +100,6 @@ final class AppSettings: ObservableObject {
             Keys.inlineCalculations: true,
             Keys.inlineBrandIcons: true,
             Keys.clipboardDrawerEdge: ClipboardDrawerEdge.top.rawValue,
-            Keys.clipboardPresentationMode: ClipboardPresentationMode.drawer.rawValue,
             Keys.clipboardMaxItems: 5000,
             Keys.clipboardMaxAgeDays: 365,
             Keys.clipboardSourceMode: ClipboardSourceMode.allowAll.rawValue
@@ -126,8 +120,6 @@ final class AppSettings: ObservableObject {
         inlineBrandIcons = defaults.bool(forKey: Keys.inlineBrandIcons)
         let edgeRaw = defaults.string(forKey: Keys.clipboardDrawerEdge) ?? ClipboardDrawerEdge.top.rawValue
         clipboardDrawerEdge = ClipboardDrawerEdge(rawValue: edgeRaw) ?? .top
-        let modeRaw = defaults.string(forKey: Keys.clipboardPresentationMode) ?? ClipboardPresentationMode.drawer.rawValue
-        clipboardPresentationMode = ClipboardPresentationMode(rawValue: modeRaw) ?? .drawer
         // Migration floor for existing installs: keep at least 5000 items / 365 days
         // unless the user explicitly sets higher values later.
         clipboardMaxItems = max(5000, defaults.integer(forKey: Keys.clipboardMaxItems))
@@ -215,13 +207,6 @@ enum ClipboardSourceMode: String, CaseIterable, Identifiable {
     case allowAll
     case blockList
     case allowList
-
-    var id: String { rawValue }
-}
-
-enum ClipboardPresentationMode: String, CaseIterable, Identifiable {
-    case drawer
-    case window
 
     var id: String { rawValue }
 }
