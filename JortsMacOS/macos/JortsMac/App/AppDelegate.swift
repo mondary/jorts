@@ -23,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         FontRegistrar.registerBundledFonts()
+        ensureApplicationIconForDirectRuns()
         observeSettings()
         buildMainMenu()
         manager.onShowList = { [weak self] in self?.showNotesList(nil) }
@@ -32,6 +33,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         donateSpotlightActivities()
         clipboard.start()
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func ensureApplicationIconForDirectRuns() {
+        // When launched via `swift run`, the process can miss bundle icon metadata
+        // and appear blank in Cmd+Tab. Provide a deterministic fallback icon.
+        if NSApp.applicationIconImage.size.width > 0, NSApp.applicationIconImage.size.height > 0 {
+            return
+        }
+
+        let candidates = [
+            Bundle.main.url(forResource: "Jorts", withExtension: "icns"),
+            Bundle.main.url(forResource: "JortsStatus", withExtension: "png"),
+            URL(fileURLWithPath: #filePath)
+                .deletingLastPathComponent() // App
+                .deletingLastPathComponent() // JortsMac
+                .deletingLastPathComponent() // macos
+                .deletingLastPathComponent() // JortsMacOS
+                .deletingLastPathComponent() // repo root
+                .appendingPathComponent("submodules/jorts/data/icons/default/hicolor/512.png")
+        ].compactMap { $0 }
+
+        for url in candidates {
+            if let image = NSImage(contentsOf: url), image.size.width > 0, image.size.height > 0 {
+                NSApp.applicationIconImage = image
+                return
+            }
+        }
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {

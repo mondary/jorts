@@ -47,6 +47,7 @@
   - contraste texte auto
   - prévisualisation des couleurs
 - Clipboard drawer global:
+  - refonte visuelle inspirée `deck2.html` (header/toolbar/viewport/cartes/actions)
   - capture texte, URL, images, fichiers et couleurs hex
   - historique persistant dans le dossier de stockage
   - pictogrammes de l'application source pour chaque item
@@ -65,6 +66,14 @@
   - `Esc` en 2 temps:
     - 1er `Esc`: reset contexte (catégorie/filtres/recherche/sélection) vers la carte la plus récente
     - 2e `Esc`: fermeture du drawer
+  - catégories simplifiées par pictos: Tout / Images / Texte / URL
+  - bouton dédié pour ouvrir la fenêtre `PKClipboard` depuis le drawer
+  - recherche: animation d'ouverture au clic, `Cmd+F`, et à la première frappe
+  - correction saisie recherche: plus d'écrasement de la 1re lettre
+  - bande animée basse en pleine largeur du drawer
+  - cartes format plus carré/polaroid
+  - ouverture drawer priorise l'écran actif (multi-écrans)
+  - fallback icône app au lancement direct (`swift run`) pour `Cmd+Tab`
  - Fenêtre standard PKClipboard:
   - taille par défaut: 1200x1000
   - raccourcis visuels limités aux 9 premières tuiles (`⌘1` ... `⌘9`)

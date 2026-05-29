@@ -123,30 +123,27 @@ struct ClipboardView: View {
             deck2Search
 
             HStack(spacing: 4) {
-                Deck2FilterPill(title: localizedString("filter_all"), dot: Color(red: 124/255, green: 130/255, blue: 141/255), isSelected: kind == .all) {
+                Deck2FilterPill(title: localizedString("filter_all"), systemName: "square.grid.2x2", isSelected: kind == .all) {
                     kind = .all
                     selectedSource = .all
                 }
-                Deck2FilterPill(title: localizedString("filter_text"), dot: Color(red: 59/255, green: 130/255, blue: 246/255), isSelected: kind == .text && selectedSource == .all) {
-                    kind = .text
-                    selectedSource = .all
-                }
-                Deck2FilterPill(title: localizedString("filter_image"), dot: Color(red: 16/255, green: 185/255, blue: 129/255), isSelected: kind == .image) {
+                Deck2FilterPill(title: localizedString("filter_image"), systemName: "photo", isSelected: kind == .image) {
                     kind = .image
                     selectedSource = .all
                 }
-                Deck2FilterPill(title: localizedString("filter_files"), dot: Color(red: 139/255, green: 92/255, blue: 246/255), isSelected: kind == .file) {
-                    kind = .file
+                Deck2FilterPill(title: localizedString("filter_text"), systemName: "text.alignleft", isSelected: kind == .text && selectedSource == .all) {
+                    kind = .text
                     selectedSource = .all
                 }
-                Deck2FilterPill(title: localizedString("notes"), dot: Color(red: 239/255, green: 68/255, blue: 68/255), isSelected: selectedSource == .notes) {
-                    kind = .text
-                    selectedSource = .notes
+                Deck2FilterPill(title: localizedString("filter_url"), systemName: "link", isSelected: kind == .url) {
+                    kind = .url
+                    selectedSource = .all
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 12) {
+                Deck2IconButton(systemName: "macwindow", help: localizedString("clipboard_open_window"), action: onToggleStandardWindow)
                 Deck2IconButton(systemName: "gearshape", help: localizedString("preferences"), action: onShowPreferences)
                 Deck2IconButton(
                     systemName: clipboard.isPaused ? "play.fill" : "pause.fill",
@@ -188,8 +185,11 @@ struct ClipboardView: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color(red: 58/255, green: 63/255, blue: 71/255))
                     .frame(width: 24, height: 24)
+                    .background(Color.black.opacity(0.04))
+                    .clipShape(Circle())
             }
             .buttonStyle(.plain)
+            .contentShape(Circle())
             .padding(.leading, 4)
 
             if searchExpanded {
@@ -305,6 +305,7 @@ struct ClipboardView: View {
                 .font(.system(size: 12, weight: .medium, design: .monospaced))
                 .foregroundStyle(Color(red: 60/255, green: 64/255, blue: 73/255).opacity(0.25))
                 .tracking(2.2)
+                .frame(width: geo.size.width * 2, alignment: .leading)
                 .offset(x: stripAnimated ? -(geo.size.width) : 0)
                 .animation(.linear(duration: 50).repeatForever(autoreverses: false), value: stripAnimated)
             }
@@ -313,6 +314,7 @@ struct ClipboardView: View {
             }
         }
         .frame(height: 40)
+        .frame(maxWidth: .infinity)
         .overlay(alignment: .top) {
             Rectangle()
                 .fill(Color.black.opacity(0.02))
@@ -675,7 +677,7 @@ struct ClipboardView: View {
             return true
         }
 
-        if !searchFocused, let typed = searchText(from: event) {
+        if let typed = searchText(from: event) {
             if !searchExpanded {
                 withAnimation(.timingCurve(0.32, 0.72, 0, 1, duration: 0.35)) {
                     searchExpanded = true
@@ -865,8 +867,8 @@ private struct NoteDeckCard: View {
     let onOpen: () -> Void
     @State private var hovering = false
 
-    private let cardWidth: CGFloat = 216
-    private let cardHeight: CGFloat = 304
+    private let cardWidth: CGFloat = 232
+    private let cardHeight: CGFloat = 268
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -2130,16 +2132,15 @@ private func appIcon(bundleID: String) -> NSImage? {
 
 private struct Deck2FilterPill: View {
     let title: String
-    let dot: Color
+    let systemName: String
     let isSelected: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
-                Circle()
-                    .fill(isSelected ? Color(red: 176/255, green: 181/255, blue: 190/255) : dot)
-                    .frame(width: 8, height: 8)
+                Image(systemName: systemName)
+                    .font(.system(size: 11, weight: .semibold))
 
                 Text(title)
                     .font(.system(size: 13, weight: .semibold))
@@ -2241,8 +2242,8 @@ private struct DeckCard: View {
     let onLoadURLPreviewImage: (String) -> Data?
     @State private var hovering = false
 
-    private let cardWidth: CGFloat = 216
-    private let cardHeight: CGFloat = 304
+    private let cardWidth: CGFloat = 232
+    private let cardHeight: CGFloat = 268
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {

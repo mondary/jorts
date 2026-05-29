@@ -7,8 +7,10 @@ Status: in progress.
 
 - [x] Clipboard capture (text/url/image/files) + source app metadata
 - [x] Drawer UI (clean-room Deck/PastePal-inspired) + edge position (top/bottom/left/right)
+- [x] Drawer deck2 pass: header/toolbar/viewport/actions rebuilt in one block
 - [x] Global shortcut `Cmd+Shift+V` to toggle clipboard drawer
 - [x] Keyboard navigation + shortcuts (left/right, Enter, Cmd+Enter, Esc, Cmd+F)
+- [x] Drawer search UX: animated open on first typed character + no first-letter overwrite
 - [x] PKClipboard standard window: keyboard navigation (left/right/up/down + Enter)
 - [x] PKClipboard standard window: `Esc` closes the standard window
 - [x] PKClipboard standard window: shortcut badges limited to first 9 cards (`⌘1...⌘9`)
@@ -21,6 +23,12 @@ Status: in progress.
 - [x] Clipboard drawer + PKClipboard: `Cmd+C` copies selected card to system pasteboard
 - [x] Shortcut added for PKClipboard standard window (`Cmd+Option+V`)
 - [x] Drawer: shortcut badges restored on first 9 cards (`⌘1...⌘9`)
+- [x] Drawer categories simplified to `All / Images / Text / URL` with icon pills
+- [x] Drawer action bar includes direct button to open `PKClipboard` standard window
+- [x] Drawer bottom animated strip spans full width
+- [x] Drawer cards shifted to more square/polaroid ratio
+- [x] Drawer opens on active screen in multi-display setups
+- [x] Cmd+Tab icon fallback when app is launched via `swift run`
 - [x] PKClipboard: right-click context menu on cards for tags (add/remove/create)
 - [x] PKClipboard: double-click opens expanded preview with full content
 - [x] PKClipboard: persistent tags + sidebar tag filtering across sources
