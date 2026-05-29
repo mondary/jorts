@@ -84,6 +84,8 @@
   - `Cmd+Option+V` branché en global hotkey (ouverture directe PKClipboard)
   - preview agrandi en popover, fermeture par clic extérieur + `Esc`
   - cartes notes rendues en style sticky note (fond/thème distinctifs)
+  - boutons rapides `Paramètres` + `Ouvrir dossier local` ajoutés dans drawer et PKClipboard
+  - gestion corbeille notes enrichie: clic droit par ligne `Restaurer` / `Supprimer`
 - Persistance et stockage:
   - stockage Markdown par note
   - métadonnées note en fin de fichier (`<!-- JORTS_META ... -->`)

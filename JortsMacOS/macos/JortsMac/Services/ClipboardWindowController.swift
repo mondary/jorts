@@ -17,11 +17,21 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
     private var mouseGlobalMonitor: Any?
     private var isClipboardViewAtDefaultContext = true
     private var standardWindowController: NSWindowController?
+    private let onShowPreferences: () -> Void
+    private let onOpenFinder: () -> Void
 
-    init(manager: NoteManager, settings: AppSettings, clipboard: ClipboardManager) {
+    init(
+        manager: NoteManager,
+        settings: AppSettings,
+        clipboard: ClipboardManager,
+        onShowPreferences: @escaping () -> Void,
+        onOpenFinder: @escaping () -> Void
+    ) {
         self.manager = manager
         self.settings = settings
         self.clipboard = clipboard
+        self.onShowPreferences = onShowPreferences
+        self.onOpenFinder = onOpenFinder
 
         let panel = ClipboardDrawerPanel(
             contentRect: NSRect(x: 0, y: 0, width: 980, height: 380),
@@ -90,7 +100,9 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
             },
             onToggleStandardWindow: { [weak self] in
                 self?.toggleStandardClipboardWindow()
-            }
+            },
+            onShowPreferences: { [weak self] in self?.onShowPreferences() },
+            onOpenFinder: { [weak self] in self?.onOpenFinder() }
         )
     }
 
@@ -214,7 +226,9 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
             },
             onLoadURLPreviewImage: { [weak clipboard] name in
                 clipboard?.loadURLPreviewImageData(named: name)
-            }
+            },
+            onShowPreferences: { [weak self] in self?.onShowPreferences() },
+            onOpenFinder: { [weak self] in self?.onOpenFinder() }
         )
     }
 

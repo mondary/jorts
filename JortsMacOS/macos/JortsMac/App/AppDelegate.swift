@@ -456,14 +456,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func showClipboardWindow(_ sender: Any?) {
         manager.hideAllNotes()
         if clipboardWindowController == nil {
-            clipboardWindowController = ClipboardWindowController(manager: manager, settings: settings, clipboard: clipboard)
+            clipboardWindowController = ClipboardWindowController(
+                manager: manager,
+                settings: settings,
+                clipboard: clipboard,
+                onShowPreferences: { [weak self] in self?.showPreferences(nil) },
+                onOpenFinder: { [weak self] in
+                    guard let self else { return }
+                    NSWorkspace.shared.activateFileViewerSelecting([self.manager.storageURL])
+                }
+            )
         }
         clipboardWindowController?.showStandardClipboardWindow()
     }
 
     private func showClipboard(targetApp: NSRunningApplication?, targetWindow: NSWindow?, targetResponder: NSResponder?) {
         if clipboardWindowController == nil {
-            clipboardWindowController = ClipboardWindowController(manager: manager, settings: settings, clipboard: clipboard)
+            clipboardWindowController = ClipboardWindowController(
+                manager: manager,
+                settings: settings,
+                clipboard: clipboard,
+                onShowPreferences: { [weak self] in self?.showPreferences(nil) },
+                onOpenFinder: { [weak self] in
+                    guard let self else { return }
+                    NSWorkspace.shared.activateFileViewerSelecting([self.manager.storageURL])
+                }
+            )
         }
         clipboardWindowController?.toggle(
             targetApp: targetApp,

@@ -8,6 +8,8 @@ struct NotesListView: View {
     let onOpenFinder: () -> Void
     let onNoteSelected: (UUID) -> Void
     let onOpenTrashed: (UUID) -> Void
+    let onRestoreTrashed: (UUID) -> Void
+    let onDeleteTrashedPermanently: (UUID) -> Void
 
     @State private var selection: ListSelection = .notes
 
@@ -117,6 +119,15 @@ struct NotesListView: View {
                     ForEach(trash) { item in
                         TrashedNoteRow(item: item)
                             .onTapGesture { onOpenTrashed(item.id) }
+                            .contextMenu {
+                                Button(localizedString("restore")) {
+                                    onRestoreTrashed(item.id)
+                                }
+                                Divider()
+                                Button(localizedString("delete"), role: .destructive) {
+                                    onDeleteTrashedPermanently(item.id)
+                                }
+                            }
                         Divider()
                     }
                 }

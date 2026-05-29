@@ -26,7 +26,9 @@ final class NotesListWindowController: NSWindowController, NSWindowDelegate {
             onShowPreferences: onShowPreferences,
             onOpenFinder: { NSWorkspace.shared.activateFileViewerSelecting([manager.storageURL]) },
             onNoteSelected: onNoteSelected,
-            onOpenTrashed: { _ in }
+            onOpenTrashed: { _ in },
+            onRestoreTrashed: { _ in },
+            onDeleteTrashedPermanently: { _ in }
         ))
 
         let window = NSWindow(
@@ -74,7 +76,19 @@ final class NotesListWindowController: NSWindowController, NSWindowDelegate {
                     self?.close()
                 }
             },
-            onOpenTrashed: { [weak self] in self?.openTrashedNote($0) }
+            onOpenTrashed: { [weak self] in self?.openTrashedNote($0) },
+            onRestoreTrashed: { [weak self] trashedID in
+                self?.manager.restoreFromTrash(trashedID)
+                self?.trashedPreviewControllers[trashedID]?.close()
+                self?.trashedPreviewControllers.removeValue(forKey: trashedID)
+                self?.updateListView()
+            },
+            onDeleteTrashedPermanently: { [weak self] trashedID in
+                self?.manager.deletePermanently(trashedID)
+                self?.trashedPreviewControllers[trashedID]?.close()
+                self?.trashedPreviewControllers.removeValue(forKey: trashedID)
+                self?.updateListView()
+            }
         )
     }
 

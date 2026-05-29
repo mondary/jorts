@@ -30,6 +30,8 @@ Status: in progress.
 - [x] PKClipboard: tag/app counters aligned trailing for cleaner sidebar layout
 - [x] PKClipboard: global hotkey reliability for `Cmd+Option+V`
 - [x] PKClipboard: expanded preview closes on outside click + `Esc`
+- [x] Clipboard drawer + PKClipboard: quick actions for `Settings` and `Open local folder`
+- [x] Notes trash list: right-click row actions `Restore` / `Delete permanently`
 - [x] Persist clipboard history to disk (alongside notes storage)
 - [x] App icons per clipboard item (source pictos)
 - [x] Image thumbnails shown entirely (no crop) + lightbox

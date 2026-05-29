@@ -20,6 +20,8 @@ struct ClipboardView: View {
     let shouldHandleKeyboard: () -> Bool
     let onContextStateChanged: (Bool) -> Void
     let onToggleStandardWindow: () -> Void
+    let onShowPreferences: () -> Void
+    let onOpenFinder: () -> Void
 
     @State private var query: String = ""
     @State private var selectedSource: SourceFilter = .all
@@ -261,6 +263,20 @@ struct ClipboardView: View {
             }
             .buttonStyle(.plain)
             .help(localizedString("export"))
+
+            Button(action: onOpenFinder) {
+                Image(systemName: "folder")
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .help(localizedString("open_notes_folder"))
+
+            Button(action: onShowPreferences) {
+                Image(systemName: "gearshape")
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .help(localizedString("preferences"))
 
             Button {
                 showClearConfirmation = true
@@ -668,6 +684,8 @@ struct ClipboardStandardWindowView: View {
     let onCopyItem: (ClipboardManager.Item) -> Void
     let onLoadFavicon: (String) -> Data?
     let onLoadURLPreviewImage: (String) -> Data?
+    let onShowPreferences: () -> Void
+    let onOpenFinder: () -> Void
 
     @State private var selectedSource: SourceFilter = .all
     @State private var selectedTag: String? = nil
@@ -906,6 +924,20 @@ struct ClipboardStandardWindowView: View {
                 .buttonStyle(.plain)
             }
             Spacer()
+            Button(action: onOpenFinder) {
+                Image(systemName: "folder")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help(localizedString("open_notes_folder"))
+
+            Button(action: onShowPreferences) {
+                Image(systemName: "gearshape")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help(localizedString("preferences"))
+
             Image(systemName: "line.3.horizontal.decrease.circle")
                 .foregroundStyle(.secondary)
             HStack(spacing: 6) {
