@@ -1,4 +1,4 @@
-# JortsMacOS
+# PKbrain
 
 ![Project icon](icon.png)
 
@@ -79,24 +79,24 @@
   - quick actions
   - settings/about/restart/quit access
 - Repository refactor:
-  - `JortsMacOS/` for app source
+  - `PKbrain/` for app source
   - `submodules/jorts` for upstream inspiration
   - `submodules/developer-icons` for technical icon source assets
   - `releases/` for artifacts
 
 ## 🧠 Usage
-- Dev run: `./JortsMacOS/run-dev.sh`
+- Dev run: `./PKbrain/run-dev.sh`
 - Open command palette: `Cmd+K`
 - Open preferences: `Cmd+,`
 - Global shortcuts (defaults, configurable):
   - `Cmd+Shift+Space`: focus last note
   - `Ctrl+Shift+Space`: create new note
 - Spotlight / Raycast / Alfred integration (URLs):
-  - New note: `jortsmacos://new`
-  - Reopen last note: `jortsmacos://last`
-  - Show notes list: `jortsmacos://list`
-  - Open clipboard: `jortsmacos://clipboard`
-- Default storage folder: `~/Documents/JortsMacOS/`
+  - New note: `pkbrain://new`
+  - Reopen last note: `pkbrain://last`
+  - Show notes list: `pkbrain://list`
+  - Open clipboard: `pkbrain://clipboard`
+- Default storage folder: `~/Documents/PKbrain/`
 
 ### Clipboard drawer
 - Toggle: `Cmd+Shift+V`
@@ -117,21 +117,21 @@
 - Clipboard drawer position.
 
 ## 🧾 Commands
-- `./JortsMacOS/run-dev.sh`: build + package + run
+- `./PKbrain/run-dev.sh`: build + package + run
 - `swift build`: SwiftPM build
 
 ## 📦 Build & Package
-- `JortsMacOS/script/build_and_run.sh` rebuilds the local `.app` bundle.
-- The test bundle is generated at `releases/JortsMacOS.app`.
-- `JortsMacOS/dist` points to `../releases`.
-- SwiftPM target path: `JortsMacOS/macos/JortsMac`.
+- `PKbrain/script/build_and_run.sh` rebuilds the local `.app` bundle.
+- The test bundle is generated at `releases/PKbrain.app`.
+- `PKbrain/dist` points to `../releases`.
+- SwiftPM target path: `PKbrain/macos/PKbrain`.
 
 ## 🧪 Install (Antigravity)
 - Not used for this project at this stage.
 
 ## 🧾 Changelog
 - `182f57a`: inline icons added to notes.
-- `d06eea4`: major repository layout refactor (`JortsMacOS/`, `submodules/jorts`, `releases`).
+- `d06eea4`: major repository layout refactor (`PKbrain/`, `submodules/jorts`, `releases`).
 - `f9c95c5`: configurable global shortcuts + unified dev run + default storage updates.
 - `45a7297`: new shortcuts + translation updates.
 - `8e97ab3`: command palette added.

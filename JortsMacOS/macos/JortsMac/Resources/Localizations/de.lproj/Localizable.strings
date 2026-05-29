@@ -3,7 +3,7 @@
 */
 
 /* Preferences */
-"preferences_title" = "Einstellungen für Ihre Jorts";
+"preferences_title" = "Einstellungen für PKbrain";
 "general" = "Allgemein";
 "list_item_prefix" = "Listenelementpräfix";
 "list_item_prefix_hint" = "Wenn leer, wird der Listenbutton ausgeblendet.";
@@ -16,9 +16,9 @@
 "display_options" = "Anzeigeoptionen";
 
 /* About */
-"app_name" = "Jorts_MacOS";
+"app_name" = "PKbrain";
 "app_version" = "Version 4.2.0 macOS-Port";
-"about_header" = "Jorts_MacOS";
+"about_header" = "PKbrain";
 "about_description" = "Native macOS-Swift-Portierung";
 "links" = "Links";
 "original_project" = "Originalprojekt";
@@ -38,9 +38,9 @@
 "show_all_notes" = "Alle Notizen anzeigen";
 "save_all_notes" = "Alle Notizen speichern";
 "settings" = "Einstellungen…";
-"about" = "Über Jorts";
-"restart" = "Jorts neu starten";
-"quit" = "Jorts beenden";
+"about" = "Über PKbrain";
+"restart" = "PKbrain neu starten";
+"quit" = "PKbrain beenden";
 "show_list" = "Liste anzeigen";
 
 /* Note Window */
@@ -80,7 +80,7 @@
 "tangerine" = "Mandarine";
 
 /* Status Menu */
-"jorts_tooltip" = "Jorts";
+"jorts_tooltip" = "PKbrain";
 
 "preferences" = "Einstellungen…";
 "shortcuts" = "Tastenkürzel";
@@ -126,7 +126,7 @@
 "typing_effect_pop" = "Pop";
 "typing_effect_glow" = "Leuchten";
 "create_new_note" = "Neue Notiz erstellen";
-"about_jorts" = "Über Jorts";
+"about_jorts" = "Über PKbrain";
 "about_pkbrain" = "Über PKbrain";
 "restart_pkbrain" = "PKbrain neu starten";
 "quit_pkbrain" = "PKbrain beenden";

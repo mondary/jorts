@@ -3,7 +3,7 @@
 */
 
 /* Preferences */
-"preferences_title" = "Preferences for your Jorts";
+"preferences_title" = "Preferences for PKbrain";
 "general" = "General";
 "list_item_prefix" = "List item prefix";
 "list_item_prefix_hint" = "If left empty, the list button is hidden.";
@@ -16,9 +16,9 @@
 "display_options" = "Display Options";
 
 /* About */
-"app_name" = "Jorts_MacOS";
+"app_name" = "PKbrain";
 "app_version" = "Version 4.2.0 macOS port";
-"about_header" = "Jorts_MacOS";
+"about_header" = "PKbrain";
 "about_description" = "Native macOS Swift port";
 "links" = "Links";
 "original_project" = "Original Project";
@@ -38,17 +38,17 @@
 "show_all_notes" = "Show All Notes";
 "save_all_notes" = "Save All Notes";
 "settings" = "Settings…";
-"about" = "About Jorts";
-"restart" = "Restart Jorts";
-"quit" = "Quit Jorts";
+"about" = "About PKbrain";
+"restart" = "Restart PKbrain";
+"quit" = "Quit PKbrain";
 "show_list" = "Show List";
 
 /* Note Window */
 "untitled" = "Untitled";
 "title_placeholder" = "Title";
 "save" = "Save all notes";
-"new_sticky_note" = "New sticky note";
-"delete_sticky_note" = "Delete sticky note";
+"new_sticky_note" = "New PKsticky";
+"delete_sticky_note" = "Delete PKsticky";
 "close_note_window" = "Close note window";
 "toggle_list" = "Toggle list";
 "toggle_monospace" = "Toggle monospace";
@@ -80,7 +80,7 @@
 "tangerine" = "Tangerine";
 
 /* Status Menu */
-"jorts_tooltip" = "Jorts";
+"jorts_tooltip" = "PKbrain";
 
 /* Full UI */
 "preferences" = "Preferences…";
@@ -127,7 +127,7 @@
 "typing_effect_pop" = "Pop";
 "typing_effect_glow" = "Glow";
 "create_new_note" = "Create New Note";
-"about_jorts" = "About Jorts";
+"about_jorts" = "About PKbrain";
 "about_pkbrain" = "About PKbrain";
 "restart_pkbrain" = "Restart PKbrain";
 "quit_pkbrain" = "Quit PKbrain";

@@ -252,7 +252,7 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
             dismissAnimated()
         } else {
             // Remember the app/window that had the insertion cursor before the
-            // drawer opened. This must happen before Jorts activates the panel.
+            // drawer opened. This must happen before PKbrain activates the panel.
             lastFrontmostApp = targetApp ?? NSWorkspace.shared.frontmostApplication
             anchorWindow = targetWindow
             rememberFocus(targetWindow: targetWindow, targetResponder: targetResponder, excluding: window)
@@ -369,7 +369,7 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
 
         if app.bundleIdentifier == Bundle.main.bundleIdentifier {
             NSApp.activate(ignoringOtherApps: true)
-            restoreLastJortsFocus()
+            restoreLastPKbrainFocus()
         } else {
             app.unhide()
             app.activate(options: [.activateIgnoringOtherApps])
@@ -400,7 +400,7 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
             guard let self else { return }
             if app.bundleIdentifier == Bundle.main.bundleIdentifier {
-                self.restoreLastJortsFocus()
+                self.restoreLastPKbrainFocus()
             } else {
                 // Browser/web apps such as Gmail usually require a normal HID
                 // Cmd+V after the app is frontmost; posting directly to PID can
@@ -410,7 +410,7 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         }
     }
 
-    private func restoreLastJortsFocus() {
+    private func restoreLastPKbrainFocus() {
         guard let lastKeyWindow else { return }
         lastKeyWindow.makeKeyAndOrderFront(nil)
         if let responder = lastFirstResponder {

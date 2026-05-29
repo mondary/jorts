@@ -3,7 +3,7 @@
 */
 
 /* Preferences */
-"preferences_title" = "Préférences pour vos Jorts";
+"preferences_title" = "Préférences de PKbrain";
 "general" = "Général";
 "list_item_prefix" = "Préfixe des éléments de liste";
 "list_item_prefix_hint" = "Si laissé vide, le bouton de liste sera masqué.";
@@ -16,9 +16,9 @@
 "display_options" = "Options d'affichage";
 
 /* About */
-"app_name" = "Jorts_MacOS";
+"app_name" = "PKbrain";
 "app_version" = "Version 4.2.0 port macOS";
-"about_header" = "Jorts_MacOS";
+"about_header" = "PKbrain";
 "about_description" = "Portage natif macOS en Swift";
 "links" = "Liens";
 "original_project" = "Projet original";
@@ -38,17 +38,17 @@
 "show_all_notes" = "Afficher toutes les notes";
 "save_all_notes" = "Enregistrer toutes les notes";
 "settings" = "Paramètres…";
-"about" = "À propos de Jorts";
-"restart" = "Redémarrer Jorts";
-"quit" = "Quitter Jorts";
+"about" = "À propos de PKbrain";
+"restart" = "Redémarrer PKbrain";
+"quit" = "Quitter PKbrain";
 "show_list" = "Afficher la liste";
 
 /* Note Window */
 "untitled" = "Sans titre";
 "title_placeholder" = "Titre";
 "save" = "Enregistrer toutes les notes";
-"new_sticky_note" = "Nouvelle note autocollante";
-"delete_sticky_note" = "Supprimer la note autocollante";
+"new_sticky_note" = "Nouveau PKsticky";
+"delete_sticky_note" = "Supprimer le PKsticky";
 "close_note_window" = "Fermer la fenêtre de note";
 "toggle_list" = "Activer/désactiver la liste";
 "toggle_monospace" = "Activer/désactiver monospace";
@@ -80,7 +80,7 @@
 "tangerine" = "Mandarine";
 
 /* Status Menu */
-"jorts_tooltip" = "Jorts";
+"jorts_tooltip" = "PKbrain";
 
 /* Interface complète */
 "preferences" = "Préférences…";
@@ -127,7 +127,7 @@
 "typing_effect_pop" = "Pop";
 "typing_effect_glow" = "Lueur";
 "create_new_note" = "Créer une nouvelle note";
-"about_jorts" = "À propos de Jorts";
+"about_jorts" = "À propos de PKbrain";
 "about_pkbrain" = "À propos de PKbrain";
 "restart_pkbrain" = "Redémarrer PKbrain";
 "quit_pkbrain" = "Quitter PKbrain";

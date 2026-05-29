@@ -1,4 +1,4 @@
-# JortsMacOS
+# PKbrain
 ## 🔥 V3 - MAJOR UPDATE
 
 ![Project icon](icon.png)
@@ -108,24 +108,24 @@
   - entrée dédiée: afficher le tiroir presse-papiers
   - accès settings/about/restart/quit
 - Refactor repo:
-  - `JortsMacOS/` pour le code app
+  - `PKbrain/` pour le code app
   - `submodules/jorts` pour la source d’inspiration
   - `submodules/developer-icons` pour la source des icônes techniques
   - `releases/` dédié artefacts
 
 ## 🧠 Utilisation
-- Lancement dev: `./JortsMacOS/run-dev.sh`
+- Lancement dev: `./PKbrain/run-dev.sh`
 - Ouvrir la palette: `Cmd+K`
 - Préférences: `Cmd+,`
 - Raccourcis globaux (par défaut, configurables):
   - `Cmd+Shift+Space` : rouvrir / focus la dernière note
   - `Ctrl+Shift+Space` : créer une nouvelle note
 - Intégration Spotlight / Raycast / Alfred (URLs):
-  - Nouvelle note: `jortsmacos://new`
-  - Rouvrir la dernière note: `jortsmacos://last`
-  - Afficher la liste des notes: `jortsmacos://list`
-  - Ouvrir le clipboard: `jortsmacos://clipboard`
-- Dossier de stockage par défaut: `~/Documents/JortsMacOS/`
+  - Nouvelle note: `pkbrain://new`
+  - Rouvrir la dernière note: `pkbrain://last`
+  - Afficher la liste des notes: `pkbrain://list`
+  - Ouvrir le clipboard: `pkbrain://clipboard`
+- Dossier de stockage par défaut: `~/Documents/PKbrain/`
 
 ### Clipboard drawer
 - Toggle: `Cmd+Shift+V`
@@ -150,21 +150,21 @@
 - Position du clipboard drawer.
 
 ## 🧾 Commandes
-- `./JortsMacOS/run-dev.sh` : build + package + run
+- `./PKbrain/run-dev.sh` : build + package + run
 - `swift build` : build SwiftPM
 
 ## 📦 Build & Package
-- Le script `JortsMacOS/script/build_and_run.sh` reconstruit le bundle `.app` local.
-- Le bundle de test est généré dans `releases/JortsMacOS.app`.
-- `JortsMacOS/dist` pointe vers `../releases`.
-- La cible SwiftPM pointe sur `JortsMacOS/macos/JortsMac`.
+- Le script `PKbrain/script/build_and_run.sh` reconstruit le bundle `.app` local.
+- Le bundle de test est généré dans `releases/PKbrain.app`.
+- `PKbrain/dist` pointe vers `../releases`.
+- La cible SwiftPM pointe sur `PKbrain/macos/PKbrain`.
 
 ## 🧪 Installation (Antigravity)
 - Non utilisé pour ce projet actuellement.
 
 ## 🧾 Changelog
 - `182f57a` : ajout icônes inline dans les notes.
-- `d06eea4` : refactor structure repo (`JortsMacOS/`, `submodules/jorts`, `releases`).
+- `d06eea4` : refactor structure repo (`PKbrain/`, `submodules/jorts`, `releases`).
 - `f9c95c5` : shortcuts globaux configurables + unification run dev + stockage par défaut.
 - `45a7297` : nouveaux raccourcis + traduction.
 - `8e97ab3` : ajout palette de commandes.
