@@ -638,6 +638,13 @@ struct ClipboardStandardWindowView: View {
     @State private var query = ""
     @State private var isSidebarCollapsed = false
     @State private var keyMonitor: Any?
+    @State private var currentPage: Int = 1
+    @State private var itemsPerPage: Int = 50
+    private let gridMinCardWidth: CGFloat = 190
+    private let gridMaxCardWidth: CGFloat = 260
+    private let gridSpacing: CGFloat = 10
+    private let gridVerticalPadding: CGFloat = 24
+    private let cardHeight: CGFloat = 170
 
     private enum SourceFilter: Equatable {
         case all
@@ -683,8 +690,10 @@ struct ClipboardStandardWindowView: View {
         .onDisappear { removeKeyMonitorIfNeeded() }
         .onChange(of: entries.map(\.id)) { ids in
             if let selectedID, ids.contains(selectedID) {
+                clampCurrentPage()
                 return
             }
+            clampCurrentPage()
             selectedID = ids.first
         }
     }
@@ -773,29 +782,37 @@ struct ClipboardStandardWindowView: View {
     }
 
     private var mainGrid: some View {
-        ScrollView(.vertical, showsIndicators: true) {
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 190, maximum: 260), spacing: 10)],
-                spacing: 10
-            ) {
-                ForEach(entries.indices, id: \.self) { index in
-                    let entry = entries[index]
-                    StandardClipboardCard(
-                        entry: entry,
-                        shortcutIndex: index + 1,
-                        isSelected: selectedID == entry.id,
-                        onSelect: { selectedID = entry.id },
-                        onOpenNote: onOpenNote,
-                        onCopyItem: onCopyItem,
-                        onCreateNoteFromItem: onCreateNoteFromItem,
-                        onLoadFavicon: onLoadFavicon,
-                        onLoadURLPreviewImage: onLoadURLPreviewImage
-                    )
+        GeometryReader { proxy in
+            ScrollView(.vertical, showsIndicators: true) {
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: gridMinCardWidth, maximum: gridMaxCardWidth), spacing: gridSpacing)],
+                    spacing: gridSpacing
+                ) {
+                    ForEach(pagedEntries.indices, id: \.self) { index in
+                        let entry = pagedEntries[index]
+                        StandardClipboardCard(
+                            entry: entry,
+                            shortcutIndex: ((currentPage - 1) * itemsPerPage) + index + 1,
+                            isSelected: selectedID == entry.id,
+                            onSelect: { selectedID = entry.id },
+                            onOpenNote: onOpenNote,
+                            onCopyItem: onCopyItem,
+                            onCreateNoteFromItem: onCreateNoteFromItem,
+                            onLoadFavicon: onLoadFavicon,
+                            onLoadURLPreviewImage: onLoadURLPreviewImage
+                        )
+                    }
                 }
+                .padding(12)
             }
-            .padding(12)
+            .background(Color.white)
+            .onAppear {
+                updateItemsPerPage(for: proxy.size)
+            }
+            .onChange(of: proxy.size) { size in
+                updateItemsPerPage(for: size)
+            }
         }
-        .background(Color.white)
     }
 
     private var footer: some View {
@@ -803,11 +820,19 @@ struct ClipboardStandardWindowView: View {
             Text("Page")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(.secondary)
-            ForEach(1...min(14, max(1, Int(ceil(Double(entries.count) / 12.0)))), id: \.self) { page in
-                Text("\(page)")
-                    .font(.system(size: 12, weight: page == 1 ? .bold : .regular))
-                    .foregroundStyle(page == 1 ? Color.primary : Color.secondary)
-                    .frame(minWidth: 16)
+            ForEach(1...min(14, max(1, totalPages)), id: \.self) { page in
+                Button {
+                    currentPage = page
+                    if let first = pagedEntries.first {
+                        selectedID = first.id
+                    }
+                } label: {
+                    Text("\(page)")
+                        .font(.system(size: 12, weight: page == currentPage ? .bold : .regular))
+                        .foregroundStyle(page == currentPage ? Color.primary : Color.secondary)
+                        .frame(minWidth: 16)
+                }
+                .buttonStyle(.plain)
             }
             Spacer()
             Image(systemName: "line.3.horizontal.decrease.circle")
@@ -960,6 +985,9 @@ struct ClipboardStandardWindowView: View {
             guard let id = selectedID, let entry = entries.first(where: { $0.id == id }) else { return true }
             performPrimaryAction(for: entry)
             return true
+        case 53: // escape
+            keyWindow.close()
+            return true
         default:
             return false
         }
@@ -980,6 +1008,32 @@ struct ClipboardStandardWindowView: View {
             onCopyItem(item)
         case .note(let note):
             onOpenNote(note.id)
+        }
+    }
+
+    private var totalPages: Int {
+        max(1, Int(ceil(Double(entries.count) / Double(itemsPerPage))))
+    }
+
+    private var pagedEntries: [GridEntry] {
+        let start = max(0, (currentPage - 1) * itemsPerPage)
+        let end = min(entries.count, start + itemsPerPage)
+        guard start < end else { return [] }
+        return Array(entries[start..<end])
+    }
+
+    private func clampCurrentPage() {
+        currentPage = min(max(1, currentPage), totalPages)
+    }
+
+    private func updateItemsPerPage(for size: CGSize) {
+        let columns = max(1, Int((size.width + gridSpacing) / (gridMinCardWidth + gridSpacing)))
+        let availableHeight = max(1, size.height - gridVerticalPadding)
+        let rows = max(1, Int((availableHeight + gridSpacing) / (cardHeight + gridSpacing)))
+        let computed = max(1, columns * rows)
+        if computed != itemsPerPage {
+            itemsPerPage = computed
+            clampCurrentPage()
         }
     }
 }
@@ -1086,8 +1140,9 @@ private struct StandardClipboardCard: View {
                 if let image = NSImage(data: data) {
                     Image(nsImage: image)
                         .resizable()
-                        .aspectRatio(contentMode: .fill)
+                        .scaledToFit()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .contentShape(Rectangle())
                         .clipped()
                 }
             case .url(let url):
@@ -1097,8 +1152,8 @@ private struct StandardClipboardCard: View {
                        let image = NSImage(data: data) {
                         Image(nsImage: image)
                             .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(height: 86)
+                            .scaledToFill()
+                            .frame(maxWidth: .infinity, minHeight: 86, maxHeight: 86)
                             .clipped()
                             .clipShape(RoundedRectangle(cornerRadius: 5))
                     }

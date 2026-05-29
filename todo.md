@@ -9,9 +9,12 @@ Status: in progress.
 - [x] Global shortcut `Cmd+Shift+V` to toggle clipboard drawer
 - [x] Keyboard navigation + shortcuts (left/right, Enter, Cmd+Enter, Esc, Cmd+F)
 - [x] PKClipboard standard window: keyboard navigation (left/right/up/down + Enter)
+- [x] PKClipboard standard window: `Esc` closes the standard window
 - [x] PKClipboard standard window: shortcut badges limited to first 9 cards (`⌘1...⌘9`)
 - [x] PKClipboard standard window: safer top/bottom layout during resize (reduced clipping)
 - [x] PKClipboard standard window: default size set to `1200x1000`
+- [x] PKClipboard standard window: functional clickable pagination
+- [x] PKClipboard standard window: dynamic items-per-page based on visible grid size
 - [x] Persist clipboard history to disk (alongside notes storage)
 - [x] App icons per clipboard item (source pictos)
 - [x] Image thumbnails shown entirely (no crop) + lightbox
