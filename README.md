@@ -77,7 +77,13 @@
   - focus clavier renforcé du drawer pour éviter saisie partagée note/clipboard
   - clic droit sur carte: menu tags (taguer/retirer/nouveau tag)
   - double-clic sur carte: aperçu agrandi consultable (texte complet, URL, fichiers, image)
+  - exception note: double-clic ouvre directement la sticky note
   - tags persistants multi-app avec filtre sidebar par tag
+  - tags aussi disponibles sur cartes notes (session PKClipboard)
+  - compteurs discrets alignés à droite pour tags et applications
+  - `Cmd+Option+V` branché en global hotkey (ouverture directe PKClipboard)
+  - preview agrandi en popover, fermeture par clic extérieur + `Esc`
+  - cartes notes rendues en style sticky note (fond/thème distinctifs)
 - Persistance et stockage:
   - stockage Markdown par note
   - métadonnées note en fin de fichier (`<!-- JORTS_META ... -->`)

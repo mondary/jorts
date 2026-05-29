@@ -14,6 +14,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var globalHotKeyNewRef: EventHotKeyRef?
     private var globalHotKeyLastRef: EventHotKeyRef?
     private var globalHotKeyClipboardRef: EventHotKeyRef?
+    private var globalHotKeyClipboardWindowRef: EventHotKeyRef?
+    private var globalHotKeyClipboardWindowFallbackRef: EventHotKeyRef?
     private var globalHotKeyHandlerRef: EventHandlerRef?
     private lazy var clipboard = ClipboardManager(
         persistence: ClipboardPersistence(baseDirectory: manager.storageURL.deletingLastPathComponent())
@@ -147,6 +149,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let signature = OSType("JRTS".fourCharCodeValue)
         let focusLastShortcut = settings.shortcut(for: .focusLastNoteGlobal)
         let newNoteShortcut = settings.shortcut(for: .newNoteGlobal)
+        let clipboardWindowShortcut = settings.shortcut(for: .showClipboardWindow)
 
         // Focus last note (or create if none)
         let newID = EventHotKeyID(signature: signature, id: 1)
@@ -184,6 +187,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         if clipboardStatus != noErr { globalHotKeyClipboardRef = nil }
 
+        // Clipboard standard window (configurable global shortcut)
+        let clipboardWindowID = EventHotKeyID(signature: signature, id: 4)
+        let clipboardWindowStatus = RegisterEventHotKey(
+            keyCode(for: clipboardWindowShortcut.key),
+            clipboardWindowShortcut.modifier.carbonFlags,
+            clipboardWindowID,
+            GetApplicationEventTarget(),
+            0,
+            &globalHotKeyClipboardWindowRef
+        )
+        if clipboardWindowStatus != noErr { globalHotKeyClipboardWindowRef = nil }
+
+        // Fallback hardcoded global shortcut to guarantee immediate availability.
+        // Cmd+Option+V.
+        let clipboardWindowFallbackID = EventHotKeyID(signature: signature, id: 5)
+        let fallbackStatus = RegisterEventHotKey(
+            UInt32(kVK_ANSI_V),
+            UInt32(cmdKey | optionKey),
+            clipboardWindowFallbackID,
+            GetApplicationEventTarget(),
+            0,
+            &globalHotKeyClipboardWindowFallbackRef
+        )
+        if fallbackStatus != noErr { globalHotKeyClipboardWindowFallbackRef = nil }
+
         installGlobalHotKeyHandlerIfNeeded()
     }
 
@@ -199,6 +227,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let globalHotKeyClipboardRef {
             UnregisterEventHotKey(globalHotKeyClipboardRef)
             self.globalHotKeyClipboardRef = nil
+        }
+        if let globalHotKeyClipboardWindowRef {
+            UnregisterEventHotKey(globalHotKeyClipboardWindowRef)
+            self.globalHotKeyClipboardWindowRef = nil
+        }
+        if let globalHotKeyClipboardWindowFallbackRef {
+            UnregisterEventHotKey(globalHotKeyClipboardWindowFallbackRef)
+            self.globalHotKeyClipboardWindowFallbackRef = nil
         }
     }
 
@@ -295,6 +331,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     targetWindow: keyWindowBeforeHandling,
                     targetResponder: firstResponderBeforeHandling
                 )
+            case 4:
+                self.showClipboardWindow(nil)
+            case 5:
+                self.showClipboardWindow(nil)
             default:
                 break
             }

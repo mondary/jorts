@@ -25,6 +25,7 @@ struct ClipboardView: View {
     @State private var selectedSource: SourceFilter = .all
     @State private var selectedTag: String? = nil
     @State private var selectedID: UUID?
+    @State private var noteTags: [UUID: [String]] = [:]
     private let deckScale: CGFloat = 0.82
     @State private var kind: ClipboardManager.Query.KindFilter = .all
     @State private var pinnedOnly: Bool = false
@@ -305,8 +306,10 @@ struct ClipboardView: View {
         for it in items {
             guard let bid = it.sourceBundleID else { continue }
             let name = it.sourceAppName ?? localizedString("unknown_source")
-            if byBundle[bid] == nil {
-                byBundle[bid] = SourceChipModel(bundleID: bid, name: name, icon: appIcon(bundleID: bid))
+            if let existing = byBundle[bid] {
+                byBundle[bid] = SourceChipModel(bundleID: existing.bundleID, name: existing.name, icon: existing.icon, count: existing.count + 1)
+            } else {
+                byBundle[bid] = SourceChipModel(bundleID: bid, name: name, icon: appIcon(bundleID: bid), count: 1)
             }
         }
         return Array(byBundle.values).sorted { $0.name.lowercased() < $1.name.lowercased() }
@@ -654,6 +657,7 @@ private struct SourceChipModel {
     let bundleID: String
     let name: String
     let icon: NSImage?
+    let count: Int
 }
 
 struct ClipboardStandardWindowView: View {
@@ -668,6 +672,7 @@ struct ClipboardStandardWindowView: View {
     @State private var selectedSource: SourceFilter = .all
     @State private var selectedTag: String? = nil
     @State private var selectedID: UUID?
+    @State private var noteTags: [UUID: [String]] = [:]
     @State private var query = ""
     @State private var isSidebarCollapsed = false
     @State private var keyMonitor: Any?
@@ -771,7 +776,7 @@ struct ClipboardStandardWindowView: View {
                 if !isSidebarCollapsed {
                     sectionTitle("Tags")
                 }
-                ForEach(allTags, id: \.self) { tag in
+                ForEach(allTagItems, id: \.name) { tag in
                     tagRow(tag)
                 }
 
@@ -800,6 +805,16 @@ struct ClipboardStandardWindowView: View {
                                     .font(.system(size: 13, weight: .medium))
                                     .lineLimit(1)
                                 Spacer(minLength: 0)
+                                Text("\(source.count)")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(
+                                        Capsule()
+                                            .fill(Color.black.opacity(0.06))
+                                    )
+                                    .frame(width: 34, alignment: .trailing)
                             }
                         }
                         .padding(.horizontal, isSidebarCollapsed ? 12 : 16)
@@ -839,7 +854,23 @@ struct ClipboardStandardWindowView: View {
                         onLoadURLPreviewImage: onLoadURLPreviewImage,
                         availableTags: allTags,
                         onAddTag: { id, tag in clipboard.addTag(tag, to: id) },
-                        onRemoveTag: { id, tag in clipboard.removeTag(tag, from: id) }
+                        onRemoveTag: { id, tag in clipboard.removeTag(tag, from: id) },
+                        noteTags: noteTags,
+                        onAddNoteTag: { id, tag in
+                            let normalized = tag.trimmingCharacters(in: .whitespacesAndNewlines)
+                            guard !normalized.isEmpty else { return }
+                            var tags = noteTags[id] ?? []
+                            if !tags.contains(where: { $0.caseInsensitiveCompare(normalized) == .orderedSame }) {
+                                tags.append(normalized)
+                                tags.sort { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+                                noteTags[id] = tags
+                            }
+                        },
+                        onRemoveNoteTag: { id, tag in
+                            var tags = noteTags[id] ?? []
+                            tags.removeAll { $0.caseInsensitiveCompare(tag) == .orderedSame }
+                            noteTags[id] = tags
+                        }
                     )
                 }
             }
@@ -932,21 +963,31 @@ struct ClipboardStandardWindowView: View {
             .padding(.bottom, 6)
     }
 
-    private func tagRow(_ title: String) -> some View {
-        let isSelected = selectedTag == title
+    private func tagRow(_ tag: TagItem) -> some View {
+        let isSelected = selectedTag == tag.name
         return Button {
-            selectedTag = (selectedTag == title) ? nil : title
+            selectedTag = (selectedTag == tag.name) ? nil : tag.name
             currentPage = 1
         } label: {
         HStack(spacing: 8) {
             Circle()
-                .fill(tagColor(for: title))
+                .fill(tagColor(for: tag.name))
                 .frame(width: 10, height: 10)
             if !isSidebarCollapsed {
-                Text(title)
+                Text(tag.name)
                     .font(.system(size: 13, weight: .medium))
                     .lineLimit(1)
                 Spacer(minLength: 0)
+                Text("\(tag.count)")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule()
+                            .fill(Color.black.opacity(0.06))
+                    )
+                    .frame(width: 34, alignment: .trailing)
             }
         }
         .padding(.horizontal, isSidebarCollapsed ? 20 : 16)
@@ -961,8 +1002,28 @@ struct ClipboardStandardWindowView: View {
     }
 
     private var allTags: [String] {
-        let set = Set(clipboard.items.flatMap(\.tags))
-        return Array(set).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        allTagItems.map(\.name)
+    }
+
+    private struct TagItem {
+        let name: String
+        let count: Int
+    }
+
+    private var allTagItems: [TagItem] {
+        var byTag: [String: Int] = [:]
+        for item in clipboard.items {
+            for tag in item.tags {
+                byTag[tag, default: 0] += 1
+            }
+        }
+        for tags in noteTags.values {
+            for tag in tags {
+                byTag[tag, default: 0] += 1
+            }
+        }
+        return byTag.map { TagItem(name: $0.key, count: $0.value) }
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
     private func tagColor(for tag: String) -> Color {
@@ -980,8 +1041,10 @@ struct ClipboardStandardWindowView: View {
         for item in clipboard.items {
             guard let bundleID = item.sourceBundleID else { continue }
             let name = item.sourceAppName ?? localizedString("unknown_source")
-            if byBundle[bundleID] == nil {
-                byBundle[bundleID] = SourceChipModel(bundleID: bundleID, name: name, icon: appIcon(bundleID: bundleID))
+            if let existing = byBundle[bundleID] {
+                byBundle[bundleID] = SourceChipModel(bundleID: existing.bundleID, name: existing.name, icon: existing.icon, count: existing.count + 1)
+            } else {
+                byBundle[bundleID] = SourceChipModel(bundleID: bundleID, name: name, icon: appIcon(bundleID: bundleID), count: 1)
             }
         }
         return Array(byBundle.values).sorted { $0.name.lowercased() < $1.name.lowercased() }
@@ -1008,14 +1071,15 @@ struct ClipboardStandardWindowView: View {
         }
 
         if selectedSource == .all || selectedSource == .notes {
-            if selectedTag != nil {
-                return output
-            }
             let notes = notesProvider().filter { note in
                 guard !needle.isEmpty else { return true }
                 return "\(note.title)\n\(note.content)".lowercased().contains(needle)
+            }.filter { note in
+                guard let selectedTag else { return true }
+                let tags = noteTags[note.id] ?? []
+                return tags.contains(where: { $0.caseInsensitiveCompare(selectedTag) == .orderedSame })
             }
-            output.append(contentsOf: notes.map { .note($0) })
+            output.append(contentsOf: notes.map { ClipboardStandardWindowView.GridEntry.note($0) })
         }
 
         return output
@@ -1187,7 +1251,11 @@ private struct StandardClipboardCard: View {
     let availableTags: [String]
     let onAddTag: (UUID, String) -> Void
     let onRemoveTag: (UUID, String) -> Void
+    let noteTags: [UUID: [String]]
+    let onAddNoteTag: (UUID, String) -> Void
+    let onRemoveNoteTag: (UUID, String) -> Void
     @State private var showExpandedPreview: Bool = false
+    @State private var previewKeyMonitor: Any?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1198,21 +1266,31 @@ private struct StandardClipboardCard: View {
             footer
         }
         .frame(height: 170)
-        .background(Color.white)
+        .background(cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(isSelected ? Color(red: 0, green: 122/255, blue: 1) : Color.black.opacity(0.06), lineWidth: isSelected ? 3 : 1.5)
+                .stroke(
+                    isSelected ? Color(red: 0, green: 122/255, blue: 1) : cardBorderColor,
+                    lineWidth: isSelected ? 3 : 1.5
+                )
         )
         .contentShape(RoundedRectangle(cornerRadius: 8))
         .onTapGesture { onSelect() }
-        .onTapGesture(count: 2) { showExpandedPreview = true }
+        .onTapGesture(count: 2) {
+            switch entry {
+            case .note(let note):
+                onOpenNote(note.id)
+            case .clipboard:
+                showExpandedPreview = true
+            }
+        }
         .contextMenu {
             contextTagMenu
         }
-        .sheet(isPresented: $showExpandedPreview) {
+        .popover(isPresented: $showExpandedPreview, attachmentAnchor: .rect(.bounds), arrowEdge: .bottom) {
             expandedPreviewView
-                .frame(minWidth: 760, minHeight: 520)
+                .frame(minWidth: 820, minHeight: 560)
         }
     }
 
@@ -1223,12 +1301,12 @@ private struct StandardClipboardCard: View {
             if shortcutIndex <= 9 {
                 Text("⌘\(shortcutIndex)")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color(red: 0, green: 122/255, blue: 1))
+                    .foregroundStyle(shortcutColor)
             }
             Spacer()
             Text(relativeTime)
                 .font(.system(size: 11))
-                .foregroundStyle(Color(NSColor.tertiaryLabelColor))
+                .foregroundStyle(timeColor)
         }
         .padding(.top, 8)
         .padding(.horizontal, 10)
@@ -1346,10 +1424,10 @@ private struct StandardClipboardCard: View {
         HStack(spacing: 6) {
             Image(systemName: footerIcon)
                 .font(.system(size: 12))
-                .foregroundStyle(Color(NSColor.tertiaryLabelColor))
+                .foregroundStyle(footerColor)
             Text(footerText)
                 .font(.system(size: 11))
-                .foregroundStyle(Color(NSColor.tertiaryLabelColor))
+                .foregroundStyle(footerColor)
                 .lineLimit(1)
             Spacer()
             if case .clipboard(let item) = entry {
@@ -1390,12 +1468,99 @@ private struct StandardClipboardCard: View {
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
+            } else if case .note(let note) = entry {
+                if let primary = (noteTags[note.id] ?? []).first {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(tagColor(for: primary))
+                            .frame(width: 10, height: 10)
+                            .overlay(Circle().stroke(Color.white.opacity(0.85), lineWidth: 1))
+                    }
+                }
+                Menu {
+                    let existing = noteTags[note.id] ?? []
+                    if !availableTags.isEmpty {
+                        ForEach(availableTags, id: \.self) { tag in
+                            if existing.contains(where: { $0.caseInsensitiveCompare(tag) == .orderedSame }) {
+                                Button("Retirer tag: \(tag)") { onRemoveNoteTag(note.id, tag) }
+                            } else {
+                                Button("Taguer: \(tag)") { onAddNoteTag(note.id, tag) }
+                            }
+                        }
+                        Divider()
+                    }
+                    Button("Nouveau tag…") {
+                        if let newTag = promptForTagName(), !newTag.isEmpty {
+                            onAddNoteTag(note.id, newTag)
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color(NSColor.tertiaryLabelColor).opacity(0.9))
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
             }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
         .frame(height: 30)
-        .background(Color.black.opacity(0.035))
+        .background(footerBackground)
+    }
+
+    private var cardBackground: Color {
+        switch entry {
+        case .note(let note):
+            return note.theme.backgroundColor
+        case .clipboard:
+            return Color.white
+        }
+    }
+
+    private var cardBorderColor: Color {
+        switch entry {
+        case .note(let note):
+            return note.theme.autoTextColorColor.opacity(0.24)
+        case .clipboard:
+            return Color.black.opacity(0.06)
+        }
+    }
+
+    private var shortcutColor: Color {
+        switch entry {
+        case .note(let note):
+            return note.theme.autoTextColorColor.opacity(0.95)
+        case .clipboard:
+            return Color(red: 0, green: 122/255, blue: 1)
+        }
+    }
+
+    private var timeColor: Color {
+        switch entry {
+        case .note(let note):
+            return note.theme.autoTextColorColor.opacity(0.72)
+        case .clipboard:
+            return Color(NSColor.tertiaryLabelColor)
+        }
+    }
+
+    private var footerColor: Color {
+        switch entry {
+        case .note(let note):
+            return note.theme.autoTextColorColor.opacity(0.82)
+        case .clipboard:
+            return Color(NSColor.tertiaryLabelColor)
+        }
+    }
+
+    private var footerBackground: Color {
+        switch entry {
+        case .note(let note):
+            return note.theme.autoTextColorColor.opacity(0.10)
+        case .clipboard:
+            return Color.black.opacity(0.035)
+        }
     }
 
     private var footerIcon: String {
@@ -1486,57 +1651,106 @@ private struct StandardClipboardCard: View {
 
     @ViewBuilder
     private var expandedPreviewView: some View {
-        switch entry {
-        case .note(let note):
-            VStack(alignment: .leading, spacing: 10) {
-                Text(note.title.isEmpty ? localizedString("empty_note") : note.title)
-                    .font(.title3.weight(.semibold))
+        VStack(spacing: 14) {
                 ScrollView {
-                    Text(note.content)
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
-                        .textSelection(.enabled)
-                }
-            }
-            .padding(18)
-        case .clipboard(let item):
-            VStack(alignment: .leading, spacing: 10) {
-                Text(item.metadataTitle ?? item.previewText)
-                    .font(.title3.weight(.semibold))
-                    .lineLimit(2)
-                ScrollView {
-                    switch item.payload {
-                    case .text(let text):
-                        Text(text)
-                            .frame(maxWidth: .infinity, alignment: .topLeading)
-                            .textSelection(.enabled)
-                    case .url(let url):
-                        Text(url.absoluteString)
-                            .frame(maxWidth: .infinity, alignment: .topLeading)
-                            .textSelection(.enabled)
-                    case .colorHex(let hex):
-                        Text(hex)
-                            .font(.system(size: 16, design: .monospaced))
-                            .frame(maxWidth: .infinity, alignment: .topLeading)
-                            .textSelection(.enabled)
-                    case .fileURLs(let urls):
-                        VStack(alignment: .leading, spacing: 8) {
-                            ForEach(urls, id: \.self) { url in
-                                Text(url.path)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .textSelection(.enabled)
+                    Group {
+                        switch entry {
+                        case .note(let note):
+                            Text(note.content)
+                        case .clipboard(let item):
+                            switch item.payload {
+                            case .text(let text):
+                                Text(text)
+                            case .url(let url):
+                                Text(url.absoluteString)
+                            case .colorHex(let hex):
+                                Text(hex)
+                                    .font(.system(size: 36, weight: .semibold, design: .monospaced))
+                            case .fileURLs(let urls):
+                                VStack(alignment: .leading, spacing: 10) {
+                                    ForEach(urls, id: \.self) { url in
+                                        Text(url.path)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                }
+                            case .imageData(let data):
+                                if let image = NSImage(data: data) {
+                                    Image(nsImage: image)
+                                        .resizable()
+                                        .scaledToFit()
+                                }
                             }
                         }
-                    case .imageData(let data):
-                        if let image = NSImage(data: data) {
-                            Image(nsImage: image)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(maxWidth: .infinity, alignment: .center)
-                        }
+                    }
+                    .font(.system(size: 18))
+                    .foregroundStyle(Color.white.opacity(0.95))
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .textSelection(.enabled)
+                    .padding(.horizontal, 34)
+                    .padding(.vertical, 30)
+                }
+
+                HStack(spacing: 10) {
+                    ForEach(metadataBadges, id: \.self) { badge in
+                        Text(badge)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Color.white.opacity(0.85))
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 5)
+                            .background(
+                                Capsule().fill(Color.white.opacity(0.16))
+                            )
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.bottom, 10)
+        }
+        .padding(14)
+        .frame(maxWidth: 920, maxHeight: 680)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.black.opacity(0.92))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                )
+        )
+        .onAppear { installPreviewKeyMonitorIfNeeded() }
+        .onDisappear { removePreviewKeyMonitorIfNeeded() }
+    }
+
+    private var metadataBadges: [String] {
+        switch entry {
+        case .note(let note):
+            var badges = ["\(note.content.count) chars", relativeTime]
+            if note.isPinned { badges.append("Pinned") }
+            return badges
+        case .clipboard(let item):
+            var badges: [String] = []
+            if let source = item.sourceAppName { badges.append(source) }
+            badges.append(item.kind.rawValue.capitalized)
+            badges.append("\(item.previewText.count) chars")
+            if !item.tags.isEmpty { badges.append("Tags: \(item.tags.joined(separator: ", "))") }
+            badges.append(relativeTime)
+            return badges
+        }
+    }
+
+    private func installPreviewKeyMonitorIfNeeded() {
+        guard previewKeyMonitor == nil else { return }
+        previewKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
+            if event.keyCode == 53 {
+                showExpandedPreview = false
+                return nil
             }
-            .padding(18)
+            return event
+        }
+    }
+
+    private func removePreviewKeyMonitorIfNeeded() {
+        if let previewKeyMonitor {
+            NSEvent.removeMonitor(previewKeyMonitor)
+            self.previewKeyMonitor = nil
         }
     }
 

@@ -24,6 +24,12 @@ Status: in progress.
 - [x] PKClipboard: right-click context menu on cards for tags (add/remove/create)
 - [x] PKClipboard: double-click opens expanded preview with full content
 - [x] PKClipboard: persistent tags + sidebar tag filtering across sources
+- [x] PKClipboard: tags also applicable to note cards (session scope)
+- [x] PKClipboard: note cards use sticky-note visual style (distinct background/theme)
+- [x] PKClipboard: double-click note opens sticky note (not expanded preview)
+- [x] PKClipboard: tag/app counters aligned trailing for cleaner sidebar layout
+- [x] PKClipboard: global hotkey reliability for `Cmd+Option+V`
+- [x] PKClipboard: expanded preview closes on outside click + `Esc`
 - [x] Persist clipboard history to disk (alongside notes storage)
 - [x] App icons per clipboard item (source pictos)
 - [x] Image thumbnails shown entirely (no crop) + lightbox
