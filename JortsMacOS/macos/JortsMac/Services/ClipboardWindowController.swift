@@ -3,6 +3,7 @@ import Carbon.HIToolbox
 import SwiftUI
 
 final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
+    private static let drawerFrameDefaultsKey = "PKbrainClipboardDrawerFrame"
     private let manager: NoteManager
     private let settings: AppSettings
     private let clipboard: ClipboardManager
@@ -277,17 +278,33 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
     private func presentAnimated() {
         guard let window else { return }
 
-        // Drawer behavior: anchored on a screen edge, with a short slide-in animation.
-        let visible = preferredVisibleFrame(fallbackWindow: window)
-        let layoutBounds = preferredLayoutBounds(fallbackWindow: window, visibleFrame: visible, edge: settings.clipboardDrawerEdge)
-        lastKnownVisibleFrame = layoutBounds
+        let activeVisibleFrame = preferredVisibleFrame(fallbackWindow: window)
+        let activeScreenFrame = preferredLayoutBounds(
+            fallbackWindow: window,
+            visibleFrame: activeVisibleFrame,
+            edge: settings.clipboardDrawerEdge
+        )
 
-        let inset: CGFloat = 0
-        let target = targetFrame(in: layoutBounds, inset: inset, edge: settings.clipboardDrawerEdge, current: window.frame.size)
+        let transitionBounds: NSRect
+        let target: NSRect
+        if let restored = restoredDrawerFrame(for: window),
+           restored.intersects(activeScreenFrame)
+        {
+            transitionBounds = restored
+            target = restored
+        } else {
+            // Drawer behavior: anchored on a screen edge, with a short slide-in animation.
+            let layoutBounds = activeScreenFrame
+            lastKnownVisibleFrame = layoutBounds
+
+            let inset: CGFloat = 0
+            transitionBounds = layoutBounds
+            target = targetFrame(in: layoutBounds, inset: inset, edge: settings.clipboardDrawerEdge, current: window.frame.size)
+        }
 
         // Start just outside the chosen edge.
         var start = target
-        start = offscreenFrame(for: target, in: layoutBounds, edge: settings.clipboardDrawerEdge)
+        start = offscreenFrame(for: target, in: transitionBounds, edge: settings.clipboardDrawerEdge)
         window.setFrame(start, display: false)
 
         window.alphaValue = 0
@@ -309,6 +326,22 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
                 window.animator().setFrame(target, display: true)
             }
         }
+    }
+
+    private func restoredDrawerFrame(for window: NSWindow) -> NSRect? {
+        guard let raw = UserDefaults.standard.string(forKey: Self.drawerFrameDefaultsKey) else { return nil }
+        let frame = NSRectFromString(raw)
+        guard frame.width >= window.minSize.width, frame.height >= window.minSize.height else { return nil }
+        // Keep frame only if it still intersects a currently connected screen.
+        let intersectsAnyScreen = NSScreen.screens.contains { screen in
+            frame.intersects(screen.visibleFrame) || frame.intersects(screen.frame)
+        }
+        return intersectsAnyScreen ? frame : nil
+    }
+
+    private func persistDrawerFrameIfVisible() {
+        guard let window, window.isVisible else { return }
+        UserDefaults.standard.set(NSStringFromRect(window.frame), forKey: Self.drawerFrameDefaultsKey)
     }
 
     private func preferredVisibleFrame(fallbackWindow: NSWindow) -> NSRect {
@@ -439,6 +472,14 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
     @objc func windowDidResignMain(_ notification: Notification) {
         guard window?.isVisible == true else { return }
         dismissAnimated()
+    }
+
+    func windowDidMove(_ notification: Notification) {
+        persistDrawerFrameIfVisible()
+    }
+
+    func windowDidEndLiveResize(_ notification: Notification) {
+        persistDrawerFrameIfVisible()
     }
 
     private func targetFrame(in visible: NSRect, inset: CGFloat, edge: ClipboardDrawerEdge, current: CGSize) -> NSRect {

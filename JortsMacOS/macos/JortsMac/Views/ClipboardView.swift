@@ -37,6 +37,8 @@ struct ClipboardView: View {
     @State private var showClearConfirmation: Bool = false
     @State private var lightboxImage: NSImage?
     @State private var quickLookURLs: [URL] = []
+    @State private var searchExpanded: Bool = false
+    @State private var stripAnimated: Bool = false
     @FocusState private var searchFocused: Bool
     @State private var keyMonitor: Any?
 
@@ -65,21 +67,25 @@ struct ClipboardView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                topRow
-                bottomBar
+                deck2WindowHeader
+                deck2Toolbar
+                deck2ScrollViewport
+                deck2BottomStrip
             }
-            .padding(.top, 0)
-            .padding(.horizontal, 2)
+            .padding(.top, 12)
+            .padding(.horizontal, 0)
             .padding(.bottom, 0)
-        }
-        .clipShape(
-            UnevenRoundedRectangle(
-                topLeadingRadius: 0,
-                bottomLeadingRadius: 12,
-                bottomTrailingRadius: 12,
-                topTrailingRadius: 0
+            .background(
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(Color(red: 223/255, green: 227/255, blue: 236/255).opacity(0.88))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 28, style: .continuous)
+                            .stroke(Color.white.opacity(0.45), lineWidth: 1)
+                    )
+                    .shadow(color: .black.opacity(0.35), radius: 34, x: 0, y: 20)
             )
-        )
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .frame(minWidth: 900, minHeight: 420)
         .onAppear {
             installKeyMonitorIfNeeded()
@@ -94,12 +100,252 @@ struct ClipboardView: View {
         }
     }
 
+    private var deck2WindowHeader: some View {
+        ZStack(alignment: .top) {
+            HStack {
+                Color.clear
+                    .frame(width: 52, height: 12)
+                Spacer()
+            }
+
+            Capsule()
+                .fill(Color(red: 60/255, green: 60/255, blue: 67/255).opacity(0.25))
+                .frame(width: 38, height: 5)
+                .offset(y: 2)
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 2)
+        .padding(.bottom, 6)
+    }
+
+    private var deck2Toolbar: some View {
+        HStack(spacing: 16) {
+            deck2Search
+
+            HStack(spacing: 4) {
+                Deck2FilterPill(title: localizedString("filter_all"), dot: Color(red: 124/255, green: 130/255, blue: 141/255), isSelected: kind == .all) {
+                    kind = .all
+                    selectedSource = .all
+                }
+                Deck2FilterPill(title: localizedString("filter_text"), dot: Color(red: 59/255, green: 130/255, blue: 246/255), isSelected: kind == .text && selectedSource == .all) {
+                    kind = .text
+                    selectedSource = .all
+                }
+                Deck2FilterPill(title: localizedString("filter_image"), dot: Color(red: 16/255, green: 185/255, blue: 129/255), isSelected: kind == .image) {
+                    kind = .image
+                    selectedSource = .all
+                }
+                Deck2FilterPill(title: localizedString("filter_files"), dot: Color(red: 139/255, green: 92/255, blue: 246/255), isSelected: kind == .file) {
+                    kind = .file
+                    selectedSource = .all
+                }
+                Deck2FilterPill(title: localizedString("notes"), dot: Color(red: 239/255, green: 68/255, blue: 68/255), isSelected: selectedSource == .notes) {
+                    kind = .text
+                    selectedSource = .notes
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 12) {
+                Deck2IconButton(systemName: "gearshape", help: localizedString("preferences"), action: onShowPreferences)
+                Deck2IconButton(
+                    systemName: clipboard.isPaused ? "play.fill" : "pause.fill",
+                    help: clipboard.isPaused ? localizedString("resume") : localizedString("pause")
+                ) {
+                    clipboard.isPaused.toggle()
+                }
+                Deck2IconButton(systemName: "power", help: localizedString("quit_pkbrain")) {
+                    NSApp.terminate(nil)
+                }
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 4)
+        .padding(.bottom, 12)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color.black.opacity(0.04))
+                .frame(height: 1)
+        }
+    }
+
+    private var deck2Search: some View {
+        HStack(spacing: 0) {
+            Button {
+                withAnimation(.timingCurve(0.32, 0.72, 0, 1, duration: 0.35)) {
+                    searchExpanded.toggle()
+                }
+                if searchExpanded {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                        searchFocused = true
+                    }
+                } else {
+                    searchFocused = false
+                    query = ""
+                }
+            } label: {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color(red: 58/255, green: 63/255, blue: 71/255))
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(.plain)
+            .padding(.leading, 4)
+
+            if searchExpanded {
+                TextField(localizedString("search"), text: $query)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(Color(red: 28/255, green: 28/255, blue: 30/255))
+                    .focused($searchFocused)
+                    .frame(width: 160, height: 32)
+                    .padding(.leading, 6)
+                    .transition(.opacity.combined(with: .move(edge: .leading)))
+            }
+        }
+        .frame(width: searchExpanded ? 200 : 28, height: 32, alignment: .leading)
+        .background(Color.black.opacity(0.04))
+        .overlay(Capsule().stroke(Color.black.opacity(0.05), lineWidth: 1))
+        .clipShape(Capsule())
+    }
+
+    @ViewBuilder
+    private var deck2ScrollViewport: some View {
+        let entries = filteredEntries
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(alignment: .top, spacing: 14) {
+                    ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+                        switch entry {
+                        case .clipboard(let item):
+                            DeckCard(
+                                item: item,
+                                shortcutIndex: index + 1,
+                                isSelected: selectedID == item.id,
+                                onSelect: { selectedID = item.id },
+                                onCopy: { onCopyItem(item) },
+                                onMakeNote: { onCreateNoteFromItem(item) },
+                                scale: 1,
+                                onDelete: { clipboard.delete(item.id) },
+                                onTogglePin: { clipboard.togglePin(item.id) },
+                                onToggleLock: { clipboard.toggleLock(item.id) },
+                                onQuickLook: { urls in quickLookURLs = urls },
+                                onLightbox: { img in lightboxImage = img },
+                                onLoadFavicon: { name in clipboard.loadFaviconData(named: name) },
+                                onLoadURLPreviewImage: { name in clipboard.loadURLPreviewImageData(named: name) }
+                            )
+                            .id(item.id)
+                        case .note(let note):
+                            NoteDeckCard(
+                                note: note,
+                                isSelected: selectedID == note.id,
+                                scale: 1,
+                                onSelect: { selectedID = note.id },
+                                onOpen: { onOpenNote(note.id) }
+                            )
+                            .id(note.id)
+                        }
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                .padding(.bottom, 20)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 340)
+            .onAppear {
+                if selectedID == nil || !entries.contains(where: { $0.id == selectedID }) {
+                    selectedID = entries.first?.id
+                }
+                scrollSelectionIntoView(proxy: proxy)
+            }
+            .onChange(of: selectedID) { _ in
+                scrollSelectionIntoView(proxy: proxy)
+            }
+            .onChange(of: entries.map(\.id)) { ids in
+                if let selectedID, ids.contains(selectedID) {
+                    scrollSelectionIntoView(proxy: proxy)
+                } else {
+                    selectedID = ids.first
+                }
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { !quickLookURLs.isEmpty },
+            set: { if !$0 { quickLookURLs = [] } }
+        )) {
+            QuickLookPreview(urls: quickLookURLs)
+                .frame(minWidth: 820, minHeight: 520)
+        }
+        .sheet(item: Binding<LightboxImage?>(
+            get: {
+                guard let img = lightboxImage else { return nil }
+                return LightboxImage(image: img)
+            },
+            set: { _, _ in lightboxImage = nil }
+        )) { (item: LightboxImage) in
+            Image(nsImage: item.image)
+                .resizable()
+                .scaledToFit()
+                .padding(20)
+                .frame(minWidth: 600, minHeight: 400)
+        }
+    }
+
+    private var deck2BottomStrip: some View {
+        GeometryReader { geo in
+            let pattern = "⠿⠟⠛⠻⠽⠾⠷⠯⠟⠿   "
+            let line = String(repeating: pattern, count: 70)
+            ZStack {
+                Color.black.opacity(0.015)
+                HStack(spacing: 0) {
+                    Text(line)
+                    Text(line)
+                }
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .foregroundStyle(Color(red: 60/255, green: 64/255, blue: 73/255).opacity(0.25))
+                .tracking(2.2)
+                .offset(x: stripAnimated ? -(geo.size.width) : 0)
+                .animation(.linear(duration: 50).repeatForever(autoreverses: false), value: stripAnimated)
+            }
+            .onAppear {
+                stripAnimated = true
+            }
+        }
+        .frame(height: 40)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.black.opacity(0.02))
+                .frame(height: 1)
+        }
+        .clipped()
+    }
+
+    private var drawerHeader: some View {
+        VStack(spacing: 10) {
+            HStack {
+                HStack(spacing: 7) {
+                    Circle().fill(Color(red: 1.0, green: 0.37, blue: 0.34)).frame(width: 10, height: 10)
+                    Circle().fill(Color(red: 1.0, green: 0.74, blue: 0.18)).frame(width: 10, height: 10)
+                    Circle().fill(Color(red: 0.15, green: 0.79, blue: 0.25)).frame(width: 10, height: 10)
+                }
+                Spacer()
+            }
+            Capsule()
+                .fill(Color.black.opacity(0.18))
+                .frame(width: 40, height: 5)
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 2)
+        .padding(.bottom, 6)
+    }
+
     @ViewBuilder
     private var topRow: some View {
         let entries = filteredEntries
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 8) {
+                LazyHStack(spacing: 14) {
                     ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
                         switch entry {
                         case .clipboard(let item):
@@ -132,11 +378,11 @@ struct ClipboardView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 0)
-                .padding(.bottom, 0)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 20)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 270)
+            .frame(height: 320)
             .onAppear {
                 if selectedID == nil || !entries.contains(where: { $0.id == selectedID }) {
                     selectedID = entries.first?.id
@@ -186,9 +432,9 @@ struct ClipboardView: View {
     }
 
     private var bottomBar: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                HStack(spacing: 4) {
                     SourceChip(
                         title: localizedString("all_sources"),
                         isSelected: selectedSource == .all,
@@ -209,25 +455,45 @@ struct ClipboardView: View {
                         ) { selectedSource = .app(chip.bundleID) }
                     }
                 }
-                .padding(.vertical, 2)
+                .padding(.vertical, 0)
                 .fixedSize(horizontal: true, vertical: false)
             }
             .frame(maxWidth: .infinity)
 
-            HStack(spacing: 12) {
-            Toggle(isOn: Binding(
-                get: { !clipboard.isPaused },
-                set: { clipboard.isPaused = !$0 }
-            )) {
-                Text(localizedString("clipboard_capture"))
-                    .font(.subheadline.weight(.medium))
-            }
-            .toggleStyle(.switch)
+            HStack(spacing: 16) {
+            HStack(spacing: 0) {
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.88)) {
+                        searchExpanded.toggle()
+                    }
+                    if searchExpanded {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                            searchFocused = true
+                        }
+                    } else {
+                        searchFocused = false
+                        query = ""
+                    }
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 13, weight: .semibold))
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
 
-            TextField(localizedString("search"), text: $query)
-                .textFieldStyle(.roundedBorder)
-                .frame(maxWidth: 360)
-                .focused($searchFocused)
+                if searchExpanded {
+                    TextField(localizedString("search"), text: $query)
+                        .textFieldStyle(.plain)
+                        .focused($searchFocused)
+                        .font(.system(size: 13, weight: .medium))
+                        .frame(width: 180)
+                        .padding(.trailing, 10)
+                        .transition(.move(edge: .leading).combined(with: .opacity))
+                }
+            }
+            .frame(width: searchExpanded ? 200 : 28, height: 32, alignment: .leading)
+            .background(Color.black.opacity(0.05))
+            .clipShape(Capsule())
 
             Picker("", selection: $kind) {
                 Text(localizedString("filter_all")).tag(ClipboardManager.Query.KindFilter.all)
@@ -239,38 +505,7 @@ struct ClipboardView: View {
             }
             .frame(width: 160)
 
-            Toggle(localizedString("pinned"), isOn: $pinnedOnly)
-                .toggleStyle(.checkbox)
-
-            Toggle(localizedString("recent"), isOn: $recentOnly)
-                .toggleStyle(.checkbox)
-
             Spacer()
-
-            Button {
-                onToggleStandardWindow()
-            } label: {
-                Image(systemName: "macwindow")
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(.plain)
-            .help(localizedString("clipboard_open_window"))
-
-            Button {
-                showExportPanel = true
-            } label: {
-                Image(systemName: "square.and.arrow.up")
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(.plain)
-            .help(localizedString("export"))
-
-            Button(action: onOpenFinder) {
-                Image(systemName: "folder")
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(.plain)
-            .help(localizedString("open_notes_folder"))
 
             Button(action: onShowPreferences) {
                 Image(systemName: "gearshape")
@@ -280,23 +515,35 @@ struct ClipboardView: View {
             .help(localizedString("preferences"))
 
             Button {
-                showClearConfirmation = true
+                clipboard.isPaused.toggle()
             } label: {
-                Image(systemName: "xmark.bin")
+                Image(systemName: clipboard.isPaused ? "play.fill" : "pause.fill")
                     .frame(width: 28, height: 28)
             }
             .buttonStyle(.plain)
-            .help(localizedString("clipboard_clear_confirm_action"))
+            .help(clipboard.isPaused ? localizedString("resume") : localizedString("pause"))
+
+            Button {
+                NSApp.terminate(nil)
+            } label: {
+                Image(systemName: "power")
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .help(localizedString("quit_pkbrain"))
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 24)
+        .padding(.top, 4)
+        .padding(.bottom, 10)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.white.opacity(0.20))
+            RoundedRectangle(cornerRadius: 0)
+                .fill(.clear)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                    Rectangle()
+                        .fill(Color.black.opacity(0.07))
+                        .frame(height: 1),
+                    alignment: .top
                 )
         )
         .confirmationDialog(
@@ -421,11 +668,19 @@ struct ClipboardView: View {
         if event.modifierFlags.contains(.command),
            event.charactersIgnoringModifiers?.lowercased() == "f"
         {
+            withAnimation(.timingCurve(0.32, 0.72, 0, 1, duration: 0.35)) {
+                searchExpanded = true
+            }
             searchFocused = true
             return true
         }
 
         if !searchFocused, let typed = searchText(from: event) {
+            if !searchExpanded {
+                withAnimation(.timingCurve(0.32, 0.72, 0, 1, duration: 0.35)) {
+                    searchExpanded = true
+                }
+            }
             query.append(typed)
             searchFocused = true
             return true
@@ -608,9 +863,10 @@ private struct NoteDeckCard: View {
     let scale: CGFloat
     let onSelect: () -> Void
     let onOpen: () -> Void
+    @State private var hovering = false
 
-    private let cardWidth: CGFloat = 300
-    private let cardHeight: CGFloat = 250
+    private let cardWidth: CGFloat = 216
+    private let cardHeight: CGFloat = 304
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -656,21 +912,29 @@ private struct NoteDeckCard: View {
                 .help(localizedString("open"))
             }
         }
-        .padding(.top, 4)
-        .padding(.leading, 14)
-        .padding(.trailing, 14)
-        .padding(.bottom, 5)
+        .padding(12)
         .frame(width: cardWidth, height: cardHeight)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(note.theme.backgroundColor)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.black.opacity(0.035))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 17, style: .continuous)
+                        .fill(note.theme.backgroundColor)
+                        .padding(3)
+                )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(isSelected ? Color(red: 0/255, green: 122/255, blue: 255/255) : note.theme.autoTextColorColor.opacity(0.2), lineWidth: isSelected ? 3 : 1)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(isSelected ? Color(red: 0/255, green: 122/255, blue: 255/255).opacity(0.65) : Color.clear, lineWidth: 2)
         )
-        .shadow(color: Color.black.opacity(isSelected ? 0.12 : 0.05), radius: isSelected ? 18 : 12, x: 0, y: 8)
-        .contentShape(RoundedRectangle(cornerRadius: 8))
+        .shadow(color: Color.black.opacity((hovering || isSelected) ? 0.13 : 0.05), radius: (hovering || isSelected) ? 20 : 12, x: 0, y: (hovering || isSelected) ? 12 : 8)
+        .offset(y: hovering ? -4 : 0)
+        .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .onHover { value in
+            withAnimation(.easeOut(duration: 0.18)) {
+                hovering = value
+            }
+        }
         .onTapGesture { onSelect() }
         .onTapGesture(count: 2) { onOpen() }
     }
@@ -1864,6 +2128,64 @@ private func appIcon(bundleID: String) -> NSImage? {
     return nil
 }
 
+private struct Deck2FilterPill: View {
+    let title: String
+    let dot: Color
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(isSelected ? Color(red: 176/255, green: 181/255, blue: 190/255) : dot)
+                    .frame(width: 8, height: 8)
+
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
+            .background(
+                Capsule()
+                    .fill(isSelected ? Color(red: 85/255, green: 89/255, blue: 100/255) : Color.clear)
+            )
+            .foregroundStyle(isSelected ? Color.white : Color(red: 74/255, green: 78/255, blue: 87/255))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .animation(.timingCurve(0.32, 0.72, 0, 1, duration: 0.25), value: isSelected)
+    }
+}
+
+private struct Deck2IconButton: View {
+    let systemName: String
+    let help: String
+    let action: () -> Void
+
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(hovering ? Color(red: 28/255, green: 28/255, blue: 30/255) : Color(red: 85/255, green: 89/255, blue: 100/255))
+                .frame(width: 30, height: 30)
+                .background(hovering ? Color.black.opacity(0.05) : Color.clear)
+                .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .onHover { value in
+            withAnimation(.easeOut(duration: 0.16)) {
+                hovering = value
+            }
+        }
+    }
+}
+
 private struct SourceChip: View {
     let title: String
     let isSelected: Bool
@@ -1881,22 +2203,24 @@ private struct SourceChip: View {
                         .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
                 Text(title)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 13, weight: .semibold))
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
             .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(isSelected ? Color.white.opacity(0.55) : Color.white.opacity(0.22))
+                Capsule()
+                    .fill(isSelected ? Color(red: 0.33, green: 0.35, blue: 0.39) : Color.black.opacity(0.04))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.white.opacity(isSelected ? 0.35 : 0.18), lineWidth: 1)
+                        Capsule()
+                            .stroke(Color.black.opacity(isSelected ? 0.0 : 0.06), lineWidth: 1)
                     )
             )
+            .foregroundStyle(isSelected ? Color.white : Color(red: 0.29, green: 0.31, blue: 0.35))
         }
         .buttonStyle(.plain)
+        .animation(.spring(response: 0.22, dampingFraction: 0.86), value: isSelected)
     }
 }
 
@@ -1915,33 +2239,34 @@ private struct DeckCard: View {
     let onLightbox: ((NSImage) -> Void)?
     let onLoadFavicon: (String) -> Data?
     let onLoadURLPreviewImage: (String) -> Data?
+    @State private var hovering = false
 
-    private let cardWidth: CGFloat = 300
-    private let cardHeight: CGFloat = 250
+    private let cardWidth: CGFloat = 216
+    private let cardHeight: CGFloat = 304
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 AppIconView(bundleID: item.sourceBundleID)
-                    .frame(width: 22 * scale, height: 22 * scale)
+                    .frame(width: 26, height: 26)
                 if item.isPinned {
                     Image(systemName: "pin.fill")
-                        .font(.system(size: 12 * scale, weight: .semibold))
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.secondary)
                 }
                 if item.isLocked {
                     Image(systemName: "lock.fill")
-                        .font(.system(size: 12 * scale, weight: .semibold))
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
                 if shortcutIndex <= 9 {
                     Text("⌘\(shortcutIndex)")
-                        .font(.system(size: 11 * scale, weight: .medium))
+                        .font(.system(size: 10.5, weight: .semibold))
                         .foregroundStyle(Color(red: 0, green: 122/255, blue: 1))
                 }
                 Text(relativeTime(item.createdAt))
-                    .font(.system(size: 11 * scale, weight: .regular))
+                    .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.secondary)
             }
 
@@ -1952,21 +2277,21 @@ private struct DeckCard: View {
             } else if item.kind != .url {
                 if item.kind == .image {
                     Text(item.previewText)
-                        .font(.system(size: 12 * scale, weight: .medium))
+                        .font(.system(size: 10.5, weight: .semibold))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
                     Text(item.metadataTitle ?? item.previewText)
-                        .font(.system(size: 15 * scale, weight: item.metadataTitle != nil ? .medium : .regular))
+                        .font(.system(size: 13.5, weight: .medium))
                         .foregroundStyle(Color(NSColor.labelColor))
-                        .lineLimit(12)
+                        .lineLimit(7)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     if item.metadataTitle != nil {
                         Text(item.previewText)
-                            .font(.system(size: 12 * scale, weight: .regular))
+                            .font(.system(size: 10.5, weight: .medium))
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -1974,9 +2299,9 @@ private struct DeckCard: View {
                 }
             } else if item.metadataTitle == nil && item.metadataFaviconName == nil {
                 Text(item.previewText)
-                    .font(.system(size: 15 * scale, weight: .regular))
+                    .font(.system(size: 13.5, weight: .medium))
                     .foregroundStyle(Color(NSColor.labelColor))
-                    .lineLimit(12)
+                    .lineLimit(7)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
@@ -1984,7 +2309,7 @@ private struct DeckCard: View {
 
             HStack(spacing: 6) {
                 Text(metaText)
-                    .font(.system(size: 11 * scale))
+                    .font(.system(size: 10.5, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -2038,21 +2363,29 @@ private struct DeckCard: View {
                 .help(localizedString("delete"))
             }
         }
-        .padding(.top, 4)
-        .padding(.leading, 14)
-        .padding(.trailing, 14)
-        .padding(.bottom, 5)
+        .padding(12)
         .frame(width: cardWidth, height: cardHeight)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.white)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.black.opacity(0.035))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 17, style: .continuous)
+                        .fill(Color.white.opacity(0.98))
+                        .padding(3)
+                )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(isSelected ? Color(red: 0/255, green: 122/255, blue: 255/255) : Color(NSColor.separatorColor).opacity(0.25), lineWidth: isSelected ? 3 : 1)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(isSelected ? Color(red: 0/255, green: 122/255, blue: 255/255).opacity(0.65) : Color.clear, lineWidth: 2)
         )
-        .shadow(color: Color.black.opacity(isSelected ? 0.10 : 0.04), radius: isSelected ? 18 : 14, x: 0, y: 8)
-        .contentShape(RoundedRectangle(cornerRadius: 8))
+        .shadow(color: Color.black.opacity((hovering || isSelected) ? 0.13 : 0.04), radius: (hovering || isSelected) ? 20 : 14, x: 0, y: (hovering || isSelected) ? 12 : 8)
+        .offset(y: hovering ? -4 : 0)
+        .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .onHover { value in
+            withAnimation(.easeOut(duration: 0.18)) {
+                hovering = value
+            }
+        }
         .onTapGesture {
             onSelect()
         }

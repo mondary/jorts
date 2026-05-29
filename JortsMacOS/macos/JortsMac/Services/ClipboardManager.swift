@@ -39,7 +39,7 @@ final class ClipboardManager: ObservableObject {
     @Published private(set) var items: [Item] = []
     @Published private(set) var drawerPresentationToken: Int = 0
 
-    var isPaused: Bool = false
+    @Published var isPaused: Bool = false
     var maxItems: Int = 500
     var maxAgeDays: Int = 30
     var sourceMode: ClipboardSourceMode = .allowAll
