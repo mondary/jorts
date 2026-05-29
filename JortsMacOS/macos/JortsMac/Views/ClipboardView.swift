@@ -416,6 +416,35 @@ struct ClipboardView: View {
             return true
         }
 
+        // Cmd+C copies selected entry to system clipboard.
+        if event.modifierFlags.contains(.command),
+           event.charactersIgnoringModifiers?.lowercased() == "c"
+        {
+            guard let id = selectedID, let entry = entries.first(where: { $0.id == id }) else { return true }
+            switch entry {
+            case .clipboard(let item):
+                onCopyItem(item)
+            case .note(let note):
+                let item = ClipboardManager.Item(
+                    id: UUID(),
+                    createdAt: Date(),
+                    sourceBundleID: nil,
+                    sourceAppName: nil,
+                    kind: .text,
+                    previewText: note.content,
+                    payload: .text(note.content),
+                    isPinned: false,
+                    isLocked: false,
+                    metadataTitle: note.title.isEmpty ? nil : note.title,
+                    metadataDescription: nil,
+                    metadataFaviconName: nil,
+                    metadataImageName: nil
+                )
+                onCopyItem(item)
+            }
+            return true
+        }
+
         // Enter / Return: copy. Cmd+Enter: convert to note.
         if event.keyCode == 36 || event.keyCode == 76 { // return / enter
             guard let id = selectedID, let entry = entries.first(where: { $0.id == id }) else { return true }
@@ -993,6 +1022,33 @@ struct ClipboardStandardWindowView: View {
             guard let id = selectedID, let entry = entries.first(where: { $0.id == id }) else { return true }
             performPrimaryAction(for: entry)
             return true
+        case 8: // c
+            if event.modifierFlags.contains(.command) {
+                guard let id = selectedID, let entry = entries.first(where: { $0.id == id }) else { return true }
+                switch entry {
+                case .clipboard(let item):
+                    onCopyItem(item)
+                case .note(let note):
+                    let item = ClipboardManager.Item(
+                        id: UUID(),
+                        createdAt: Date(),
+                        sourceBundleID: nil,
+                        sourceAppName: nil,
+                        kind: .text,
+                        previewText: note.content,
+                        payload: .text(note.content),
+                        isPinned: false,
+                        isLocked: false,
+                        metadataTitle: note.title.isEmpty ? nil : note.title,
+                        metadataDescription: nil,
+                        metadataFaviconName: nil,
+                        metadataImageName: nil
+                    )
+                    onCopyItem(item)
+                }
+                return true
+            }
+            return false
         case 53: // escape
             keyWindow.close()
             return true

@@ -1,4 +1,5 @@
 # TODO (Clipboard + Deck-Style Drawer)
+## 🔥 V2 - MAJOR UPDATE
 
 Status: in progress.
 
@@ -17,6 +18,8 @@ Status: in progress.
 - [x] PKClipboard standard window: dynamic items-per-page based on visible grid size
 - [x] Clipboard windows: hide note windows on open to prevent overlap/focus conflicts
 - [x] Clipboard drawer panel: key/main focus enabled to prevent split typing
+- [x] Clipboard drawer + PKClipboard: `Cmd+C` copies selected card to system pasteboard
+- [x] Shortcut added for PKClipboard standard window (`Cmd+Option+V`)
 - [x] Persist clipboard history to disk (alongside notes storage)
 - [x] App icons per clipboard item (source pictos)
 - [x] Image thumbnails shown entirely (no crop) + lightbox

@@ -1,4 +1,5 @@
 # JortsMacOS
+## 🔥 V2 - MAJOR UPDATE
 
 ![Project icon](icon.png)
 
@@ -117,8 +118,10 @@
 
 ### Clipboard drawer
 - Toggle: `Cmd+Shift+V`
+- Ouvrir `PKClipboard` (fenêtre standard): `Cmd+Option+V`
 - Navigation: flèches gauche/droite
 - `Enter`: colle (best-effort) dans l'app précédente + ferme le drawer
+- `Cmd+C`: copie la carte sélectionnée vers le presse-papier système
 - Clic hors drawer: ferme le drawer
 - `Cmd+Enter`: convertir en note
 - Filtres: texte, URL, image, fichier, couleur, source, épinglé, récent
