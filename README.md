@@ -64,6 +64,11 @@
   - `Esc` en 2 temps:
     - 1er `Esc`: reset contexte (catégorie/filtres/recherche/sélection) vers la carte la plus récente
     - 2e `Esc`: fermeture du drawer
+ - Fenêtre standard PKClipboard:
+  - taille par défaut: 1200x1000
+  - raccourcis visuels limités aux 9 premières tuiles (`⌘1` ... `⌘9`)
+  - navigation clavier activée (flèches + Entrée)
+  - layout renforcé au resize (haut/bas non tronqués)
 - Persistance et stockage:
   - stockage Markdown par note
   - métadonnées note en fin de fichier (`<!-- JORTS_META ... -->`)

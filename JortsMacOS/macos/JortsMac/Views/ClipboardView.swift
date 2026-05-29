@@ -637,6 +637,7 @@ struct ClipboardStandardWindowView: View {
     @State private var selectedID: UUID?
     @State private var query = ""
     @State private var isSidebarCollapsed = false
+    @State private var keyMonitor: Any?
 
     private enum SourceFilter: Equatable {
         case all
@@ -657,22 +658,29 @@ struct ClipboardStandardWindowView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                sidebar
-                    .frame(width: isSidebarCollapsed ? 56 : 220)
+        ZStack {
+            Color.white
+            VStack(spacing: 0) {
+                HStack(spacing: 0) {
+                    sidebar
+                        .frame(width: isSidebarCollapsed ? 56 : 220)
+                    Divider()
+                    mainGrid
+                }
                 Divider()
-                mainGrid
+                footer
+                    .frame(minHeight: 56)
             }
-            Divider()
-            footer
-                .frame(height: 36)
         }
+        .padding(.top, 8)
+        .padding(.bottom, 8)
         .background(Color.white)
         .frame(minWidth: 1120, minHeight: 720)
         .onAppear {
             selectedID = entries.first?.id
+            installKeyMonitorIfNeeded()
         }
+        .onDisappear { removeKeyMonitorIfNeeded() }
         .onChange(of: entries.map(\.id)) { ids in
             if let selectedID, ids.contains(selectedID) {
                 return
@@ -822,6 +830,7 @@ struct ClipboardStandardWindowView: View {
                     )
             )
         }
+        .padding(.vertical, 8)
         .padding(.horizontal, 16)
         .background(Color.white)
     }
@@ -910,6 +919,68 @@ struct ClipboardStandardWindowView: View {
         }
 
         return output
+    }
+
+    private func installKeyMonitorIfNeeded() {
+        guard keyMonitor == nil else { return }
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
+            handleKeyDown(event) ? nil : event
+        }
+    }
+
+    private func removeKeyMonitorIfNeeded() {
+        if let keyMonitor {
+            NSEvent.removeMonitor(keyMonitor)
+            self.keyMonitor = nil
+        }
+    }
+
+    private func handleKeyDown(_ event: NSEvent) -> Bool {
+        guard let keyWindow = NSApp.keyWindow, keyWindow.title == "PKclipboard" else { return false }
+        guard !entries.isEmpty else { return false }
+
+        if selectedID == nil {
+            selectedID = entries.first?.id
+        }
+
+        switch event.keyCode {
+        case 123: // left
+            moveSelection(delta: -1)
+            return true
+        case 124: // right
+            moveSelection(delta: +1)
+            return true
+        case 125: // down
+            moveSelection(delta: +4)
+            return true
+        case 126: // up
+            moveSelection(delta: -4)
+            return true
+        case 36, 76: // return / enter
+            guard let id = selectedID, let entry = entries.first(where: { $0.id == id }) else { return true }
+            performPrimaryAction(for: entry)
+            return true
+        default:
+            return false
+        }
+    }
+
+    private func moveSelection(delta: Int) {
+        guard let id = selectedID, let idx = entries.firstIndex(where: { $0.id == id }) else {
+            selectedID = entries.first?.id
+            return
+        }
+        let next = max(0, min(entries.count - 1, idx + delta))
+        selectedID = entries[next].id
+    }
+
+    private func performPrimaryAction(for entry: GridEntry) {
+        switch entry {
+        case .clipboard(let item):
+            onCopyItem(item)
+        case .note(let note):
+            onOpenNote(note.id)
+        }
     }
 }
 

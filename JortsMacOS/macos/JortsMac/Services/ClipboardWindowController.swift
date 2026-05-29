@@ -157,7 +157,7 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
         let host = NSHostingController(rootView: makeStandardClipboardWindowView())
         let autosaveName = "PKclipboardWindowFrame"
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1280, height: 820),
+            contentRect: NSRect(x: 0, y: 0, width: 1200, height: 1000),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
