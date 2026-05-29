@@ -948,9 +948,11 @@ private struct StandardClipboardCard: View {
         HStack(spacing: 6) {
             entryIcon
                 .frame(width: 18, height: 18)
-            Text("⌘\(min(shortcutIndex, 9))")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Color(red: 0, green: 122/255, blue: 1))
+            if shortcutIndex <= 9 {
+                Text("⌘\(shortcutIndex)")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color(red: 0, green: 122/255, blue: 1))
+            }
             Spacer()
             Text(relativeTime)
                 .font(.system(size: 11))
