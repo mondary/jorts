@@ -640,6 +640,7 @@ struct ClipboardStandardWindowView: View {
     @State private var keyMonitor: Any?
     @State private var currentPage: Int = 1
     @State private var itemsPerPage: Int = 50
+    @FocusState private var searchFocused: Bool
     private let gridMinCardWidth: CGFloat = 190
     private let gridMaxCardWidth: CGFloat = 260
     private let gridSpacing: CGFloat = 10
@@ -843,6 +844,7 @@ struct ClipboardStandardWindowView: View {
                 TextField(localizedString("search"), text: $query)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
+                    .focused($searchFocused)
             }
             .padding(.horizontal, 10)
             .frame(width: 170, height: 28)
@@ -969,6 +971,12 @@ struct ClipboardStandardWindowView: View {
         }
 
         switch event.keyCode {
+        case 3: // f
+            if event.modifierFlags.contains(.command) {
+                searchFocused = true
+                return true
+            }
+            return false
         case 123: // left
             moveSelection(delta: -1)
             return true
@@ -988,7 +996,19 @@ struct ClipboardStandardWindowView: View {
         case 53: // escape
             keyWindow.close()
             return true
+        case 51: // backspace
+            if !searchFocused, !query.isEmpty {
+                query.removeLast()
+                currentPage = 1
+                return true
+            }
+            return false
         default:
+            if !searchFocused, let typed = searchText(from: event) {
+                query.append(typed)
+                currentPage = 1
+                return true
+            }
             return false
         }
     }
@@ -1035,6 +1055,21 @@ struct ClipboardStandardWindowView: View {
             itemsPerPage = computed
             clampCurrentPage()
         }
+    }
+
+    private func searchText(from event: NSEvent) -> String? {
+        switch event.keyCode {
+        case 123, 124, 125, 126, 36, 76, 48, 53:
+            return nil
+        default:
+            break
+        }
+        let flags = event.modifierFlags.intersection([.command, .control, .option])
+        guard flags.isEmpty else { return nil }
+        guard let chars = event.characters, !chars.isEmpty else { return nil }
+        guard chars.rangeOfCharacter(from: .newlines) == nil else { return nil }
+        guard chars.rangeOfCharacter(from: .controlCharacters) == nil else { return nil }
+        return chars
     }
 }
 

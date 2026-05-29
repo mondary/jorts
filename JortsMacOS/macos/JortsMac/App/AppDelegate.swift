@@ -405,6 +405,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func showClipboard(_ sender: Any?) {
+        manager.hideAllNotes()
         showClipboard(
             targetApp: NSWorkspace.shared.frontmostApplication,
             targetWindow: NSApp.keyWindow,
@@ -413,6 +414,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func showClipboardWindow(_ sender: Any?) {
+        manager.hideAllNotes()
         if clipboardWindowController == nil {
             clipboardWindowController = ClipboardWindowController(manager: manager, settings: settings, clipboard: clipboard)
         }

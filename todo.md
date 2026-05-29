@@ -15,6 +15,8 @@ Status: in progress.
 - [x] PKClipboard standard window: default size set to `1200x1000`
 - [x] PKClipboard standard window: functional clickable pagination
 - [x] PKClipboard standard window: dynamic items-per-page based on visible grid size
+- [x] Clipboard windows: hide note windows on open to prevent overlap/focus conflicts
+- [x] Clipboard drawer panel: key/main focus enabled to prevent split typing
 - [x] Persist clipboard history to disk (alongside notes storage)
 - [x] App icons per clipboard item (source pictos)
 - [x] Image thumbnails shown entirely (no crop) + lightbox

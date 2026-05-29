@@ -72,6 +72,8 @@
   - pagination fonctionnelle avec pages cliquables
   - nombre d'items par page dynamique selon la taille visible de la grille
   - layout renforcé au resize (haut/bas non tronqués)
+  - anti-chevauchement fenêtres: masquage des notes lors de l'ouverture du drawer/PKClipboard
+  - focus clavier renforcé du drawer pour éviter saisie partagée note/clipboard
 - Persistance et stockage:
   - stockage Markdown par note
   - métadonnées note en fin de fichier (`<!-- JORTS_META ... -->`)

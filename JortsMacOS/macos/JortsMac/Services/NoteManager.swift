@@ -119,6 +119,12 @@ final class NoteManager {
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    func hideAllNotes() {
+        orderedControllers().forEach { controller in
+            controller.window?.orderOut(nil)
+        }
+    }
+
     func deleteActiveNote() {
         guard let controller = activeController() else {
             return

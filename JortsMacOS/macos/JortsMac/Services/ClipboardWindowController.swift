@@ -492,6 +492,8 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
 
 private final class ClipboardDrawerPanel: NSPanel {
     var onEscapePressed: (() -> Void)?
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
 
     override func keyDown(with event: NSEvent) {
         if event.keyCode == 53 {
