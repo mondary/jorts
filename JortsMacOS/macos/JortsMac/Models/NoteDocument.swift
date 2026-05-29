@@ -109,7 +109,7 @@ final class NoteDocument: ObservableObject, Identifiable {
     }
 
     var windowTitle: String {
-        "\(title.isEmpty ? "Untitled" : title) - JortsMacOS"
+        "\(title.isEmpty ? "Untitled" : title) - PKbrain"
     }
 
     var textScale: CGFloat {

@@ -55,6 +55,7 @@ struct ClipboardView: View {
     private enum SourceFilter: Equatable {
         case all
         case notes
+        case trash
         case app(String)
     }
 
@@ -281,11 +282,11 @@ struct ClipboardView: View {
             Button {
                 showClearConfirmation = true
             } label: {
-                Image(systemName: "trash")
+                Image(systemName: "xmark.bin")
                     .frame(width: 28, height: 28)
             }
             .buttonStyle(.plain)
-            .help(localizedString("clear"))
+            .help(localizedString("clipboard_clear_confirm_action"))
             }
         }
         .padding(.horizontal, 8)
@@ -305,6 +306,9 @@ struct ClipboardView: View {
         ) {
             Button(localizedString("clipboard_clear_confirm_action"), role: .destructive) {
                 clipboard.clear()
+            }
+            Button("Vider la poubelle", role: .destructive) {
+                clipboard.clearTrash()
             }
             Button(localizedString("cancel"), role: .cancel) {}
         } message: {
@@ -456,6 +460,7 @@ struct ClipboardView: View {
                     payload: .text(note.content),
                     isPinned: false,
                     isLocked: false,
+                    isTrashed: false,
                     tags: [],
                     metadataTitle: note.title.isEmpty ? nil : note.title,
                     metadataDescription: nil,
@@ -520,6 +525,8 @@ struct ClipboardView: View {
             return "all"
         case .notes:
             return "notes"
+        case .trash:
+            return "trash"
         case .app(let bundleID):
             return "app:\(bundleID)"
         }
@@ -706,6 +713,7 @@ struct ClipboardStandardWindowView: View {
     private enum SourceFilter: Equatable {
         case all
         case notes
+        case trash
         case app(String)
     }
 
@@ -787,6 +795,16 @@ struct ClipboardStandardWindowView: View {
                     isSelected: selectedSource == .notes
                 ) {
                     selectedSource = .notes
+                    selectedTag = nil
+                    currentPage = 1
+                }
+
+                sidebarButton(
+                    title: localizedString("trash"),
+                    systemImage: "trash",
+                    isSelected: selectedSource == .trash
+                ) {
+                    selectedSource = .trash
                     selectedTag = nil
                     currentPage = 1
                 }
@@ -873,6 +891,8 @@ struct ClipboardStandardWindowView: View {
                         availableTags: allTags,
                         onAddTag: { id, tag in clipboard.addTag(tag, to: id) },
                         onRemoveTag: { id, tag in clipboard.removeTag(tag, from: id) },
+                        onRestoreItem: { id in clipboard.restore(id) },
+                        onDeletePermanently: { id in clipboard.deletePermanently(id) },
                         noteTags: noteTags,
                         onAddNoteTag: { id, tag in
                             let normalized = tag.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -924,6 +944,16 @@ struct ClipboardStandardWindowView: View {
                 .buttonStyle(.plain)
             }
             Spacer()
+            if selectedSource == .trash {
+                Button {
+                    clipboard.clearTrash()
+                } label: {
+                    Label("Vider la poubelle", systemImage: "trash.slash")
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+            }
             Button(action: onOpenFinder) {
                 Image(systemName: "folder")
                     .foregroundStyle(.secondary)
@@ -1094,8 +1124,14 @@ struct ClipboardStandardWindowView: View {
                 sourceBundleID = nil
             }
 
-            let query = ClipboardManager.Query(text: needle, sourceBundleID: sourceBundleID)
+            let query = ClipboardManager.Query(
+                text: needle,
+                sourceBundleID: sourceBundleID,
+                includeTrashed: selectedSource == .trash
+            )
             let clipboardItems = clipboard.filteredItems(query).filter { item in
+                if selectedSource != .trash && item.isTrashed { return false }
+                if selectedSource == .trash && !item.isTrashed { return false }
                 guard let selectedTag else { return true }
                 return item.tags.contains(where: { $0.caseInsensitiveCompare(selectedTag) == .orderedSame })
             }
@@ -1179,6 +1215,7 @@ struct ClipboardStandardWindowView: View {
                         payload: .text(note.content),
                         isPinned: false,
                         isLocked: false,
+                        isTrashed: false,
                         tags: [],
                         metadataTitle: note.title.isEmpty ? nil : note.title,
                         metadataDescription: nil,
@@ -1283,6 +1320,8 @@ private struct StandardClipboardCard: View {
     let availableTags: [String]
     let onAddTag: (UUID, String) -> Void
     let onRemoveTag: (UUID, String) -> Void
+    let onRestoreItem: (UUID) -> Void
+    let onDeletePermanently: (UUID) -> Void
     let noteTags: [UUID: [String]]
     let onAddNoteTag: (UUID, String) -> Void
     let onRemoveNoteTag: (UUID, String) -> Void
@@ -1478,6 +1517,11 @@ private struct StandardClipboardCard: View {
                 }
                 Menu {
                     let existing = item.tags
+                    if item.isTrashed {
+                        Button(localizedString("restore")) { onRestoreItem(item.id) }
+                        Button(localizedString("delete"), role: .destructive) { onDeletePermanently(item.id) }
+                        Divider()
+                    }
                     if !availableTags.isEmpty {
                         ForEach(availableTags, id: \.self) { tag in
                             if existing.contains(where: { $0.caseInsensitiveCompare(tag) == .orderedSame }) {
@@ -1615,6 +1659,9 @@ private struct StandardClipboardCard: View {
         case .note(let note):
             return "\(note.content.count) \(localizedString("characters"))"
         case .clipboard(let item):
+            if item.isTrashed {
+                return localizedString("trash")
+            }
             switch item.payload {
             case .text(let text):
                 return "\(text.count) \(localizedString("characters"))"

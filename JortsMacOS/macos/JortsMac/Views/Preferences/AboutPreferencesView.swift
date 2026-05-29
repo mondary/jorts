@@ -4,10 +4,10 @@ import SwiftUI
 struct AboutPreferencesView: View {
     private var appName: String {
         let bundleName = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String
-        if bundleName == "JortsMacOS" {
-            return "JortsMacOS"
+        if bundleName == "PKbrain" {
+            return "PKbrain"
         }
-        return bundleName ?? "JortsMacOS"
+        return bundleName ?? "PKbrain"
     }
     private var versionString: String {
         let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String

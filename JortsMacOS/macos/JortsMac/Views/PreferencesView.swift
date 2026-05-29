@@ -12,7 +12,7 @@ struct PreferencesView: View {
     var body: some View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("JortsMacOS")
+                Text("PKbrain")
                     .font(.largeTitle.weight(.bold))
                     .padding(.bottom, 18)
 

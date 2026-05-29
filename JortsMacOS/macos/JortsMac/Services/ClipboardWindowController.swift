@@ -39,7 +39,7 @@ final class ClipboardWindowController: NSWindowController, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        panel.title = "Clipboard - JortsMacOS"
+        panel.title = "Clipboard - PKbrain"
         panel.isMovableByWindowBackground = true
         panel.isFloatingPanel = true
         panel.hidesOnDeactivate = false

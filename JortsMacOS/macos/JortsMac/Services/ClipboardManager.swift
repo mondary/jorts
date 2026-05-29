@@ -20,6 +20,7 @@ final class ClipboardManager: ObservableObject {
         let payload: Payload
         var isPinned: Bool
         var isLocked: Bool
+        var isTrashed: Bool
         var tags: [String]
         var metadataTitle: String?
         var metadataDescription: String?
@@ -98,6 +99,11 @@ final class ClipboardManager: ObservableObject {
         persistence.clear()
     }
 
+    func clearTrash() {
+        items.removeAll { $0.isTrashed }
+        scheduleSave()
+    }
+
     func markDrawerPresented() {
         drawerPresentationToken &+= 1
         refreshMissingURLMetadata(limit: 25)
@@ -129,6 +135,7 @@ final class ClipboardManager: ObservableObject {
         var pinnedOnly: Bool = false
         var recentOnly: Bool = false
         var recentWindowMinutes: Int = 60
+        var includeTrashed: Bool = false
     }
 
     func filteredItems(_ q: Query) -> [Item] {
@@ -136,6 +143,7 @@ final class ClipboardManager: ObservableObject {
         let cutoff = Date().addingTimeInterval(-Double(q.recentWindowMinutes) * 60.0)
 
         return items.filter { item in
+            if !q.includeTrashed && item.isTrashed { return false }
             if q.pinnedOnly && !item.isPinned { return false }
             if q.recentOnly && item.createdAt < cutoff { return false }
             if let source = q.sourceBundleID, item.sourceBundleID != source { return false }
@@ -189,6 +197,19 @@ final class ClipboardManager: ObservableObject {
     }
 
     func delete(_ id: UUID) {
+        guard let idx = items.firstIndex(where: { $0.id == id }) else { return }
+        items[idx].isTrashed = true
+        items[idx].isPinned = false
+        scheduleSave()
+    }
+
+    func restore(_ id: UUID) {
+        guard let idx = items.firstIndex(where: { $0.id == id }) else { return }
+        items[idx].isTrashed = false
+        scheduleSave()
+    }
+
+    func deletePermanently(_ id: UUID) {
         items.removeAll { $0.id == id }
         scheduleSave()
     }
@@ -263,6 +284,7 @@ final class ClipboardManager: ObservableObject {
                     payload: .imageData(data),
                     isPinned: false,
                     isLocked: false,
+                    isTrashed: false,
                     tags: [],
                     metadataTitle: nil,
                     metadataDescription: nil,
@@ -281,6 +303,7 @@ final class ClipboardManager: ObservableObject {
                     payload: .fileURLs(urls),
                     isPinned: false,
                     isLocked: false,
+                    isTrashed: false,
                     tags: [],
                     metadataTitle: nil,
                     metadataDescription: nil,
@@ -303,6 +326,7 @@ final class ClipboardManager: ObservableObject {
                 payload: .imageData(imageData),
                 isPinned: false,
                 isLocked: false,
+                isTrashed: false,
                 tags: [],
                 metadataTitle: nil,
                 metadataDescription: nil,
@@ -325,6 +349,7 @@ final class ClipboardManager: ObservableObject {
                     payload: .colorHex(colorHex),
                     isPinned: false,
                     isLocked: false,
+                    isTrashed: false,
                     tags: [],
                     metadataTitle: nil,
                     metadataDescription: nil,
@@ -342,6 +367,7 @@ final class ClipboardManager: ObservableObject {
                     payload: .url(url),
                     isPinned: false,
                     isLocked: false,
+                    isTrashed: false,
                     tags: [],
                     metadataTitle: nil,
                     metadataDescription: nil,
@@ -359,6 +385,7 @@ final class ClipboardManager: ObservableObject {
                     payload: .text(s),
                     isPinned: false,
                     isLocked: false,
+                    isTrashed: false,
                     tags: [],
                     metadataTitle: nil,
                     metadataDescription: nil,
@@ -480,7 +507,7 @@ final class ClipboardManager: ObservableObject {
 
         if let types = pasteboard.types, !types.isEmpty {
             let joined = types.map { $0.rawValue }.joined(separator: ", ")
-            NSLog("JortsMac: no image extracted; pasteboard types: %@", joined)
+            NSLog("PKbrain: no image extracted; pasteboard types: %@", joined)
         }
         return nil
     }
@@ -532,7 +559,7 @@ final class ClipboardManager: ObservableObject {
 final class ClipboardPersistence {
     static let shared = ClipboardPersistence(baseDirectory: nil)
 
-    // If nil, we fall back to the default NoteStorage location (Documents/JortsMacOS).
+    // If nil, we fall back to the default NoteStorage location (Documents/PKbrain).
     private let baseDirectoryOverride: URL?
 
     init(baseDirectory: URL?) {
@@ -560,7 +587,7 @@ final class ClipboardPersistence {
                 validFaviconNames: Set(stored.compactMap { $0.metadataFaviconName })
             )
         } catch {
-            NSLog("JortsMac: failed to persist clipboard: \(error)")
+            NSLog("PKbrain: failed to persist clipboard: \(error)")
         }
     }
 
@@ -602,7 +629,7 @@ final class ClipboardPersistence {
             try data.write(to: url, options: [.atomic])
             return name
         } catch {
-            NSLog("JortsMac: failed to save clipboard image: \(error)")
+            NSLog("PKbrain: failed to save clipboard image: \(error)")
             return nil
         }
     }
@@ -622,7 +649,7 @@ final class ClipboardPersistence {
             try data.write(to: url, options: [.atomic])
             return name
         } catch {
-            NSLog("JortsMac: failed to save favicon: \(error)")
+            NSLog("PKbrain: failed to save favicon: \(error)")
             return nil
         }
     }
@@ -642,7 +669,7 @@ final class ClipboardPersistence {
             try data.write(to: url, options: [.atomic])
             return name
         } catch {
-            NSLog("JortsMac: failed to save URL preview image: \(error)")
+            NSLog("PKbrain: failed to save URL preview image: \(error)")
             return nil
         }
     }
@@ -671,7 +698,7 @@ final class ClipboardPersistence {
 
     private func baseDir() -> URL? {
         // Keep clipboard history alongside notes storage for a "second brain" experience.
-        // By default this matches NoteStorage's default: ~/Documents/JortsMacOS.
+        // By default this matches NoteStorage's default: ~/Documents/PKbrain.
         if let baseDirectoryOverride {
             return baseDirectoryOverride.appendingPathComponent("Clipboard", isDirectory: true)
         }
@@ -684,7 +711,7 @@ final class ClipboardPersistence {
             create: true
         )
 
-        let appFolderName = "JortsMacOS"
+        let appFolderName = "PKbrain"
         let defaultStorageDirectory = (documentsDirectory ?? fm.homeDirectoryForCurrentUser)
             .appendingPathComponent(appFolderName, isDirectory: true)
         return defaultStorageDirectory.appendingPathComponent("Clipboard", isDirectory: true)
@@ -700,6 +727,7 @@ private struct StoredItem: Codable {
     let previewText: String
     let isPinned: Bool
     let isLocked: Bool
+    let isTrashed: Bool?
     let tags: [String]?
     let metadataTitle: String?
     let metadataDescription: String?
@@ -721,6 +749,7 @@ private struct StoredItem: Codable {
         previewText = item.previewText
         isPinned = item.isPinned
         isLocked = item.isLocked
+        isTrashed = item.isTrashed
         tags = item.tags
         metadataTitle = item.metadataTitle
         metadataDescription = item.metadataDescription
@@ -793,6 +822,7 @@ private struct StoredItem: Codable {
             payload: payload,
             isPinned: isPinned,
             isLocked: isLocked,
+            isTrashed: isTrashed ?? false,
             tags: tags ?? [],
             metadataTitle: metadataTitle,
             metadataDescription: metadataDescription,

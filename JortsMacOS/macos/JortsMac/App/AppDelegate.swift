@@ -35,7 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
-        // Enables Raycast / Alfred / scripts via: open "jortsmacos://new"
+        // Enables Raycast / Alfred / scripts via: open "pkbrain://new"
         for url in urls {
             handleExternalURL(url)
         }
@@ -68,7 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func showAbout(_ sender: Any?) {
         let credits = NSMutableAttributedString()
 
-        let header = "JortsMacOS\n\n"
+        let header = "PKbrain\n\n"
         let headerAttr: [NSAttributedString.Key: Any] = [.font: NSFont.boldSystemFont(ofSize: 13)]
         credits.append(NSAttributedString(string: header, attributes: headerAttr))
 
@@ -132,7 +132,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         NSApp.orderFrontStandardAboutPanel(options: [
-            .applicationName: "JortsMacOS",
+            .applicationName: "PKbrain",
             .applicationVersion: "4.2.0 macOS port",
             .credits: credits
         ])
@@ -370,7 +370,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let alert = NSAlert()
         alert.messageText = "Language Changed"
-        alert.informativeText = "JortsMacOS needs to restart to apply the language change."
+        alert.informativeText = "PKbrain needs to restart to apply the language change."
         alert.alertStyle = .informational
         alert.addButton(withTitle: "Restart Now")
         alert.addButton(withTitle: "Later")
@@ -519,7 +519,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mainMenu.addItem(appMenuItem)
         let appMenu = NSMenu()
         appMenuItem.submenu = appMenu
-        appMenu.addItem(menuItem(localizedString("about_jortsmacos"), action: #selector(showAbout(_:)), key: ""))
+        appMenu.addItem(menuItem(localizedString("about_pkbrain"), action: #selector(showAbout(_:)), key: ""))
         appMenu.addItem(.separator())
         appMenu.addItem(menuItem(localizedString("preferences"), action: #selector(showPreferences(_:)), shortcut: .preferences))
         appMenu.addItem(.separator())
@@ -531,7 +531,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.servicesMenu = servicesMenu
 
         appMenu.addItem(.separator())
-        appMenu.addItem(NSMenuItem(title: localizedString("hide_jortsmacos"), action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
+        appMenu.addItem(NSMenuItem(title: localizedString("hide_pkbrain"), action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
         let hideOthers = NSMenuItem(
             title: localizedString("hide_others"),
             action: #selector(NSApplication.hideOtherApplications(_:)),
@@ -541,7 +541,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         appMenu.addItem(hideOthers)
         appMenu.addItem(NSMenuItem(title: localizedString("show_all"), action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: ""))
         appMenu.addItem(.separator())
-        appMenu.addItem(NSMenuItem(title: localizedString("quit_jortsmacos"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        appMenu.addItem(NSMenuItem(title: localizedString("quit_pkbrain"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
 
         let fileMenuItem = NSMenuItem()
         mainMenu.addItem(fileMenuItem)
@@ -652,10 +652,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func handleExternalURL(_ url: URL) {
         // Expected:
-        // - jortsmacos://new
-        // - jortsmacos://last
-        // - jortsmacos://list
-        guard url.scheme?.lowercased() == "jortsmacos" else { return }
+        // - pkbrain://new
+        // - pkbrain://last
+        // - pkbrain://list
+        guard url.scheme?.lowercased() == "pkbrain" else { return }
 
         let parsedAction = externalAction(from: url)
         guard let action = parsedAction else { return }
@@ -669,7 +669,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let path = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/")).lowercased()
         let pathComponents = path.split(separator: "/").map(String.init)
 
-        // Support x-callback style: jortsmacos://x-callback-url/new
+        // Support x-callback style: pkbrain://x-callback-url/new
         var candidates: [String] = []
         candidates.append(host)
         candidates.append(path)

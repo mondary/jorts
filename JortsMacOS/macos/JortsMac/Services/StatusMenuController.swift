@@ -51,7 +51,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             button.image = Self.statusIcon()
             button.imagePosition = .imageOnly
             button.imageScaling = .scaleProportionallyUpOrDown
-            button.toolTip = "JortsMacOS"
+            button.toolTip = "PKbrain"
         }
 
         menu.delegate = self
@@ -137,14 +137,14 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(actionItem(localizedString("new_note"), action: #selector(newNote(_:)), shortcut: .newStickyNote))
         menu.addItem(actionItem(localizedString("show_all_notes"), action: #selector(showAllNotes(_:)), shortcut: .showAllNotes))
-        menu.addItem(actionItem(localizedString("show_list"), action: #selector(showList(_:)), shortcut: .showNotesList))
+        menu.addItem(actionItem(localizedString("show_list"), action: #selector(showList(_:)), shortcut: .showNotesList, systemImage: "list.bullet.rectangle"))
         menu.addItem(actionItem(localizedString("show_clipboard_drawer"), action: #selector(showClipboard(_:)), keyEquivalent: "v", modifiers: [.command, .shift], systemImage: "clipboard"))
         menu.addItem(actionItem(localizedString("show_clipboard_window"), action: #selector(showClipboardWindow(_:)), shortcut: .showClipboardWindow, systemImage: "macwindow"))
         menu.addItem(.separator())
         menu.addItem(actionItem(localizedString("settings"), action: #selector(showSettings(_:)), shortcut: .preferences, systemImage: "gearshape"))
-        menu.addItem(actionItem(localizedString("about_jortsmacos"), action: #selector(showAbout(_:)), keyEquivalent: ""))
-        menu.addItem(actionItem(localizedString("restart_jortsmacos"), action: #selector(restart(_:)), keyEquivalent: ""))
-        menu.addItem(actionItem(localizedString("quit_jortsmacos"), action: #selector(quit(_:)), keyEquivalent: "q"))
+        menu.addItem(actionItem(localizedString("about_pkbrain"), action: #selector(showAbout(_:)), keyEquivalent: ""))
+        menu.addItem(actionItem(localizedString("restart_pkbrain"), action: #selector(restart(_:)), keyEquivalent: ""))
+        menu.addItem(actionItem(localizedString("quit_pkbrain"), action: #selector(quit(_:)), keyEquivalent: "q"))
     }
 
     private func actionItem(
@@ -181,7 +181,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
 
     private static func statusIcon() -> NSImage {
         let configuration = NSImage.SymbolConfiguration(pointSize: 16, weight: .semibold)
-        let symbol = NSImage(systemSymbolName: "note.text", accessibilityDescription: "JortsMacOS")?
+        let symbol = NSImage(systemSymbolName: "note.text", accessibilityDescription: "PKbrain")?
             .withSymbolConfiguration(configuration)
 
         if let appIcon = Bundle.main.url(forResource: "JortsStatus", withExtension: "png")

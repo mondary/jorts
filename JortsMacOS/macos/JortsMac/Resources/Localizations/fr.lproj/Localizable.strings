@@ -1,5 +1,5 @@
 /*
-  JortsMac - French localization
+  PKbrain - French localization
 */
 
 /* Preferences */
@@ -128,9 +128,9 @@
 "typing_effect_glow" = "Lueur";
 "create_new_note" = "Créer une nouvelle note";
 "about_jorts" = "À propos de Jorts";
-"about_jortsmacos" = "À propos de JortsMacOS";
-"restart_jortsmacos" = "Redémarrer JortsMacOS";
-"quit_jortsmacos" = "Quitter JortsMacOS";
+"about_pkbrain" = "À propos de PKbrain";
+"restart_pkbrain" = "Redémarrer PKbrain";
+"quit_pkbrain" = "Quitter PKbrain";
 "search_notes_or_commands" = "Rechercher notes ou commandes…";
 "untitled_note" = "Note sans titre";
 "system_command" = "Commande système";
@@ -144,7 +144,7 @@
 "create_first_note" = "Créez votre première note pour commencer";
 "trash_empty" = "La corbeille est vide";
 "services" = "Services";
-"hide_jortsmacos" = "Masquer JortsMacOS";
+"hide_pkbrain" = "Masquer PKbrain";
 "hide_others" = "Masquer les autres";
 "show_all" = "Tout afficher";
 "file" = "Fichier";

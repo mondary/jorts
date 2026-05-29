@@ -1,5 +1,5 @@
 /*
-  JortsMac - German localization
+  PKbrain - German localization
 */
 
 /* Preferences */
@@ -127,9 +127,9 @@
 "typing_effect_glow" = "Leuchten";
 "create_new_note" = "Neue Notiz erstellen";
 "about_jorts" = "Über Jorts";
-"about_jortsmacos" = "Über JortsMacOS";
-"restart_jortsmacos" = "JortsMacOS neu starten";
-"quit_jortsmacos" = "JortsMacOS beenden";
+"about_pkbrain" = "Über PKbrain";
+"restart_pkbrain" = "PKbrain neu starten";
+"quit_pkbrain" = "PKbrain beenden";
 "search_notes_or_commands" = "Notizen oder Befehle suchen…";
 "untitled_note" = "Unbenannte Notiz";
 "system_command" = "Systembefehl";
@@ -143,7 +143,7 @@
 "create_first_note" = "Erstellen Sie Ihre erste Notiz";
 "trash_empty" = "Der Papierkorb ist leer";
 "services" = "Dienste";
-"hide_jortsmacos" = "JortsMacOS ausblenden";
+"hide_pkbrain" = "PKbrain ausblenden";
 "hide_others" = "Andere ausblenden";
 "show_all" = "Alle einblenden";
 "file" = "Ablage";

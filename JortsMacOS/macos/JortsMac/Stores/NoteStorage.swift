@@ -8,7 +8,7 @@ final class NoteStorage {
     let storageURL: URL
     private let notesDirectory: URL
     private let trashDirectory: URL
-    private let forcedJSONSeedURL = URL(fileURLWithPath: "/Users/clm/Documents/JortsMacOS/saved_state.json")
+    private let forcedJSONSeedURL = URL(fileURLWithPath: "/Users/clm/Documents/PKbrain/saved_state.json")
 
     init(storageDirectoryOverride: URL? = nil, fileManager: FileManager = .default) {
         self.fileManager = fileManager
@@ -24,7 +24,7 @@ final class NoteStorage {
             create: true
         )
 
-        let appFolderName = "JortsMacOS"
+        let appFolderName = "PKbrain"
         let defaultStorageDirectory = (documentsDirectory ?? fileManager.homeDirectoryForCurrentUser)
             .appendingPathComponent(appFolderName, isDirectory: true)
         let normalizedOverride = storageDirectoryOverride.map { override in
@@ -70,7 +70,7 @@ final class NoteStorage {
             let notes = try decoder.decode([NoteData].self, from: data)
             return SavedState(notes: notes, trash: [])
         } catch {
-            NSLog("JortsMacOSMac: failed to load notes from \(storageURL.path): \(error)")
+            NSLog("PKbrainMac: failed to load notes from \(storageURL.path): \(error)")
             return SavedState()
         }
     }
@@ -80,7 +80,7 @@ final class NoteStorage {
         do {
             try saveToMarkdownFiles(state)
         } catch {
-            NSLog("JortsMacOSMac: failed to save notes as Markdown files: \(error)")
+            NSLog("PKbrainMac: failed to save notes as Markdown files: \(error)")
         }
     }
 
@@ -110,7 +110,7 @@ final class NoteStorage {
             try? fileManager.removeItem(at: backupURL)
             try fileManager.moveItem(at: storageURL, to: backupURL)
         } catch {
-            NSLog("JortsMacOSMac: JSON->MD migration failed: \(error)")
+            NSLog("PKbrainMac: JSON->MD migration failed: \(error)")
         }
     }
 
@@ -129,7 +129,7 @@ final class NoteStorage {
             let state = try decoder.decode(SavedState.self, from: data)
             try saveToMarkdownFiles(state)
         } catch {
-            NSLog("JortsMacOSMac: forced seed JSON -> MD migration failed: \(error)")
+            NSLog("PKbrainMac: forced seed JSON -> MD migration failed: \(error)")
         }
     }
 
@@ -138,7 +138,7 @@ final class NoteStorage {
             try consolidateDuplicates(in: notesDirectory, duplicatesSubdirName: "Duplicates")
             try consolidateDuplicates(in: trashDirectory, duplicatesSubdirName: "Duplicates")
         } catch {
-            NSLog("JortsMacOSMac: duplicate consolidation failed: \(error)")
+            NSLog("PKbrainMac: duplicate consolidation failed: \(error)")
         }
     }
 
@@ -225,7 +225,7 @@ final class NoteStorage {
             try externalizeInlineVersions(in: notesDirectory)
             try externalizeInlineVersions(in: trashDirectory)
         } catch {
-            NSLog("JortsMacOSMac: inline versions migration failed: \(error)")
+            NSLog("PKbrainMac: inline versions migration failed: \(error)")
         }
     }
 
@@ -255,7 +255,7 @@ final class NoteStorage {
         do {
             try saveToMarkdownFiles(state)
         } catch {
-            NSLog("JortsMacOSMac: markdown canonicalization failed: \(error)")
+            NSLog("PKbrainMac: markdown canonicalization failed: \(error)")
         }
     }
 
@@ -292,7 +292,7 @@ final class NoteStorage {
 
             return SavedState(notes: notes, trash: trash.sorted { $0.deletedAt > $1.deletedAt })
         } catch {
-            NSLog("JortsMacOSMac: failed to load Markdown notes: \(error)")
+            NSLog("PKbrainMac: failed to load Markdown notes: \(error)")
             return nil
         }
     }
@@ -677,7 +677,7 @@ final class NoteStorage {
         do {
             try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         } catch {
-            NSLog("JortsMacOSMac: failed to create storage directory \(directory.path): \(error)")
+            NSLog("PKbrainMac: failed to create storage directory \(directory.path): \(error)")
         }
     }
 
@@ -689,10 +689,10 @@ final class NoteStorage {
         for candidate in legacySaveCandidates() where fileManager.fileExists(atPath: candidate.path) {
             do {
                 try fileManager.copyItem(at: candidate, to: destinationURL)
-                NSLog("JortsMacOSMac: imported legacy JortsMacOS save from \(candidate.path)")
+                NSLog("PKbrainMac: imported legacy PKbrain save from \(candidate.path)")
                 return
             } catch {
-                NSLog("JortsMacOSMac: failed to import legacy save \(candidate.path): \(error)")
+                NSLog("PKbrainMac: failed to import legacy save \(candidate.path): \(error)")
             }
         }
     }

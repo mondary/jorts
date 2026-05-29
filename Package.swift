@@ -3,17 +3,17 @@
 import PackageDescription
 
 let package = Package(
-    name: "JortsMac",
+    name: "PKbrain",
     defaultLocalization: "en",
     platforms: [
         .macOS(.v13)
     ],
     products: [
-        .executable(name: "JortsMac", targets: ["JortsMac"])
+        .executable(name: "PKbrain", targets: ["PKbrain"])
     ],
     targets: [
         .executableTarget(
-            name: "JortsMac",
+            name: "PKbrain",
             path: "JortsMacOS/macos/JortsMac",
             resources: [
                 .copy("Resources/RedactedScript-Regular.ttf"),

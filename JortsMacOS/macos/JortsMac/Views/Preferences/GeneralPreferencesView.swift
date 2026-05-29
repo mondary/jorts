@@ -189,7 +189,7 @@ struct GeneralPreferencesView: View {
             let data = try Data(contentsOf: storageURL)
             try data.write(to: destinationURL, options: [.atomic])
         } catch {
-            NSLog("JortsMac: failed to export notes: \(error)")
+            NSLog("PKbrain: failed to export notes: \(error)")
         }
     }
 
@@ -223,7 +223,7 @@ struct GeneralPreferencesView: View {
             try data.write(to: storageURL, options: [.atomic])
             onRestartRequested()
         } catch {
-            NSLog("JortsMac: failed to import notes: \(error)")
+            NSLog("PKbrain: failed to import notes: \(error)")
         }
     }
 

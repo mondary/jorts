@@ -38,7 +38,7 @@ final class NotesListWindowController: NSWindowController, NSWindowDelegate {
             defer: false
         )
 
-        window.title = "All Notes - JortsMacOS"
+        window.title = "All Notes - PKbrain"
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true

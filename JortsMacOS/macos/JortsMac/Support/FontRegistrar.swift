@@ -14,7 +14,7 @@ enum FontRegistrar {
             forResource: "RedactedScript-Regular",
             withExtension: "ttf"
         ) else {
-            NSLog("JortsMac: bundled Redacted Script font not found")
+            NSLog("PKbrain: bundled Redacted Script font not found")
             return
         }
 
