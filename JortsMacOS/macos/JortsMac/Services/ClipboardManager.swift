@@ -20,6 +20,7 @@ final class ClipboardManager: ObservableObject {
         let payload: Payload
         var isPinned: Bool
         var isLocked: Bool
+        var tags: [String]
         var metadataTitle: String?
         var metadataDescription: String?
         var metadataFaviconName: String?
@@ -171,6 +172,22 @@ final class ClipboardManager: ObservableObject {
         scheduleSave()
     }
 
+    func addTag(_ tag: String, to id: UUID) {
+        let normalized = tag.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty, let idx = items.firstIndex(where: { $0.id == id }) else { return }
+        if !items[idx].tags.contains(where: { $0.caseInsensitiveCompare(normalized) == .orderedSame }) {
+            items[idx].tags.append(normalized)
+            items[idx].tags.sort { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+            scheduleSave()
+        }
+    }
+
+    func removeTag(_ tag: String, from id: UUID) {
+        guard let idx = items.firstIndex(where: { $0.id == id }) else { return }
+        items[idx].tags.removeAll { $0.caseInsensitiveCompare(tag) == .orderedSame }
+        scheduleSave()
+    }
+
     func delete(_ id: UUID) {
         items.removeAll { $0.id == id }
         scheduleSave()
@@ -246,6 +263,7 @@ final class ClipboardManager: ObservableObject {
                     payload: .imageData(data),
                     isPinned: false,
                     isLocked: false,
+                    tags: [],
                     metadataTitle: nil,
                     metadataDescription: nil,
                     metadataFaviconName: nil,
@@ -263,6 +281,7 @@ final class ClipboardManager: ObservableObject {
                     payload: .fileURLs(urls),
                     isPinned: false,
                     isLocked: false,
+                    tags: [],
                     metadataTitle: nil,
                     metadataDescription: nil,
                     metadataFaviconName: nil,
@@ -284,6 +303,7 @@ final class ClipboardManager: ObservableObject {
                 payload: .imageData(imageData),
                 isPinned: false,
                 isLocked: false,
+                tags: [],
                 metadataTitle: nil,
                 metadataDescription: nil,
                 metadataFaviconName: nil,
@@ -305,6 +325,7 @@ final class ClipboardManager: ObservableObject {
                     payload: .colorHex(colorHex),
                     isPinned: false,
                     isLocked: false,
+                    tags: [],
                     metadataTitle: nil,
                     metadataDescription: nil,
                     metadataFaviconName: nil,
@@ -321,6 +342,7 @@ final class ClipboardManager: ObservableObject {
                     payload: .url(url),
                     isPinned: false,
                     isLocked: false,
+                    tags: [],
                     metadataTitle: nil,
                     metadataDescription: nil,
                     metadataFaviconName: nil,
@@ -337,6 +359,7 @@ final class ClipboardManager: ObservableObject {
                     payload: .text(s),
                     isPinned: false,
                     isLocked: false,
+                    tags: [],
                     metadataTitle: nil,
                     metadataDescription: nil,
                     metadataFaviconName: nil,
@@ -677,6 +700,7 @@ private struct StoredItem: Codable {
     let previewText: String
     let isPinned: Bool
     let isLocked: Bool
+    let tags: [String]?
     let metadataTitle: String?
     let metadataDescription: String?
     let metadataFaviconName: String?
@@ -697,6 +721,7 @@ private struct StoredItem: Codable {
         previewText = item.previewText
         isPinned = item.isPinned
         isLocked = item.isLocked
+        tags = item.tags
         metadataTitle = item.metadataTitle
         metadataDescription = item.metadataDescription
         metadataFaviconName = item.metadataFaviconName
@@ -768,6 +793,7 @@ private struct StoredItem: Codable {
             payload: payload,
             isPinned: isPinned,
             isLocked: isLocked,
+            tags: tags ?? [],
             metadataTitle: metadataTitle,
             metadataDescription: metadataDescription,
             metadataFaviconName: metadataFaviconName,

@@ -527,7 +527,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         windowMenu.addItem(menuItem(localizedString("show_all_notes"), action: #selector(showAllNotes(_:)), shortcut: .showAllNotes))
         windowMenu.addItem(menuItem(localizedString("show_notes_list"), action: #selector(showNotesList(_:)), shortcut: .showNotesList))
         windowMenu.addItem(menuItem(localizedString("clipboard"), action: #selector(showClipboard(_:)), key: "v", modifiers: [.command, .shift]))
-        windowMenu.addItem(menuItem(localizedString("show_clipboard_window"), action: #selector(showClipboardWindow(_:)), key: "v", modifiers: [.command, .option]))
+        windowMenu.addItem(menuItem(localizedString("show_clipboard_window"), action: #selector(showClipboardWindow(_:)), shortcut: .showClipboardWindow))
         windowMenu.addItem(.separator())
         windowMenu.addItem(menuItem(localizedString("command_palette"), action: #selector(showCommandPalette(_:)), key: "k", modifiers: [.command]))
         windowMenu.addItem(.separator())

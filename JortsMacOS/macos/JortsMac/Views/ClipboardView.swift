@@ -23,6 +23,7 @@ struct ClipboardView: View {
 
     @State private var query: String = ""
     @State private var selectedSource: SourceFilter = .all
+    @State private var selectedTag: String? = nil
     @State private var selectedID: UUID?
     private let deckScale: CGFloat = 0.82
     @State private var kind: ClipboardManager.Query.KindFilter = .all
@@ -436,6 +437,7 @@ struct ClipboardView: View {
                     payload: .text(note.content),
                     isPinned: false,
                     isLocked: false,
+                    tags: [],
                     metadataTitle: note.title.isEmpty ? nil : note.title,
                     metadataDescription: nil,
                     metadataFaviconName: nil,
@@ -664,6 +666,7 @@ struct ClipboardStandardWindowView: View {
     let onLoadURLPreviewImage: (String) -> Data?
 
     @State private var selectedSource: SourceFilter = .all
+    @State private var selectedTag: String? = nil
     @State private var selectedID: UUID?
     @State private var query = ""
     @State private var isSidebarCollapsed = false
@@ -749,27 +752,28 @@ struct ClipboardStandardWindowView: View {
                     title: localizedString("filter_all"),
                     systemImage: "house.fill",
                     isSelected: selectedSource == .all
-                ) { selectedSource = .all }
+                ) {
+                    selectedSource = .all
+                    selectedTag = nil
+                    currentPage = 1
+                }
 
                 sidebarButton(
                     title: localizedString("notes"),
                     systemImage: "note.text",
                     isSelected: selectedSource == .notes
-                ) { selectedSource = .notes }
+                ) {
+                    selectedSource = .notes
+                    selectedTag = nil
+                    currentPage = 1
+                }
 
                 if !isSidebarCollapsed {
-                    sectionTitle("Collection")
+                    sectionTitle("Tags")
                 }
-                collectionRow("#Prompt", color: .red)
-                collectionRow("Wordpress", color: .green)
-                collectionRow("PSWD", color: .yellow)
-                collectionRow("Immo", color: .orange)
-                collectionRow("MDP", color: .green)
-                collectionRow("API", color: .red)
-                collectionRow("Script", color: .yellow)
-                collectionRow("APPS", color: .orange)
-                collectionRow("Games", color: .pink)
-                collectionRow("UX", color: .blue)
+                ForEach(allTags, id: \.self) { tag in
+                    tagRow(tag)
+                }
 
                 if !isSidebarCollapsed {
                     sectionTitle("Application")
@@ -777,6 +781,8 @@ struct ClipboardStandardWindowView: View {
                 ForEach(sourceChips, id: \.bundleID) { source in
                     Button {
                         selectedSource = .app(source.bundleID)
+                        selectedTag = nil
+                        currentPage = 1
                     } label: {
                         HStack(spacing: 8) {
                             if let icon = source.icon {
@@ -829,11 +835,14 @@ struct ClipboardStandardWindowView: View {
                             onOpenNote: onOpenNote,
                             onCopyItem: onCopyItem,
                             onCreateNoteFromItem: onCreateNoteFromItem,
-                            onLoadFavicon: onLoadFavicon,
-                            onLoadURLPreviewImage: onLoadURLPreviewImage
-                        )
-                    }
+                        onLoadFavicon: onLoadFavicon,
+                        onLoadURLPreviewImage: onLoadURLPreviewImage,
+                        availableTags: allTags,
+                        onAddTag: { id, tag in clipboard.addTag(tag, to: id) },
+                        onRemoveTag: { id, tag in clipboard.removeTag(tag, from: id) }
+                    )
                 }
+            }
                 .padding(12)
             }
             .background(Color.white)
@@ -923,10 +932,15 @@ struct ClipboardStandardWindowView: View {
             .padding(.bottom, 6)
     }
 
-    private func collectionRow(_ title: String, color: Color) -> some View {
+    private func tagRow(_ title: String) -> some View {
+        let isSelected = selectedTag == title
+        return Button {
+            selectedTag = (selectedTag == title) ? nil : title
+            currentPage = 1
+        } label: {
         HStack(spacing: 8) {
             Circle()
-                .fill(color)
+                .fill(tagColor(for: title))
                 .frame(width: 10, height: 10)
             if !isSidebarCollapsed {
                 Text(title)
@@ -937,6 +951,28 @@ struct ClipboardStandardWindowView: View {
         }
         .padding(.horizontal, isSidebarCollapsed ? 20 : 16)
         .padding(.vertical, 5)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(isSelected ? Color.black.opacity(0.12) : Color.clear)
+        )
+        .padding(.horizontal, isSidebarCollapsed ? 6 : 8)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var allTags: [String] {
+        let set = Set(clipboard.items.flatMap(\.tags))
+        return Array(set).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+
+    private func tagColor(for tag: String) -> Color {
+        var hash: UInt64 = 1469598103934665603
+        for b in tag.utf8 {
+            hash ^= UInt64(b)
+            hash &*= 1099511628211
+        }
+        let hue = Double(hash % 360) / 360.0
+        return Color(hue: hue, saturation: 0.68, brightness: 0.9)
     }
 
     private var sourceChips: [SourceChipModel] {
@@ -964,10 +1000,17 @@ struct ClipboardStandardWindowView: View {
             }
 
             let query = ClipboardManager.Query(text: needle, sourceBundleID: sourceBundleID)
-            output.append(contentsOf: clipboard.filteredItems(query).map { .clipboard($0) })
+            let clipboardItems = clipboard.filteredItems(query).filter { item in
+                guard let selectedTag else { return true }
+                return item.tags.contains(where: { $0.caseInsensitiveCompare(selectedTag) == .orderedSame })
+            }
+            output.append(contentsOf: clipboardItems.map { ClipboardStandardWindowView.GridEntry.clipboard($0) })
         }
 
         if selectedSource == .all || selectedSource == .notes {
+            if selectedTag != nil {
+                return output
+            }
             let notes = notesProvider().filter { note in
                 guard !needle.isEmpty else { return true }
                 return "\(note.title)\n\(note.content)".lowercased().contains(needle)
@@ -1040,6 +1083,7 @@ struct ClipboardStandardWindowView: View {
                         payload: .text(note.content),
                         isPinned: false,
                         isLocked: false,
+                        tags: [],
                         metadataTitle: note.title.isEmpty ? nil : note.title,
                         metadataDescription: nil,
                         metadataFaviconName: nil,
@@ -1140,6 +1184,10 @@ private struct StandardClipboardCard: View {
     let onCreateNoteFromItem: (ClipboardManager.Item) -> Void
     let onLoadFavicon: (String) -> Data?
     let onLoadURLPreviewImage: (String) -> Data?
+    let availableTags: [String]
+    let onAddTag: (UUID, String) -> Void
+    let onRemoveTag: (UUID, String) -> Void
+    @State private var showExpandedPreview: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1158,7 +1206,14 @@ private struct StandardClipboardCard: View {
         )
         .contentShape(RoundedRectangle(cornerRadius: 8))
         .onTapGesture { onSelect() }
-        .onTapGesture(count: 2) { performPrimaryAction() }
+        .onTapGesture(count: 2) { showExpandedPreview = true }
+        .contextMenu {
+            contextTagMenu
+        }
+        .sheet(isPresented: $showExpandedPreview) {
+            expandedPreviewView
+                .frame(minWidth: 760, minHeight: 520)
+        }
     }
 
     private var header: some View {
@@ -1297,9 +1352,45 @@ private struct StandardClipboardCard: View {
                 .foregroundStyle(Color(NSColor.tertiaryLabelColor))
                 .lineLimit(1)
             Spacer()
-            Image(systemName: "gearshape")
-                .font(.system(size: 12))
-                .foregroundStyle(Color(NSColor.tertiaryLabelColor).opacity(0.5))
+            if case .clipboard(let item) = entry {
+                if let primary = item.tags.first {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(tagColor(for: primary))
+                            .frame(width: 10, height: 10)
+                            .overlay(Circle().stroke(Color.white.opacity(0.85), lineWidth: 1))
+                        if item.tags.count > 1 {
+                            Text("+\(item.tags.count - 1)")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                Menu {
+                    let existing = item.tags
+                    if !availableTags.isEmpty {
+                        ForEach(availableTags, id: \.self) { tag in
+                            if existing.contains(where: { $0.caseInsensitiveCompare(tag) == .orderedSame }) {
+                                Button("Retirer tag: \(tag)") { onRemoveTag(item.id, tag) }
+                            } else {
+                                Button("Taguer: \(tag)") { onAddTag(item.id, tag) }
+                            }
+                        }
+                        Divider()
+                    }
+                    Button("Nouveau tag…") {
+                        if let newTag = promptForTagName(), !newTag.isEmpty {
+                            onAddTag(item.id, newTag)
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color(NSColor.tertiaryLabelColor).opacity(0.9))
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
@@ -1369,6 +1460,107 @@ private struct StandardClipboardCard: View {
         case .note(let note):
             onOpenNote(note.id)
         }
+    }
+
+    @ViewBuilder
+    private var contextTagMenu: some View {
+        if case .clipboard(let item) = entry {
+            let existing = item.tags
+            if !availableTags.isEmpty {
+                ForEach(availableTags, id: \.self) { tag in
+                    if existing.contains(where: { $0.caseInsensitiveCompare(tag) == .orderedSame }) {
+                        Button("Retirer tag: \(tag)") { onRemoveTag(item.id, tag) }
+                    } else {
+                        Button("Taguer: \(tag)") { onAddTag(item.id, tag) }
+                    }
+                }
+                Divider()
+            }
+            Button("Nouveau tag…") {
+                if let newTag = promptForTagName(), !newTag.isEmpty {
+                    onAddTag(item.id, newTag)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var expandedPreviewView: some View {
+        switch entry {
+        case .note(let note):
+            VStack(alignment: .leading, spacing: 10) {
+                Text(note.title.isEmpty ? localizedString("empty_note") : note.title)
+                    .font(.title3.weight(.semibold))
+                ScrollView {
+                    Text(note.content)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .textSelection(.enabled)
+                }
+            }
+            .padding(18)
+        case .clipboard(let item):
+            VStack(alignment: .leading, spacing: 10) {
+                Text(item.metadataTitle ?? item.previewText)
+                    .font(.title3.weight(.semibold))
+                    .lineLimit(2)
+                ScrollView {
+                    switch item.payload {
+                    case .text(let text):
+                        Text(text)
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                            .textSelection(.enabled)
+                    case .url(let url):
+                        Text(url.absoluteString)
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                            .textSelection(.enabled)
+                    case .colorHex(let hex):
+                        Text(hex)
+                            .font(.system(size: 16, design: .monospaced))
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                            .textSelection(.enabled)
+                    case .fileURLs(let urls):
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(urls, id: \.self) { url in
+                                Text(url.path)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .textSelection(.enabled)
+                            }
+                        }
+                    case .imageData(let data):
+                        if let image = NSImage(data: data) {
+                            Image(nsImage: image)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxWidth: .infinity, alignment: .center)
+                        }
+                    }
+                }
+            }
+            .padding(18)
+        }
+    }
+
+    private func promptForTagName() -> String? {
+        let alert = NSAlert()
+        alert.messageText = "Nouveau tag"
+        alert.informativeText = "Nom du tag:"
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "Annuler")
+        let input = NSTextField(frame: NSRect(x: 0, y: 0, width: 220, height: 24))
+        alert.accessoryView = input
+        let response = alert.runModal()
+        guard response == .alertFirstButtonReturn else { return nil }
+        return input.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func tagColor(for tag: String) -> Color {
+        var hash: UInt64 = 1469598103934665603
+        for b in tag.utf8 {
+            hash ^= UInt64(b)
+            hash &*= 1099511628211
+        }
+        let hue = Double(hash % 360) / 360.0
+        return Color(hue: hue, saturation: 0.68, brightness: 0.9)
     }
 }
 

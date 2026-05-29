@@ -139,7 +139,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         menu.addItem(actionItem(localizedString("show_all_notes"), action: #selector(showAllNotes(_:)), shortcut: .showAllNotes))
         menu.addItem(actionItem(localizedString("show_list"), action: #selector(showList(_:)), shortcut: .showNotesList))
         menu.addItem(actionItem(localizedString("show_clipboard_drawer"), action: #selector(showClipboard(_:)), keyEquivalent: "v", modifiers: [.command, .shift], systemImage: "clipboard"))
-        menu.addItem(actionItem(localizedString("show_clipboard_window"), action: #selector(showClipboardWindow(_:)), keyEquivalent: "", systemImage: "macwindow"))
+        menu.addItem(actionItem(localizedString("show_clipboard_window"), action: #selector(showClipboardWindow(_:)), shortcut: .showClipboardWindow, systemImage: "macwindow"))
         menu.addItem(.separator())
         menu.addItem(actionItem(localizedString("settings"), action: #selector(showSettings(_:)), shortcut: .preferences, systemImage: "gearshape"))
         menu.addItem(actionItem(localizedString("about_jortsmacos"), action: #selector(showAbout(_:)), keyEquivalent: ""))

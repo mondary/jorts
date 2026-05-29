@@ -1,5 +1,5 @@
 # JortsMacOS
-## 🔥 V2 - MAJOR UPDATE
+## 🔥 V3 - MAJOR UPDATE
 
 ![Project icon](icon.png)
 
@@ -71,10 +71,13 @@
   - navigation clavier activée (flèches + Entrée)
   - `Esc` ferme la fenêtre standard
   - pagination fonctionnelle avec pages cliquables
-  - nombre d'items par page dynamique selon la taille visible de la grille
+ - nombre d'items par page dynamique selon la taille visible de la grille
   - layout renforcé au resize (haut/bas non tronqués)
   - anti-chevauchement fenêtres: masquage des notes lors de l'ouverture du drawer/PKClipboard
   - focus clavier renforcé du drawer pour éviter saisie partagée note/clipboard
+  - clic droit sur carte: menu tags (taguer/retirer/nouveau tag)
+  - double-clic sur carte: aperçu agrandi consultable (texte complet, URL, fichiers, image)
+  - tags persistants multi-app avec filtre sidebar par tag
 - Persistance et stockage:
   - stockage Markdown par note
   - métadonnées note en fin de fichier (`<!-- JORTS_META ... -->`)
