@@ -22,6 +22,7 @@ struct NoteData: Codable, Identifiable {
     var macFrameVersion: Int
     var versions: [NoteVersion]
     var pinned: Bool
+    var isOpen: Bool
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -38,6 +39,7 @@ struct NoteData: Codable, Identifiable {
         case macFrameVersion
         case versions
         case pinned
+        case isOpen
     }
 
     init(
@@ -53,7 +55,8 @@ struct NoteData: Codable, Identifiable {
         y: Double? = nil,
         macFrameVersion: Int = NoteData.currentMacFrameVersion,
         versions: [NoteVersion] = [],
-        pinned: Bool = false
+        pinned: Bool = false,
+        isOpen: Bool = true
     ) {
         self.title = title
         self.theme = theme
@@ -68,6 +71,7 @@ struct NoteData: Codable, Identifiable {
         self.macFrameVersion = macFrameVersion
         self.versions = versions
         self.pinned = pinned
+        self.isOpen = isOpen
     }
 
     init(from decoder: Decoder) throws {
@@ -86,6 +90,7 @@ struct NoteData: Codable, Identifiable {
         macFrameVersion = try container.decodeIfPresent(Int.self, forKey: .macFrameVersion) ?? 0
         versions = try container.decodeIfPresent([NoteVersion].self, forKey: .versions) ?? []
         pinned = try container.decodeIfPresent(Bool.self, forKey: .pinned) ?? false
+        isOpen = try container.decodeIfPresent(Bool.self, forKey: .isOpen) ?? true
 
         if macFrameVersion == 0 && decodedWidth <= 260 && decodedHeight <= 300 {
             width = NoteData.defaultWidth
@@ -118,6 +123,9 @@ struct NoteData: Codable, Identifiable {
         }
         if pinned {
             try container.encode(pinned, forKey: .pinned)
+        }
+        if !isOpen {
+            try container.encode(isOpen, forKey: .isOpen)
         }
     }
 }

@@ -951,6 +951,9 @@ private struct SourceChipModel {
 
 struct ClipboardStandardWindowView: View {
     @ObservedObject var clipboard: ClipboardManager
+    @ObservedObject var settings: AppSettings
+    let storageRootURL: URL
+    let startsInSettingsMode: Bool
     let notesProvider: () -> [ClipboardView.NoteDeckItem]
     let onCreateNoteFromItem: (ClipboardManager.Item) -> Void
     let onOpenNote: (UUID) -> Void
@@ -969,6 +972,8 @@ struct ClipboardStandardWindowView: View {
     @State private var keyMonitor: Any?
     @State private var currentPage: Int = 1
     @State private var itemsPerPage: Int = 50
+    @State private var isSettingsMode: Bool = false
+    @State private var selectedSettingsSection: SettingsSection = .general
     @FocusState private var searchFocused: Bool
     private let gridMinCardWidth: CGFloat = 190
     private let gridMaxCardWidth: CGFloat = 260
@@ -976,11 +981,66 @@ struct ClipboardStandardWindowView: View {
     private let gridVerticalPadding: CGFloat = 24
     private let cardHeight: CGFloat = 170
 
+    init(
+        clipboard: ClipboardManager,
+        settings: AppSettings,
+        storageRootURL: URL,
+        startsInSettingsMode: Bool,
+        notesProvider: @escaping () -> [ClipboardView.NoteDeckItem],
+        onCreateNoteFromItem: @escaping (ClipboardManager.Item) -> Void,
+        onOpenNote: @escaping (UUID) -> Void,
+        onCopyItem: @escaping (ClipboardManager.Item) -> Void,
+        onLoadFavicon: @escaping (String) -> Data?,
+        onLoadURLPreviewImage: @escaping (String) -> Data?,
+        onShowPreferences: @escaping () -> Void,
+        onOpenFinder: @escaping () -> Void
+    ) {
+        self.clipboard = clipboard
+        self.settings = settings
+        self.storageRootURL = storageRootURL
+        self.startsInSettingsMode = startsInSettingsMode
+        self.notesProvider = notesProvider
+        self.onCreateNoteFromItem = onCreateNoteFromItem
+        self.onOpenNote = onOpenNote
+        self.onCopyItem = onCopyItem
+        self.onLoadFavicon = onLoadFavicon
+        self.onLoadURLPreviewImage = onLoadURLPreviewImage
+        self.onShowPreferences = onShowPreferences
+        self.onOpenFinder = onOpenFinder
+        self._isSettingsMode = State(initialValue: startsInSettingsMode)
+    }
+
     private enum SourceFilter: Equatable {
         case all
         case notes
         case trash
         case app(String)
+    }
+
+    private enum SettingsSection: String, CaseIterable, Identifiable {
+        case general
+        case shortcuts
+        case clipboard
+        case about
+
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .general: return localizedString("general")
+            case .shortcuts: return localizedString("shortcuts")
+            case .clipboard: return "Clipboard"
+            case .about: return localizedString("about_section")
+            }
+        }
+
+        var systemImage: String {
+            switch self {
+            case .general: return "gearshape"
+            case .shortcuts: return "keyboard"
+            case .clipboard: return "clipboard"
+            case .about: return "info.circle"
+            }
+        }
     }
 
     enum GridEntry: Identifiable, Equatable {
@@ -1045,89 +1105,124 @@ struct ClipboardStandardWindowView: View {
                 .padding(.horizontal, isSidebarCollapsed ? 14 : 16)
                 .padding(.bottom, 6)
 
-                sidebarButton(
-                    title: localizedString("filter_all"),
-                    systemImage: "house.fill",
-                    isSelected: selectedSource == .all
-                ) {
-                    selectedSource = .all
-                    selectedTag = nil
-                    currentPage = 1
-                }
-
-                sidebarButton(
-                    title: localizedString("notes"),
-                    systemImage: "note.text",
-                    isSelected: selectedSource == .notes
-                ) {
-                    selectedSource = .notes
-                    selectedTag = nil
-                    currentPage = 1
-                }
-
-                sidebarButton(
-                    title: localizedString("trash"),
-                    systemImage: "trash",
-                    isSelected: selectedSource == .trash
-                ) {
-                    selectedSource = .trash
-                    selectedTag = nil
-                    currentPage = 1
-                }
-
-                if !isSidebarCollapsed {
-                    sectionTitle("Tags")
-                }
-                ForEach(allTagItems, id: \.name) { tag in
-                    tagRow(tag)
-                }
-
-                if !isSidebarCollapsed {
-                    sectionTitle("Application")
-                }
-                ForEach(sourceChips, id: \.bundleID) { source in
+                if isSettingsMode {
                     Button {
-                        selectedSource = .app(source.bundleID)
-                        selectedTag = nil
-                        currentPage = 1
+                        isSettingsMode = false
                     } label: {
                         HStack(spacing: 8) {
-                            if let icon = source.icon {
-                                Image(nsImage: icon)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 16, height: 16)
-                                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                            } else {
-                                Image(systemName: "app")
-                                    .frame(width: 16, height: 16)
-                            }
+                            Image(systemName: "arrow.left")
+                                .frame(width: 16, height: 16)
                             if !isSidebarCollapsed {
-                                Text(source.name)
-                                    .font(.system(size: 13, weight: .medium))
-                                    .lineLimit(1)
+                                Text("Retour")
+                                    .font(.system(size: 13, weight: .semibold))
                                 Spacer(minLength: 0)
-                                Text("\(source.count)")
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(
-                                        Capsule()
-                                            .fill(Color.black.opacity(0.06))
-                                    )
-                                    .frame(width: 34, alignment: .trailing)
                             }
                         }
                         .padding(.horizontal, isSidebarCollapsed ? 12 : 16)
-                        .padding(.vertical, 5)
+                        .padding(.vertical, 6)
                         .background(
                             RoundedRectangle(cornerRadius: 6)
-                                .fill(selectedSource == .app(source.bundleID) ? Color.black.opacity(0.10) : Color.clear)
+                                .fill(Color.black.opacity(0.08))
                         )
                         .padding(.horizontal, isSidebarCollapsed ? 6 : 8)
                     }
                     .buttonStyle(.plain)
+                    .padding(.bottom, 6)
+
+                    ForEach(SettingsSection.allCases) { section in
+                        sidebarButton(
+                            title: section.title,
+                            systemImage: section.systemImage,
+                            isSelected: selectedSettingsSection == section
+                        ) {
+                            selectedSettingsSection = section
+                        }
+                    }
+                } else {
+                    sidebarButton(
+                        title: localizedString("filter_all"),
+                        systemImage: "house.fill",
+                        isSelected: selectedSource == .all
+                    ) {
+                        selectedSource = .all
+                        selectedTag = nil
+                        currentPage = 1
+                    }
+
+                    sidebarButton(
+                        title: localizedString("notes"),
+                        systemImage: "note.text",
+                        isSelected: selectedSource == .notes
+                    ) {
+                        selectedSource = .notes
+                        selectedTag = nil
+                        currentPage = 1
+                    }
+
+                    sidebarButton(
+                        title: localizedString("trash"),
+                        systemImage: "trash",
+                        isSelected: selectedSource == .trash
+                    ) {
+                        selectedSource = .trash
+                        selectedTag = nil
+                        currentPage = 1
+                    }
+
+                    if !isSidebarCollapsed {
+                        sectionTitle("Tags")
+                    }
+                    ForEach(allTagItems, id: \.name) { tag in
+                        tagRow(tag)
+                    }
+
+                    if !isSidebarCollapsed {
+                        sectionTitle("Application")
+                    }
+                    ForEach(sourceChips, id: \.bundleID) { source in
+                        Button {
+                            selectedSource = .app(source.bundleID)
+                            selectedTag = nil
+                            currentPage = 1
+                        } label: {
+                            HStack(spacing: 8) {
+                                if let icon = source.icon {
+                                    Image(nsImage: icon)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 16, height: 16)
+                                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                                } else {
+                                    Image(systemName: "app")
+                                        .frame(width: 16, height: 16)
+                                }
+                                if !isSidebarCollapsed {
+                                    Text(source.name)
+                                        .font(.system(size: 13, weight: .medium))
+                                        .lineLimit(1)
+                                    Spacer(minLength: 0)
+                                    Text("\(source.count)")
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundStyle(.secondary)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(
+                                            Capsule()
+                                                .fill(Color.black.opacity(0.06))
+                                        )
+                                        .frame(width: 34, alignment: .trailing)
+                                }
+                            }
+                            .padding(.horizontal, isSidebarCollapsed ? 12 : 16)
+                            .padding(.vertical, 5)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(selectedSource == .app(source.bundleID) ? Color.black.opacity(0.10) : Color.clear)
+                            )
+                            .padding(.horizontal, isSidebarCollapsed ? 6 : 8)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
             }
             .padding(.vertical, 8)
@@ -1135,82 +1230,119 @@ struct ClipboardStandardWindowView: View {
         .background(Color(NSColor.windowBackgroundColor).opacity(0.96))
     }
 
+    @ViewBuilder
     private var mainGrid: some View {
-        GeometryReader { proxy in
-            ScrollView(.vertical, showsIndicators: true) {
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: gridMinCardWidth, maximum: gridMaxCardWidth), spacing: gridSpacing)],
-                    spacing: gridSpacing
-                ) {
-                    ForEach(pagedEntries.indices, id: \.self) { index in
-                        let entry = pagedEntries[index]
-                        StandardClipboardCard(
-                            entry: entry,
-                            shortcutIndex: ((currentPage - 1) * itemsPerPage) + index + 1,
-                            isSelected: selectedID == entry.id,
-                            onSelect: { selectedID = entry.id },
-                            onOpenNote: onOpenNote,
-                            onCopyItem: onCopyItem,
-                            onCreateNoteFromItem: onCreateNoteFromItem,
-                        onLoadFavicon: onLoadFavicon,
-                        onLoadURLPreviewImage: onLoadURLPreviewImage,
-                        availableTags: allTags,
-                        onAddTag: { id, tag in clipboard.addTag(tag, to: id) },
-                        onRemoveTag: { id, tag in clipboard.removeTag(tag, from: id) },
-                        onRestoreItem: { id in clipboard.restore(id) },
-                        onDeletePermanently: { id in clipboard.deletePermanently(id) },
-                        noteTags: noteTags,
-                        onAddNoteTag: { id, tag in
-                            let normalized = tag.trimmingCharacters(in: .whitespacesAndNewlines)
-                            guard !normalized.isEmpty else { return }
-                            var tags = noteTags[id] ?? []
-                            if !tags.contains(where: { $0.caseInsensitiveCompare(normalized) == .orderedSame }) {
-                                tags.append(normalized)
-                                tags.sort { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
-                                noteTags[id] = tags
+        if isSettingsMode {
+            ScrollView {
+                Group {
+                    switch selectedSettingsSection {
+                    case .general:
+                        GeneralPreferencesView(
+                            settings: settings,
+                            storageURL: storageRootURL.appendingPathComponent("saved_state.json"),
+                            onRestartRequested: {
+                                let alert = NSAlert()
+                                alert.messageText = "Restart required"
+                                alert.informativeText = "Please restart PKbrain to apply this change."
+                                alert.runModal()
                             }
-                        },
-                        onRemoveNoteTag: { id, tag in
-                            var tags = noteTags[id] ?? []
-                            tags.removeAll { $0.caseInsensitiveCompare(tag) == .orderedSame }
-                            noteTags[id] = tags
-                        }
-                    )
+                        )
+                    case .shortcuts:
+                        ShortcutsPreferencesView(settings: settings)
+                            .padding(12)
+                    case .clipboard:
+                        ClipboardDataSettingsView(
+                            settings: settings,
+                            clipboard: clipboard,
+                            storageRootURL: storageRootURL
+                        )
+                    case .about:
+                        AboutPreferencesView()
+                            .padding(12)
+                    }
                 }
-            }
-                .padding(12)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
             .background(Color.white)
-            .onAppear {
-                updateItemsPerPage(for: proxy.size)
-            }
-            .onChange(of: proxy.size) { size in
-                updateItemsPerPage(for: size)
+        } else {
+            GeometryReader { proxy in
+                ScrollView(.vertical, showsIndicators: true) {
+                    LazyVGrid(
+                        columns: [GridItem(.adaptive(minimum: gridMinCardWidth, maximum: gridMaxCardWidth), spacing: gridSpacing)],
+                        spacing: gridSpacing
+                    ) {
+                        ForEach(pagedEntries.indices, id: \.self) { index in
+                            let entry = pagedEntries[index]
+                            StandardClipboardCard(
+                                entry: entry,
+                                shortcutIndex: ((currentPage - 1) * itemsPerPage) + index + 1,
+                                isSelected: selectedID == entry.id,
+                                onSelect: { selectedID = entry.id },
+                                onOpenNote: onOpenNote,
+                                onCopyItem: onCopyItem,
+                                onCreateNoteFromItem: onCreateNoteFromItem,
+                            onLoadFavicon: onLoadFavicon,
+                            onLoadURLPreviewImage: onLoadURLPreviewImage,
+                            availableTags: allTags,
+                            onAddTag: { id, tag in clipboard.addTag(tag, to: id) },
+                            onRemoveTag: { id, tag in clipboard.removeTag(tag, from: id) },
+                            onRestoreItem: { id in clipboard.restore(id) },
+                            onDeletePermanently: { id in clipboard.deletePermanently(id) },
+                            noteTags: noteTags,
+                            onAddNoteTag: { id, tag in
+                                let normalized = tag.trimmingCharacters(in: .whitespacesAndNewlines)
+                                guard !normalized.isEmpty else { return }
+                                var tags = noteTags[id] ?? []
+                                if !tags.contains(where: { $0.caseInsensitiveCompare(normalized) == .orderedSame }) {
+                                    tags.append(normalized)
+                                    tags.sort { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+                                    noteTags[id] = tags
+                                }
+                            },
+                            onRemoveNoteTag: { id, tag in
+                                var tags = noteTags[id] ?? []
+                                tags.removeAll { $0.caseInsensitiveCompare(tag) == .orderedSame }
+                                noteTags[id] = tags
+                            }
+                        )
+                    }
+                }
+                    .padding(12)
+                }
+                .background(Color.white)
+                .onAppear {
+                    updateItemsPerPage(for: proxy.size)
+                }
+                .onChange(of: proxy.size) { size in
+                    updateItemsPerPage(for: size)
+                }
             }
         }
     }
 
     private var footer: some View {
         HStack(spacing: 10) {
-            Text("Page")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.secondary)
-            ForEach(1...min(14, max(1, totalPages)), id: \.self) { page in
-                Button {
-                    currentPage = page
-                    if let first = pagedEntries.first {
-                        selectedID = first.id
+            if !isSettingsMode {
+                Text("Page")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+                ForEach(1...min(14, max(1, totalPages)), id: \.self) { page in
+                    Button {
+                        currentPage = page
+                        if let first = pagedEntries.first {
+                            selectedID = first.id
+                        }
+                    } label: {
+                        Text("\(page)")
+                            .font(.system(size: 12, weight: page == currentPage ? .bold : .regular))
+                            .foregroundStyle(page == currentPage ? Color.primary : Color.secondary)
+                            .frame(minWidth: 16)
                     }
-                } label: {
-                    Text("\(page)")
-                        .font(.system(size: 12, weight: page == currentPage ? .bold : .regular))
-                        .foregroundStyle(page == currentPage ? Color.primary : Color.secondary)
-                        .frame(minWidth: 16)
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
             Spacer()
-            if selectedSource == .trash {
+            if !isSettingsMode, selectedSource == .trash {
                 Button {
                     clipboard.clearTrash()
                 } label: {
@@ -1227,33 +1359,40 @@ struct ClipboardStandardWindowView: View {
             .buttonStyle(.plain)
             .help(localizedString("open_notes_folder"))
 
-            Button(action: onShowPreferences) {
+            Button {
+                isSettingsMode.toggle()
+                if isSettingsMode {
+                    selectedSettingsSection = .general
+                }
+            } label: {
                 Image(systemName: "gearshape")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(isSettingsMode ? Color.primary : Color.secondary)
             }
             .buttonStyle(.plain)
-            .help(localizedString("preferences"))
+            .help("Settings")
 
-            Image(systemName: "line.3.horizontal.decrease.circle")
-                .foregroundStyle(.secondary)
-            HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(Color(NSColor.tertiaryLabelColor))
-                TextField(localizedString("search"), text: $query)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 12))
-                    .focused($searchFocused)
+            if !isSettingsMode {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(Color(NSColor.tertiaryLabelColor))
+                    TextField(localizedString("search"), text: $query)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 12))
+                        .focused($searchFocused)
+                }
+                .padding(.horizontal, 10)
+                .frame(width: 170, height: 28)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.black.opacity(0.04))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(Color.black.opacity(0.08), lineWidth: 1)
+                        )
+                )
             }
-            .padding(.horizontal, 10)
-            .frame(width: 170, height: 28)
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Color.black.opacity(0.04))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(Color.black.opacity(0.08), lineWidth: 1)
-                    )
-            )
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 16)
@@ -1379,6 +1518,9 @@ struct ClipboardStandardWindowView: View {
     }
 
     private var entries: [GridEntry] {
+        if isSettingsMode {
+            return []
+        }
         let needle = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         var output: [GridEntry] = []
 
@@ -1435,6 +1577,13 @@ struct ClipboardStandardWindowView: View {
 
     private func handleKeyDown(_ event: NSEvent) -> Bool {
         guard let keyWindow = NSApp.keyWindow, keyWindow.title == "PKclipboard" else { return false }
+        if isSettingsMode {
+            if event.keyCode == 53 { // Esc
+                isSettingsMode = false
+                return true
+            }
+            return false
+        }
         guard !entries.isEmpty else { return false }
 
         if selectedID == nil {
@@ -1570,6 +1719,268 @@ struct ClipboardStandardWindowView: View {
         guard chars.rangeOfCharacter(from: .newlines) == nil else { return nil }
         guard chars.rangeOfCharacter(from: .controlCharacters) == nil else { return nil }
         return chars
+    }
+}
+
+private struct ClipboardDataSettingsView: View {
+    @ObservedObject var settings: AppSettings
+    @ObservedObject var clipboard: ClipboardManager
+    let storageRootURL: URL
+
+    @State private var sourceListText: String = ""
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                Text("Clipboard Settings")
+                    .font(.title3.weight(.semibold))
+
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Toggle(isOn: Binding(
+                            get: { !clipboard.isPaused },
+                            set: { clipboard.isPaused = !$0 }
+                        )) {
+                            Text("Capture active")
+                        }
+                        .toggleStyle(.switch)
+
+                        HStack(spacing: 12) {
+                            Text("Max items")
+                            Stepper(value: $settings.clipboardMaxItems, in: 5000...50000, step: 500) {
+                                Text("\(settings.clipboardMaxItems)")
+                                    .frame(minWidth: 80, alignment: .leading)
+                            }
+                        }
+
+                        HStack(spacing: 12) {
+                            Text("Max age (days)")
+                            Stepper(value: $settings.clipboardMaxAgeDays, in: 365...3650, step: 30) {
+                                Text("\(settings.clipboardMaxAgeDays)")
+                                    .frame(minWidth: 80, alignment: .leading)
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Drawer position")
+                            Picker("", selection: $settings.clipboardDrawerEdge) {
+                                Text("Top").tag(ClipboardDrawerEdge.top)
+                                Text("Bottom").tag(ClipboardDrawerEdge.bottom)
+                                Text("Left").tag(ClipboardDrawerEdge.left)
+                                Text("Right").tag(ClipboardDrawerEdge.right)
+                            }
+                            .pickerStyle(.segmented)
+                        }
+                    }
+                    .padding(12)
+                }
+
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Source privacy mode")
+                        Picker("", selection: $settings.clipboardSourceMode) {
+                            Text("Allow all").tag(ClipboardSourceMode.allowAll)
+                            Text("Block list").tag(ClipboardSourceMode.blockList)
+                            Text("Allow list").tag(ClipboardSourceMode.allowList)
+                        }
+                        .pickerStyle(.segmented)
+
+                        TextField("com.apple.finder, com.google.Chrome", text: $sourceListText)
+                            .textFieldStyle(.roundedBorder)
+
+                        HStack(spacing: 10) {
+                            Button("Apply list") {
+                                let values = sourceListText
+                                    .split(separator: ",")
+                                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                                    .filter { !$0.isEmpty }
+                                settings.clipboardSourceList = values
+                            }
+                            Button("Use current list") {
+                                sourceListText = settings.clipboardSourceList.joined(separator: ", ")
+                            }
+                        }
+                    }
+                    .padding(12)
+                }
+
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Data backup (full PKbrain data)")
+                        HStack(spacing: 10) {
+                            Button("Export full backup") { exportFullBackup() }
+                            Button("Restore full backup") { importFullBackup() }
+                            Button("Open data folder") {
+                                NSWorkspace.shared.activateFileViewerSelecting([storageRootURL])
+                            }
+                        }
+                    }
+                    .padding(12)
+                }
+            }
+            .padding(10)
+        }
+        .onAppear {
+            sourceListText = settings.clipboardSourceList.joined(separator: ", ")
+        }
+    }
+
+    private func exportFullBackup() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Export"
+
+        guard panel.runModal() == .OK, let destinationRoot = panel.url else { return }
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        let stamp = formatter.string(from: Date())
+        let backupURL = destinationRoot.appendingPathComponent("PKbrain-backup-\(stamp)", isDirectory: true)
+
+        do {
+            let fm = FileManager.default
+            if fm.fileExists(atPath: backupURL.path) {
+                try fm.removeItem(at: backupURL)
+            }
+            try fm.copyItem(at: storageRootURL, to: backupURL)
+
+            let done = NSAlert()
+            done.messageText = "Backup created"
+            done.informativeText = backupURL.path
+            done.runModal()
+        } catch {
+            let failed = NSAlert()
+            failed.messageText = "Backup failed"
+            failed.informativeText = error.localizedDescription
+            failed.runModal()
+        }
+    }
+
+    private func importFullBackup() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Restore"
+
+        guard panel.runModal() == .OK, let backupDir = panel.url else { return }
+        let required = backupDir.appendingPathComponent("saved_state.json")
+        guard FileManager.default.fileExists(atPath: required.path) else {
+            let alert = NSAlert()
+            alert.messageText = "Invalid backup"
+            alert.informativeText = "Missing saved_state.json in selected folder."
+            alert.runModal()
+            return
+        }
+
+        let confirm = NSAlert()
+        confirm.messageText = "Restore this backup?"
+        confirm.informativeText = "Current data folder will be archived first."
+        confirm.addButton(withTitle: "Restore")
+        confirm.addButton(withTitle: "Cancel")
+        guard confirm.runModal() == .alertFirstButtonReturn else { return }
+
+        let fm = FileManager.default
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        let stamp = formatter.string(from: Date())
+        let archiveURL = storageRootURL.deletingLastPathComponent()
+            .appendingPathComponent("PKbrain-pre-restore-\(stamp)", isDirectory: true)
+
+        do {
+            if fm.fileExists(atPath: archiveURL.path) {
+                try fm.removeItem(at: archiveURL)
+            }
+            if fm.fileExists(atPath: storageRootURL.path) {
+                try fm.copyItem(at: storageRootURL, to: archiveURL)
+                try fm.removeItem(at: storageRootURL)
+            }
+            try fm.copyItem(at: backupDir, to: storageRootURL)
+
+            let done = NSAlert()
+            done.messageText = "Restore complete"
+            done.informativeText = "Previous data archived at:\n\(archiveURL.path)"
+            done.runModal()
+        } catch {
+            let failed = NSAlert()
+            failed.messageText = "Restore failed"
+            failed.informativeText = error.localizedDescription
+            failed.runModal()
+        }
+    }
+}
+
+private struct GlobalSettingsInClipboardView: View {
+    @ObservedObject var settings: AppSettings
+    @ObservedObject var clipboard: ClipboardManager
+    let storageRootURL: URL
+    @State private var section: Section = .general
+
+    private enum Section: String, CaseIterable, Identifiable {
+        case general
+        case shortcuts
+        case clipboard
+        case about
+
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .general: return localizedString("general")
+            case .shortcuts: return localizedString("shortcuts")
+            case .clipboard: return "Clipboard"
+            case .about: return localizedString("about_section")
+            }
+        }
+    }
+
+    private var storageStateURL: URL {
+        storageRootURL.appendingPathComponent("saved_state.json")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Picker("", selection: $section) {
+                ForEach(Section.allCases) { item in
+                    Text(item.label).tag(item)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            Group {
+                switch section {
+                case .general:
+                    GeneralPreferencesView(
+                        settings: settings,
+                        storageURL: storageStateURL,
+                        onRestartRequested: {
+                            let alert = NSAlert()
+                            alert.messageText = "Restart required"
+                            alert.informativeText = "Please restart PKbrain to apply this change."
+                            alert.runModal()
+                        }
+                    )
+                case .shortcuts:
+                    ShortcutsPreferencesView(settings: settings)
+                        .padding(12)
+                case .clipboard:
+                    ClipboardDataSettingsView(
+                        settings: settings,
+                        clipboard: clipboard,
+                        storageRootURL: storageRootURL
+                    )
+                case .about:
+                    AboutPreferencesView()
+                        .padding(12)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(NSColor.windowBackgroundColor).opacity(0.55))
+            )
+        }
     }
 }
 

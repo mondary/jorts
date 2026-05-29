@@ -94,6 +94,13 @@
   - preview agrandi en popover, fermeture par clic extérieur + `Esc`
   - cartes notes rendues en style sticky note (fond/thème distinctifs)
   - boutons rapides `Paramètres` + `Ouvrir dossier local` ajoutés dans drawer et PKClipboard
+  - mode `Settings` intégré:
+    - bouton paramètres en footer qui bascule toute la fenêtre en mode paramètres
+    - sidebar dédiée (`General`, `Shortcuts`, `Clipboard`, `About`)
+    - écran principal dynamique selon la section sélectionnée
+    - sortie mode paramètres via `Esc` ou bouton `Retour`
+  - `Cmd+,` redirigé vers `PKClipboard` en mode paramètres (plus de popup séparé)
+  - section backup complète dans paramètres clipboard (export/restore dossier de données complet)
   - gestion corbeille notes enrichie: clic droit par ligne `Restaurer` / `Supprimer`
 - Persistance et stockage:
   - stockage Markdown par note
@@ -112,6 +119,7 @@
 - Gestion fenêtres:
   - comportement natif palette flottante
   - restauration focus fenêtre après palette
+  - persistance notes ouvertes/fermées au relaunch (seules les notes ouvertes se rouvrent)
 - Menubar native:
   - actions rapides
   - entrée dédiée: afficher le tiroir presse-papiers

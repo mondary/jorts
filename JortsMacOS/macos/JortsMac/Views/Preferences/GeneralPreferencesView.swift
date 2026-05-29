@@ -140,6 +140,24 @@ struct GeneralPreferencesView: View {
 
             Divider()
 
+            // Full data backup/restore (notes + clipboard + assets)
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Backup")
+                    .font(.headline)
+
+                HStack(spacing: 10) {
+                    Button("Exporter toutes les donnees") { exportFullBackup() }
+                    Button("Restaurer une sauvegarde") { importFullBackup() }
+                    Spacer()
+                }
+
+                Text("Sauvegarde/restauration du dossier complet PKbrain (notes, clipboard, tags, assets).")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Divider()
+
             VStack(alignment: .leading, spacing: 10) {
                 Text(localizedString("cleanup"))
                     .font(.headline)
@@ -275,6 +293,97 @@ struct GeneralPreferencesView: View {
         } catch {
             let failed = NSAlert()
             failed.messageText = "Archive failed"
+            failed.informativeText = error.localizedDescription
+            failed.runModal()
+        }
+    }
+
+    private func exportFullBackup() {
+        let storageDir = storageURL.deletingLastPathComponent()
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Exporter"
+
+        guard panel.runModal() == .OK, let destinationRoot = panel.url else { return }
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        let stamp = formatter.string(from: Date())
+        let backupURL = destinationRoot.appendingPathComponent("PKbrain-backup-\(stamp)", isDirectory: true)
+
+        do {
+            let fm = FileManager.default
+            try fm.createDirectory(at: destinationRoot, withIntermediateDirectories: true)
+            if fm.fileExists(atPath: backupURL.path) {
+                try fm.removeItem(at: backupURL)
+            }
+            try fm.copyItem(at: storageDir, to: backupURL)
+
+            let done = NSAlert()
+            done.messageText = "Backup cree"
+            done.informativeText = backupURL.path
+            done.runModal()
+        } catch {
+            let failed = NSAlert()
+            failed.messageText = "Export backup echoue"
+            failed.informativeText = error.localizedDescription
+            failed.runModal()
+        }
+    }
+
+    private func importFullBackup() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Restaurer"
+
+        guard panel.runModal() == .OK, let backupDir = panel.url else { return }
+
+        let savedState = backupDir.appendingPathComponent("saved_state.json")
+        guard FileManager.default.fileExists(atPath: savedState.path) else {
+            let alert = NSAlert()
+            alert.messageText = "Sauvegarde invalide"
+            alert.informativeText = "Le dossier choisi ne contient pas saved_state.json."
+            alert.runModal()
+            return
+        }
+
+        let confirm = NSAlert()
+        confirm.messageText = "Restaurer cette sauvegarde ?"
+        confirm.informativeText = "Le dossier actuel sera archive puis remplace par la sauvegarde selectionnee."
+        confirm.addButton(withTitle: "Restaurer")
+        confirm.addButton(withTitle: "Annuler")
+        guard confirm.runModal() == .alertFirstButtonReturn else { return }
+
+        let fm = FileManager.default
+        let storageDir = storageURL.deletingLastPathComponent()
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        let stamp = formatter.string(from: Date())
+        let archiveDir = storageDir.deletingLastPathComponent()
+            .appendingPathComponent("PKbrain-pre-restore-\(stamp)", isDirectory: true)
+
+        do {
+            if fm.fileExists(atPath: archiveDir.path) {
+                try fm.removeItem(at: archiveDir)
+            }
+            if fm.fileExists(atPath: storageDir.path) {
+                try fm.copyItem(at: storageDir, to: archiveDir)
+                try fm.removeItem(at: storageDir)
+            }
+            try fm.copyItem(at: backupDir, to: storageDir)
+            onRestartRequested()
+
+            let done = NSAlert()
+            done.messageText = "Restauration terminee"
+            done.informativeText = "Backup precedent archive: \(archiveDir.path)"
+            done.runModal()
+        } catch {
+            let failed = NSAlert()
+            failed.messageText = "Restauration echouee"
             failed.informativeText = error.localizedDescription
             failed.runModal()
         }

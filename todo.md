@@ -29,6 +29,7 @@ Status: in progress.
 - [x] Drawer cards shifted to more square/polaroid ratio
 - [x] Drawer opens on active screen in multi-display setups
 - [x] Cmd+Tab icon fallback when app is launched via `swift run`
+- [x] `Cmd+,` now opens PKClipboard in Settings mode (no separate popup window)
 - [x] PKClipboard: right-click context menu on cards for tags (add/remove/create)
 - [x] PKClipboard: double-click opens expanded preview with full content
 - [x] PKClipboard: persistent tags + sidebar tag filtering across sources
@@ -57,6 +58,12 @@ Status: in progress.
 - [x] Click outside drawer closes drawer
 - [x] Menu bar entry to open clipboard drawer (`Afficher le tiroir presse-papiers`)
 - [x] Sticky note metadata stored at end of Markdown file (`<!-- JORTS_META ... -->`)
+- [x] PKClipboard Settings mode:
+  - footer settings button toggles full-window settings mode
+  - dedicated settings sidebar + section-based main panel
+  - exit settings via `Esc` and top-left return button
+- [x] Full backup/restore actions available inside PKClipboard settings
+- [x] Note open/closed state persisted and restored on relaunch
 
 ## Remaining Features
 

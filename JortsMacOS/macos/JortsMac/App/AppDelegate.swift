@@ -378,19 +378,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func showPreferences(_ sender: Any?) {
-        if preferencesWindowController == nil {
-            preferencesWindowController = PreferencesWindowController(
+        showClipboardWindowSettings(sender)
+    }
+
+    @objc private func showClipboardWindowSettings(_ sender: Any?) {
+        manager.hideAllNotes()
+        if clipboardWindowController == nil {
+            clipboardWindowController = ClipboardWindowController(
+                manager: manager,
                 settings: settings,
-                storageURL: manager.storageURL,
-                onLanguageChanged: { [weak self] in
-                    self?.restartForLanguageChange()
+                clipboard: clipboard,
+                onShowPreferences: { [weak self] in self?.showPreferences(nil) },
+                onOpenFinder: { [weak self] in
+                    guard let self else { return }
+                    NSWorkspace.shared.activateFileViewerSelecting([self.manager.storageURL])
                 }
             )
         }
-
-        preferencesWindowController?.showWindow(nil)
-        preferencesWindowController?.window?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        clipboardWindowController?.showStandardClipboardSettings()
     }
 
     private func restartForLanguageChange() {

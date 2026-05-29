@@ -30,8 +30,9 @@ final class NoteManager {
         if loadedNotes.isEmpty {
             createNote(NoteData(theme: .blueberry), activate: true, scheduleSave: true)
         } else {
-            loadedNotes.forEach { createNote($0, activate: false, scheduleSave: false) }
-            showAllNotes()
+            loadedNotes.forEach { note in
+                createNote(note, activate: false, scheduleSave: false, initiallyVisible: note.isOpen)
+            }
         }
     }
 
@@ -60,7 +61,12 @@ final class NoteManager {
         createNote(note, activate: activate, scheduleSave: true)
     }
 
-    func createNote(_ data: NoteData, activate: Bool = true, scheduleSave: Bool = true) {
+    func createNote(
+        _ data: NoteData,
+        activate: Bool = true,
+        scheduleSave: Bool = true,
+        initiallyVisible: Bool = true
+    ) {
         latestTheme = data.theme
         let document = NoteDocument(data: data)
         let controller = NoteWindowController(
@@ -91,9 +97,14 @@ final class NoteManager {
 
         controllers[document.id] = controller
         orderedNoteIDs.append(document.id)
-        controller.showWindow(nil)
+        if initiallyVisible {
+            controller.showWindow(nil)
+        }
 
         if activate {
+            if !initiallyVisible {
+                controller.showWindow(nil)
+            }
             controller.window?.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             lastFocusedNoteID = document.id
@@ -117,12 +128,14 @@ final class NoteManager {
 
         orderedControllers().first?.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        scheduleSave()
     }
 
     func hideAllNotes() {
         orderedControllers().forEach { controller in
             controller.window?.orderOut(nil)
         }
+        scheduleSave()
     }
 
     func deleteActiveNote() {
@@ -155,6 +168,7 @@ final class NoteManager {
         controller.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         lastFocusedNoteID = documentID
+        scheduleSave()
     }
 
     func focusLastFocusedNote() {
@@ -228,8 +242,15 @@ final class NoteManager {
     func saveNow() {
         saveWorkItem?.cancel()
         saveWorkItem = nil
+
+        let notePayload: [NoteData] = orderedControllers().map { controller in
+            var data = controller.noteDocument.package()
+            data.isOpen = controller.window?.isVisible ?? true
+            return data
+        }
+
         let state = SavedState(
-            notes: orderedControllers().map { $0.noteDocument.package() },
+            notes: notePayload,
             trash: trash
         )
         storage.saveState(state)
