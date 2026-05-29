@@ -95,11 +95,12 @@ struct ClipboardView: View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 8) {
-                    ForEach(entries) { entry in
+                    ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
                         switch entry {
                         case .clipboard(let item):
                             DeckCard(
                                 item: item,
+                                shortcutIndex: index + 1,
                                 isSelected: selectedID == item.id,
                                 onSelect: { selectedID = item.id },
                                 onCopy: { onCopyItem(item) },
@@ -1416,6 +1417,7 @@ private struct SourceChip: View {
 
 private struct DeckCard: View {
     let item: ClipboardManager.Item
+    let shortcutIndex: Int
     let isSelected: Bool
     let onSelect: () -> Void
     let onCopy: () -> Void
@@ -1448,6 +1450,11 @@ private struct DeckCard: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
+                if shortcutIndex <= 9 {
+                    Text("⌘\(shortcutIndex)")
+                        .font(.system(size: 11 * scale, weight: .medium))
+                        .foregroundStyle(Color(red: 0, green: 122/255, blue: 1))
+                }
                 Text(relativeTime(item.createdAt))
                     .font(.system(size: 11 * scale, weight: .regular))
                     .foregroundStyle(.secondary)

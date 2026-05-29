@@ -122,6 +122,7 @@
 - Navigation: flèches gauche/droite
 - `Enter`: colle (best-effort) dans l'app précédente + ferme le drawer
 - `Cmd+C`: copie la carte sélectionnée vers le presse-papier système
+- badges raccourcis visibles sur les 9 premières cartes (`⌘1...⌘9`)
 - Clic hors drawer: ferme le drawer
 - `Cmd+Enter`: convertir en note
 - Filtres: texte, URL, image, fichier, couleur, source, épinglé, récent

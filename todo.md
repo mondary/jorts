@@ -20,6 +20,7 @@ Status: in progress.
 - [x] Clipboard drawer panel: key/main focus enabled to prevent split typing
 - [x] Clipboard drawer + PKClipboard: `Cmd+C` copies selected card to system pasteboard
 - [x] Shortcut added for PKClipboard standard window (`Cmd+Option+V`)
+- [x] Drawer: shortcut badges restored on first 9 cards (`⌘1...⌘9`)
 - [x] Persist clipboard history to disk (alongside notes storage)
 - [x] App icons per clipboard item (source pictos)
 - [x] Image thumbnails shown entirely (no crop) + lightbox
